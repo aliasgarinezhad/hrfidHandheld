@@ -71,12 +71,12 @@ public class readingResultActivity extends AppCompatActivity {
 
                     JSONObject temp2 = subStuffs.getJSONObject(j);
 
-                    scanned += temp2.getInt("handheldCount");
-
                     if (!temp2.getBoolean("status")) {
+                        scanned += temp2.getInt("handheldCount");
                         NotScanned += temp2.getInt("diffCount");
                     }
                     else {
+                        scanned += temp2.getInt("dbCount");
                         Extra += temp2.getInt("diffCount");
                     }
                 }
@@ -86,10 +86,6 @@ public class readingResultActivity extends AppCompatActivity {
                 temp += "          " + Extra;
 
                 titles.add(temp);
-
-                sumNotScanned += NotScanned;
-                sumScanned += scanned;
-                sumExtra += Extra;
 
             } catch (JSONException e) {
                 e.printStackTrace();

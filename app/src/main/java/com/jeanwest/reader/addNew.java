@@ -53,7 +53,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     String positionStr;
     String companynumberStr;
     String CONumber;
-    public boolean isInit = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,13 +79,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             e.printStackTrace();
         }
 
-        if(!isInit) {
-
-            if (!RF.init()) {
-                RF.free();
-                RF.init();
-            }
-            isInit = true;
+        if (!RF.init()) {
+            RF.free();
+            RF.init();
         }
 
         RF.setEPCTIDMode(true);

@@ -85,7 +85,7 @@ public class readingResultSubActivity extends AppCompatActivity {
 
             try {
                 JSONObject temp = subStuffs.getJSONObject(i);
-                if (!temp.getBoolean("status")) {
+                if (!temp.getBoolean("status") && temp.getInt("diffCount") > 0) {
                     subResult.setText(subResult.getText() + temp.getString("productName") + "\n");
                     subResult.setText(subResult.getText() + "کد محصول: " + temp.getString("K_Bar_Code") + "\n");
                     subResult.setText(subResult.getText() + "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n");
