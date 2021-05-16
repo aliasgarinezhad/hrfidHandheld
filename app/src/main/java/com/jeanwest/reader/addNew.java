@@ -47,7 +47,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     public static int filterNumber = 0;  // 3bit
     public static int partitionNumber = 6; // 3bit
     public static int headerNumber = 48; // 8bit
-    public static int companyNumber = 100; // 12bit
+    public static int companyNumber = 101; // 12bit
     String headerStr;
     String filterStr;
     String positionStr;

@@ -5,8 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -19,7 +17,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.rscja.deviceapi.RFIDWithUHF;
-import com.rscja.deviceapi.exception.ConfigurationException;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +44,7 @@ public class reading extends AppCompatActivity {
     public static boolean databaseInProgress = false;
     Button button;
     Intent intent;
+    int notScanned = 0;
 
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
@@ -91,7 +94,6 @@ public class reading extends AppCompatActivity {
         response = Toast.makeText(this, "", Toast.LENGTH_LONG);
         button = (Button) findViewById(R.id.buttonReading);
         intent = new Intent(this, readingResultActivity.class);
-
     }
 
     @SuppressLint("SetTextI18n")
@@ -117,11 +119,42 @@ public class reading extends AppCompatActivity {
             readTask.start();
         }
 
-        status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
-        status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + "\n");
-        status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + "\n");
-        status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
+        API2.status = false;
+        API2.run = true;
+        while(API2.run){}
 
+        for (int i = 0; i<API2.stuffs.length(); i++) {
+
+            String temp;
+            JSONArray subStuffs;
+
+            try {
+                temp = API2.stuffs.getString(i);
+                subStuffs = API2.conflicts.getJSONArray(temp);
+
+                notScanned = 0;
+                for (int j = 0; j < subStuffs.length(); j++) {
+                    JSONObject temp2 = subStuffs.getJSONObject(j);
+                    notScanned += temp2.getInt("handheldCount");
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+
+
+        if(userSpecActivity.API.wareHouseID == 1706) {
+            status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+            status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
+        }
+        else if(userSpecActivity.API.wareHouseID == 1708) {
+            status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
+            status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+        }
+
+         status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
     }
 
     @SuppressLint("SetTextI18n")

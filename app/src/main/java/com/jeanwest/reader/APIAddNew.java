@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 public class APIAddNew extends Thread {
@@ -29,7 +28,7 @@ public class APIAddNew extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products?KBarCode=" + Barcode;
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/v2/products?KBarCode=" + Barcode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
@@ -40,7 +39,7 @@ public class APIAddNew extends Thread {
                         String Receive = reader.readLine();
 
                         JSONObject Json = new JSONObject(Receive);
-                        Response = Json.getString("BarcodeMain_ID");
+                        Response = Json.getString("RFID");
                         status = true;
                     }
                     else {
@@ -48,11 +47,7 @@ public class APIAddNew extends Thread {
                         Response = Connection.getResponseCode() + "Error: " + Connection.getResponseMessage();
                     }
 
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
+                } catch (JSONException | IOException e) {
                     e.printStackTrace();
                 }
                 run = false;
@@ -60,4 +55,3 @@ public class APIAddNew extends Thread {
         }
     }
 }
-
