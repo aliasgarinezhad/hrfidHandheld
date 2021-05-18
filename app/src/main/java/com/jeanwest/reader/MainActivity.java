@@ -12,33 +12,24 @@ import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.exception.ConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static Barcode2D barcode2D;
-    public static String BarcodeID;
-    public static RFIDWithUHF RF;
-    public static APIAddNew DataBase = new APIAddNew();
-    public static ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-    public static String EPC;
-    public static String TID;
-    public static String CONumber = "30";
-    public static TabLayout tabs;
-    public TabLayout.Tab AddNewTab;
-    public TabLayout.Tab ReadingTab;
-    public TabLayout.Tab FindingTab;
-    public static boolean step2 = false;
-    public databaseHelperClass databaseHelper = new databaseHelperClass(this);
-    public static SQLiteDatabase table;
-    public static SQLiteDatabase counter;
-    public static Toast warning;
+    public RFIDWithUHF RF;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        table = databaseHelper.getWritableDatabase();
+        try {
+            RF = RFIDWithUHF.getInstance();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
+
+        RF.init();
     }
 
     public void addNewActivity(View view) {

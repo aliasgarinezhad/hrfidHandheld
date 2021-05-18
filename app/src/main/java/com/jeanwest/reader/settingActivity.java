@@ -145,6 +145,7 @@ public class settingActivity extends AppCompatActivity {
         super.onPause();
         counter.close();
         databaseHelper2.close();
+        finish();
     }
 
 

@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.exception.ConfigurationException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -107,6 +108,17 @@ public class reading extends AppCompatActivity {
     protected void onResume() {
 
         super.onResume();
+
+        try {
+            RF = RFIDWithUHF.getInstance();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
+
+        while(!RF.setEPCTIDMode(false)) {}
+        while(!RF.setPower(30)) {}
+        while(!RF.setFrequencyMode((byte) 4)) {}
+        while(!RF.setRFLink(2)) {}
 
         databaseInProgress = false;
         readingInProgress = false;
@@ -235,10 +247,7 @@ public class reading extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            if(RF != null) {
-                RF.free();
-            }
-
+            RF.stopInventory();
             finish();
         }
         return true;
@@ -247,10 +256,8 @@ public class reading extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-
-        if(RF != null) {
-            RF.free();
-        }
+        RF.stopInventory();
+        finish();
     }
 
     @SuppressLint("SetTextI18n")

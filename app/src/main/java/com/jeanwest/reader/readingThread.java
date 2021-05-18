@@ -21,21 +21,6 @@ public class readingThread extends  Thread {
 
             if(readEnable) {
 
-                try {
-                    reading.RF = RFIDWithUHF.getInstance();
-                } catch (ConfigurationException e) {
-                    e.printStackTrace();
-                }
-                if (!reading.RF.init()) {
-                    reading.RF.free();
-                    reading.RF.init();
-                }
-
-                reading.RF.setEPCTIDMode(false);
-                reading.RF.setPower(30);
-                reading.RF.setFrequencyMode((byte) 4);
-                reading.RF.setRFLink(2);
-
                 reading.RF.startInventoryTag(0,0);
                 finished = false;
 

@@ -79,15 +79,10 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             e.printStackTrace();
         }
 
-        if (!RF.init()) {
-            RF.free();
-            RF.init();
-        }
-
-        RF.setEPCTIDMode(true);
-        RF.setPower(5);
-        RF.setFrequencyMode((byte) 4);
-        RF.setRFLink(0);
+        while(!RF.setEPCTIDMode(true)) {}
+        while(!RF.setPower(RFPower)) {}
+        while(!RF.setFrequencyMode((byte) 4)) {}
+        while(!RF.setRFLink(0)) {}
 
         if(!DataBase.isAlive()) {
             DataBase.start();
@@ -147,7 +142,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     protected void onPause() {
         super.onPause();
         close();
-        RF.free();
+        finish();
         counter.close();
         databaseHelper2.close();
     }
@@ -213,7 +208,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         } else if (keyCode == 4) {
             close();
-            RF.free();
             counter.close();
             finish();
         }
@@ -229,7 +223,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         boolean Collision;
         Integer tempByte;
 
-        RF.setPower(RFPower);
         RF.startInventoryTag(0, 0);
 
         Thread.sleep(1000);
