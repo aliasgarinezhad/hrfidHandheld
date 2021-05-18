@@ -2,19 +2,26 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Map;
 
 public class settingActivity extends AppCompatActivity {
 
@@ -23,13 +30,22 @@ public class settingActivity extends AppCompatActivity {
     public static SQLiteDatabase counter;
     private boolean dataExist;
     Toast response;
+    TextView versionName;
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
         filterSpinner = (Spinner) findViewById(R.id.filterSpinner2);
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
+        versionName = (TextView) findViewById(R.id.versionNameView);
+
+        try {
+            versionName.setText("ورژن: " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
 
         if(addNew.filterNumber > 1) {
             return;
@@ -123,5 +139,24 @@ public class settingActivity extends AppCompatActivity {
     public void advanceSettingButton(View view) {
         Intent intent = new Intent(this, loginActivity.class);
         startActivity(intent);
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        counter.close();
+        databaseHelper2.close();
+    }
+
+
+    @SuppressLint("SetTextI18n")
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if (keyCode == 4) {
+            counter.close();
+            databaseHelper2.close();
+            finish();
+        }
+        return true;
     }
 }

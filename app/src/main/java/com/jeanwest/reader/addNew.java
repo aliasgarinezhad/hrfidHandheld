@@ -149,6 +149,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         close();
         RF.free();
         counter.close();
+        databaseHelper2.close();
     }
 
     @SuppressLint("SetTextI18n")

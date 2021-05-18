@@ -228,8 +228,6 @@ public class addNewSetting extends AppCompatActivity {
     public void headerSet(View view) {
 
         addNew.headerNumber = Integer.parseInt(headerEditText.getEditableText().toString());
-        response.setText(String.valueOf(addNew.headerNumber));
-        response.show();
         ContentValues val = new ContentValues();
         val.put("value", addNew.counterValue);
         val.put("max", addNew.counterMaxValue);
@@ -260,8 +258,6 @@ public class addNewSetting extends AppCompatActivity {
     public void companySet(View view) {
 
         addNew.companyNumber = Integer.parseInt(companyEditText.getEditableText().toString());
-        response.setText(String.valueOf(addNew.companyNumber));
-        response.show();
         ContentValues val = new ContentValues();
         val.put("value", addNew.counterValue);
         val.put("max", addNew.counterMaxValue);
