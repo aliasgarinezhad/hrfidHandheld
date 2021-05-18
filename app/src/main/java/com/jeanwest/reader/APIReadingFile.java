@@ -54,7 +54,7 @@ public class APIReadingFile extends Thread {
                             temp.add('"' + filter0.getKey() + '"');
                         }
                     }
-                    else if(userSpecActivity.API.wareHouseID == 1708) {
+                    else if(userSpecActivity.API.wareHouseID == 1707) {
                         for(Map.Entry<String, Integer> filter0: reading.EPCTableFilter0.entrySet()) {
                             temp.add('"' + filter0.getKey() + '"');
                         }

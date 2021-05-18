@@ -78,8 +78,14 @@ public class reading extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
                 status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
-                status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + "\n");
-                status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + "\n");
+                if(userSpecActivity.API.wareHouseID == 1706) {
+                    status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+                    status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
+                }
+                else if(userSpecActivity.API.wareHouseID == 1707) {
+                    status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
+                    status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+                }
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
             }
         }
@@ -123,8 +129,8 @@ public class reading extends AppCompatActivity {
         API2.run = true;
         while(API2.run){}
 
+        notScanned = 0;
         for (int i = 0; i<API2.stuffs.length(); i++) {
-
             String temp;
             JSONArray subStuffs;
 
@@ -132,12 +138,10 @@ public class reading extends AppCompatActivity {
                 temp = API2.stuffs.getString(i);
                 subStuffs = API2.conflicts.getJSONArray(temp);
 
-                notScanned = 0;
                 for (int j = 0; j < subStuffs.length(); j++) {
                     JSONObject temp2 = subStuffs.getJSONObject(j);
-                    notScanned += temp2.getInt("handheldCount");
+                    notScanned += temp2.getInt("dbCount");
                 }
-
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -149,7 +153,7 @@ public class reading extends AppCompatActivity {
             status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
             status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
         }
-        else if(userSpecActivity.API.wareHouseID == 1708) {
+        else if(userSpecActivity.API.wareHouseID == 1707) {
             status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
             status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
         }
@@ -213,8 +217,14 @@ public class reading extends AppCompatActivity {
                     }
 
                     status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
-                    status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + "\n");
-                    status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + "\n");
+                    if(userSpecActivity.API.wareHouseID == 1706) {
+                        status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+                        status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
+                    }
+                    else if(userSpecActivity.API.wareHouseID == 1707) {
+                        status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
+                        status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+                    }
                     status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
                     readingInProgress = false;
                     databaseInProgress = true;

@@ -84,6 +84,9 @@ public class readingResultActivity extends AppCompatActivity {
                 temp += "          " + scanned;
                 temp += "          " + NotScanned;
                 temp += "          " + Extra;
+                sumScanned += scanned;
+                sumNotScanned += NotScanned;
+                sumExtra += Extra;
 
                 titles.add(temp);
 

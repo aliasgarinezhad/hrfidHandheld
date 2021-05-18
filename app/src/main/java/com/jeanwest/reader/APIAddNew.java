@@ -28,7 +28,7 @@ public class APIAddNew extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/v2/products?KBarCode=" + Barcode;
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
