@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
 
@@ -31,6 +32,7 @@ public class reading extends AppCompatActivity {
     public static RFIDWithUHF RF;
     public static ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
+    TextView percentage;
     public readingThread readTask = new readingThread();
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
@@ -44,8 +46,9 @@ public class reading extends AppCompatActivity {
     private boolean readingInProgress = false;
     public static boolean databaseInProgress = false;
     Button button;
+    CircularProgressBar circularProgressBar;
     Intent intent;
-    int notScanned = 0;
+    int allStuffs = 0;
 
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
@@ -80,12 +83,12 @@ public class reading extends AppCompatActivity {
                 response.show();
                 status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                 if(userSpecActivity.API.wareHouseID == 1706) {
-                    status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+                    status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + allStuffs + '\n');
                     status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
                 }
                 else if(userSpecActivity.API.wareHouseID == 1707) {
                     status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
-                    status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+                    status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + allStuffs + '\n');
                 }
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
             }
@@ -101,6 +104,16 @@ public class reading extends AppCompatActivity {
         response = Toast.makeText(this, "", Toast.LENGTH_LONG);
         button = (Button) findViewById(R.id.buttonReading);
         intent = new Intent(this, readingResultActivity.class);
+        circularProgressBar = findViewById(R.id.circularProgressBar);
+        percentage = (TextView) findViewById(R.id.progressText);
+
+        circularProgressBar.setProgressMax(100f);
+        circularProgressBar.setProgressBarColor(Color.BLUE);
+        circularProgressBar.setBackgroundProgressBarColor(Color.GRAY);
+        circularProgressBar.setProgressBarWidth(7f); // in DP
+        circularProgressBar.setBackgroundProgressBarWidth(3f); // in DP
+        circularProgressBar.setRoundBorder(true);
+        circularProgressBar.setProgressDirection(CircularProgressBar.ProgressDirection.TO_RIGHT);
     }
 
     @SuppressLint("SetTextI18n")
@@ -141,7 +154,7 @@ public class reading extends AppCompatActivity {
         API2.run = true;
         while(API2.run){}
 
-        notScanned = 0;
+        allStuffs = 0;
         for (int i = 0; i<API2.stuffs.length(); i++) {
             String temp;
             JSONArray subStuffs;
@@ -152,7 +165,7 @@ public class reading extends AppCompatActivity {
 
                 for (int j = 0; j < subStuffs.length(); j++) {
                     JSONObject temp2 = subStuffs.getJSONObject(j);
-                    notScanned += temp2.getInt("dbCount");
+                    allStuffs += temp2.getInt("dbCount");
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -162,12 +175,16 @@ public class reading extends AppCompatActivity {
 
 
         if(userSpecActivity.API.wareHouseID == 1706) {
-            status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+            status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + allStuffs + '\n');
             status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
+            circularProgressBar.setProgress((float)(EPCTableFilter1.size()/allStuffs)*100);
+            percentage.setText(String.valueOf((float)(EPCTableFilter1.size()/allStuffs)*100) + '%');
         }
         else if(userSpecActivity.API.wareHouseID == 1707) {
             status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
-            status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+            status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + allStuffs + '\n');
+            circularProgressBar.setProgress((float)(EPCTableFilter0.size()/allStuffs)*100);
+            percentage.setText(String.valueOf((float)(EPCTableFilter0.size()/allStuffs)*100) + '%');
         }
 
          status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
@@ -230,12 +247,12 @@ public class reading extends AppCompatActivity {
 
                     status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                     if(userSpecActivity.API.wareHouseID == 1706) {
-                        status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + notScanned + '\n');
+                        status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + allStuffs + '\n');
                         status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
                     }
                     else if(userSpecActivity.API.wareHouseID == 1707) {
                         status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
-                        status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + notScanned + '\n');
+                        status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + allStuffs + '\n');
                     }
                     status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
                     readingInProgress = false;
