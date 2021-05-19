@@ -13,8 +13,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
         <activity
+            android:name=".readingResultSubSubActivity"
+            android:parentActivityName=".readingResultSubActivity"/>
+        <activity
             android:name=".readingResultSubActivity"
-            android:parentActivityName=".readingResultActivity"/>
+            android:parentActivityName=".readingResultActivity" />
         <activity
             android:name=".readingResultActivity"
             android:parentActivityName=".reading" />

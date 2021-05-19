@@ -3,31 +3,43 @@ package com.jeanwest.reader;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class readingResultSubActivity extends AppCompatActivity {
 
-    TextView subResult;
+    ListView subResult;
     JSONArray subStuffs;
     int numberOfNotStatusNotScanned = 0;
     int numberOfNotStatusScanned = 0;
-
+    int j;
     int numberOfStatusExtras = 0;
     int numberOfStatusScanned = 0;
     int numberOfNotStatusAll = 0;
     int numberOfStatusAll = 0;
+    Intent intent;
 
+    int[] index;
+    public static int subIndex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_result_sub);
-        subResult = (TextView) findViewById(R.id.subResultView);
+        subResult = (ListView) findViewById(R.id.subResultView);
+        intent = new Intent(this, readingResultSubSubActivity.class);
     }
 
     @SuppressLint("SetTextI18n")
@@ -45,8 +57,11 @@ public class readingResultSubActivity extends AppCompatActivity {
         numberOfNotStatusScanned = 0;
         numberOfNotStatusAll = 0;
         numberOfStatusAll = 0;
+        j = 0;
 
-        subResult.setText("");
+        ArrayList<String> items = new ArrayList<>();
+
+        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1 ,items);
 
         try {
             subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
@@ -59,6 +74,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         if (max > 200) {
             max = 200;
         }
+        index = new int[subStuffs.length() + 100];
 
         for (int i = 0; i < subStuffs.length(); i++) {
 
@@ -76,21 +92,26 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        subResult.setText(subResult.getText() + "کالاهای اسکن نشده " + "\n"
+        items.add("کالاهای اسکن نشده " + "\n"
                 + "تعداد اسکن نشده " + numberOfNotStatusNotScanned + "\n"
                 + "تعداد اسکن شده " + numberOfNotStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfNotStatusAll + "\n\n");
+                + "تعداد کل کالاها " + numberOfNotStatusAll);
+
+        index[j] = -1;
+        j++;
 
         for (int i = 0; i<max; i++) {
 
             try {
                 JSONObject temp = subStuffs.getJSONObject(i);
                 if (!temp.getBoolean("status") && temp.getInt("diffCount") > 0) {
-                    subResult.setText(subResult.getText() + temp.getString("productName") + "\n");
-                    subResult.setText(subResult.getText() + "کد محصول: " + temp.getString("K_Bar_Code") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد کل: " + temp.getString("dbCount") + "\n\n");
+                    index[j] = i;
+                    j++;
+                    items.add(temp.getString("productName") + "\n" +
+                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
+                    "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
+                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
+                    "تعداد کل: " + temp.getString("dbCount"));
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -114,21 +135,26 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        subResult.setText(subResult.getText() + "کالاهای اضافی " + "\n"
+        items.add("کالاهای اضافی " + "\n"
                 + "تعداد اضافی " + numberOfStatusExtras + "\n"
                 + "تعداد اسکن شده " + numberOfStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfStatusAll + "\n\n");
+                + "تعداد کل کالاها " + numberOfStatusAll);
+
+        index[j] = -1;
+        j++;
 
         for (int i = 0; i<max; i++) {
 
             try {
                 JSONObject temp = subStuffs.getJSONObject(i);
                 if (temp.getBoolean("status")) {
-                    subResult.setText(subResult.getText() + temp.getString("productName") + "\n");
-                    subResult.setText(subResult.getText() + "کد محصول: " + temp.getString("K_Bar_Code") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد اضافی: " + temp.getString("diffCount") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n");
-                    subResult.setText(subResult.getText() + "تعداد کل: " + temp.getString("dbCount") + "\n\n");
+                    index[j] = i;
+                    j++;
+                    items.add(temp.getString("productName") + "\n" +
+                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
+                    "تعداد اضافی: " + temp.getString("diffCount") + "\n" +
+                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
+                    "تعداد کل: " + temp.getString("dbCount"));
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -136,5 +162,16 @@ public class readingResultSubActivity extends AppCompatActivity {
 
         }
 
+        subResult.setAdapter(listAdapter);
+
+        subResult.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                if(index[i] != -1) {
+                    subIndex = index[i];
+                    startActivity(intent);
+                }
+            }
+        });
     }
 }
