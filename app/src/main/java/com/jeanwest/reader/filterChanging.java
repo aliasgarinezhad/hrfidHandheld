@@ -32,7 +32,6 @@ public class filterChanging extends AppCompatActivity {
     public TextView status;
     public TextView filterText;
     public static int filterNumber = 0;  // 3bit
-    public boolean isInit = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,16 +53,10 @@ public class filterChanging extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        if (!RF.init()) {
-            RF.free();
-            RF.init();
-        }
-        isInit = true;
-
-        RF.setEPCTIDMode(true);
-        RF.setPower(5);
-        RF.setFrequencyMode((byte) 4);
-        RF.setRFLink(0);
+        while(!RF.setEPCTIDMode(true)) {}
+        while(!RF.setPower(5)) {}
+        while(!RF.setFrequencyMode((byte) 4)) {}
+        while(!RF.setRFLink(0)) {}
 
         counter = databaseHelper2.getWritableDatabase();
         counterCursor = counter.rawQuery("select * from counterDatabase", null);
@@ -90,7 +83,6 @@ public class filterChanging extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        RF.free();
         counter.close();
     }
 
@@ -108,7 +100,6 @@ public class filterChanging extends AppCompatActivity {
         }
 
         else if (keyCode == 4) {
-            RF.free();
             counter.close();
             finish();
         }
@@ -122,7 +113,7 @@ public class filterChanging extends AppCompatActivity {
         int LoopVariable;
         boolean Collision;
 
-        RF.setPower(RFPower);
+        RF.setPower(5);
         RF.startInventoryTag(0, 0);
 
         Thread.sleep(1000);
@@ -131,9 +122,11 @@ public class filterChanging extends AppCompatActivity {
             TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
         }
 
+        status.setText("");
+
         if (TIDBuffer[9] == null) {
 
-            status.setText(status.getText() + "no tags detected");
+            status.setText(status.getText() + "هیچ تگی یافت نشد");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             status.setBackgroundColor(Color.RED);
             return;
@@ -150,7 +143,7 @@ public class filterChanging extends AppCompatActivity {
 
         if(Collision) {
 
-            status.setText(status.getText() + "too many tags detected");
+            status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             status.setBackgroundColor(Color.RED);
@@ -160,7 +153,7 @@ public class filterChanging extends AppCompatActivity {
         TID = TIDBuffer[0][0];
         EPC = TIDBuffer[0][1].substring(4);
 
-        status.setText(status.getText() + "Read successfully\nTID: " + TID + "\nEPC: " + EPC);
+        status.setText(status.getText() + "اسکن با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
         RF.stopInventory();
 
         char[] temp = EPC.toCharArray();
@@ -171,28 +164,28 @@ public class filterChanging extends AppCompatActivity {
         else if(filterNumber == 1) {
             temp[3] = '4';
         }
-        EPC = String.valueOf(temp);
+        String New = String.valueOf(temp);
 
-        if (RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, EPC)) {
+        if (RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
 
             Thread.sleep(100);
 
-            if(!EPC.equals(RF.inventorySingleTag().substring(4).toLowerCase())) {
-                status.setText(status.getText() + "\nConfirmation fail");
-                status.setText(status.getText() + RF.inventorySingleTag().substring(4));
-                status.setText(status.getText() + EPC);
+            if(!New.equalsIgnoreCase(RF.inventorySingleTag().substring(4))) {
+                    status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
 
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
                 return;
             }
 
+            status.setText(status.getText() + "\nبا موفقیت اضافه شد");
+            status.setText(status.getText() + "\nعملیات حواله با موفقیت انجام شد");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
             status.setBackgroundColor(Color.GREEN);
 
         } else {
 
-            status.setText(status.getText() + "\nWrite fail");
+            status.setText(status.getText() + "\nخطا در نوشتن");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
         }

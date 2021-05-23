@@ -30,11 +30,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     public static boolean step2 = false;
     public static int RFPower = 5;
     public static boolean oneStepActive = false;
-    public static long counterMaxValue = 1000;
+    public static long counterMaxValue = 5;
     public static long counterMinValue = 0;
     public static String tagPassword = "00000000";
-    public databaseHelperClass2 databaseHelper2 = new databaseHelperClass2(this);
-    public static SQLiteDatabase counter;
+    databaseHelperClass2 databaseHelper2;
+    SQLiteDatabase counter;
     public static long counterValue = 0;
     public long counterValueModified = 0;
     public Cursor counterCursor;
@@ -64,6 +64,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
         filterText = (TextView) findViewById(R.id.filterTextView);
         barcode2D = new Barcode2D(this);
+        databaseHelper2 = new databaseHelperClass2(this);
     }
 
     @Override
@@ -96,7 +97,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             isAddNewOK = false;
         }
         else {
-            counterCursor.moveToFirst();
             counterCursor.moveToFirst();
             counterValue = counterCursor.getLong(0);
             counterMaxValue = counterCursor.getLong(1);
@@ -142,9 +142,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     protected void onPause() {
         super.onPause();
         close();
-        finish();
         counter.close();
-        databaseHelper2.close();
     }
 
     @SuppressLint("SetTextI18n")
@@ -233,7 +231,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (TIDBuffer[9] == null) {
 
-            status.setText(status.getText() + "no tags detected");
+            status.setText(status.getText() + "هیچ تگی یافت نشد");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             status.setBackgroundColor(Color.RED);
             return;
@@ -250,7 +248,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if(Collision) {
 
-            status.setText(status.getText() + "too many tags detected");
+            status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             status.setBackgroundColor(Color.RED);
@@ -260,7 +258,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         TID = TIDBuffer[0][0];
         EPC = TIDBuffer[0][1].substring(4);
 
-        status.setText(status.getText() + "Read successfully\nTID: " + TID + "\nEPC: " + EPC);
+        status.setText(status.getText() + "اسکن با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
         RF.stopInventory();
 
         DataBase.Barcode = BarcodeID;
@@ -270,7 +268,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (!DataBase.status) {
 
-            status.setText(status.getText() + "\nError in database process\n" + DataBase.Response + "\n");
+            status.setText(status.getText() + "\nخطا در دیتابیس\n" + DataBase.Response + "\n");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
             return;
@@ -301,6 +299,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         tempByte = Integer.parseInt(EPCStr.substring(24,32), 2);
         tempStr = Integer.toString(tempByte , 16);
+
         String EPC3 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
         tempByte = Integer.parseInt(EPCStr.substring(32,40), 2);
@@ -342,7 +341,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             Thread.sleep(100);
 
             if(!New.equals(RF.inventorySingleTag().substring(4).toLowerCase())) {
-                status.setText(status.getText() + "\nConfirmation fail");
+                status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
                 status.setText(status.getText() + RF.inventorySingleTag().substring(4));
                 status.setText(status.getText() + New);
 
@@ -353,7 +352,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
             status.setBackgroundColor(Color.GREEN);
-            status.setText(status.getText() + "\nWrite successfully");
+            status.setText(status.getText() + "\nبا موفقیت اضافه شد");
             status.setText(status.getText() + "\nHeader: " + String.valueOf(headerNumber));
             status.setText(status.getText() + "\nFilter: " + String.valueOf(filterNumber));
             status.setText(status.getText() + "\nPartition: " + String.valueOf(partitionNumber));
@@ -366,7 +365,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + String.valueOf(counterValue - counterMinValue));
             numberOfWrittenModified.setText("مقدار شمارنده: " + String.valueOf(counterValueModified));
 
-
             if(counterValue >= counterMaxValue) {
                 isAddNewOK = false;
             }
@@ -378,16 +376,16 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         } else {
 
-            status.setText(status.getText() + "\nWrite fail");
+            status.setText(status.getText() + "\nخطا در نوشتن");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
         }
-        return;
     }
 
+    @SuppressLint("SetTextI18n")
     public void CounterClearButton(View view) {
         counterValueModified = 0;
-        numberOfWrittenModified.setText("مقدار شمارنده: " + String.valueOf(counterValueModified));
+        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
 
         ContentValues val = new ContentValues();
         val.put("counterModified", counterValueModified);

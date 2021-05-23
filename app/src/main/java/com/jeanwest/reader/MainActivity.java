@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
@@ -51,4 +52,5 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, settingActivity.class);
         startActivity(intent);
     }
+
 }

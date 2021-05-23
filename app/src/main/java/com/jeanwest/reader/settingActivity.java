@@ -26,8 +26,8 @@ import java.util.Map;
 public class settingActivity extends AppCompatActivity {
 
     Spinner filterSpinner;
-    public databaseHelperClass2 databaseHelper2 = new databaseHelperClass2(this);
-    public static SQLiteDatabase counter;
+    databaseHelperClass2 databaseHelper2;
+    SQLiteDatabase counter;
     private boolean dataExist;
     Toast response;
     TextView versionName;
@@ -40,15 +40,12 @@ public class settingActivity extends AppCompatActivity {
         filterSpinner = (Spinner) findViewById(R.id.filterSpinner2);
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
         versionName = (TextView) findViewById(R.id.versionNameView);
+        databaseHelper2 = new databaseHelperClass2(this);
 
         try {
             versionName.setText("ورژن: " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
-        }
-
-        if(addNew.filterNumber > 1) {
-            return;
         }
 
         counter = databaseHelper2.getWritableDatabase();
@@ -65,6 +62,10 @@ public class settingActivity extends AppCompatActivity {
         }
         counterCursor.close();
 
+        if(addNew.filterNumber > 1) {
+            return;
+        }
+
         String[] items = {"انبار (0)", "فروشگاه (1)"};
 
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items);
@@ -75,22 +76,7 @@ public class settingActivity extends AppCompatActivity {
 
                 addNew.filterNumber = position;
                 ContentValues val = new ContentValues();
-                val.put("value", addNew.counterValue);
-                val.put("max", addNew.counterMaxValue);
-                val.put("min", addNew.counterMinValue);
-                val.put("header", addNew.headerNumber);
                 val.put("filter", addNew.filterNumber);
-                val.put("partition", addNew.partitionNumber);
-                val.put("company", addNew.companyNumber);
-                val.put("power", addNew.RFPower);
-                val.put("password", addNew.tagPassword);
-                if(addNew.oneStepActive) {
-                    val.put("step", 1);
-                }
-                else {
-                    val.put("step", 0);
-                }
-                val.put("counterModified", 0L);
 
                 if(dataExist) {
                     counter.update("counterDatabase", val, null, null);
@@ -144,20 +130,5 @@ public class settingActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         counter.close();
-        databaseHelper2.close();
-        finish();
-    }
-
-
-    @SuppressLint("SetTextI18n")
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        if (keyCode == 4) {
-            counter.close();
-            databaseHelper2.close();
-            finish();
-        }
-        return true;
     }
 }

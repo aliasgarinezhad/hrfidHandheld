@@ -2,10 +2,12 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -33,10 +35,11 @@ public class addNewSetting extends AppCompatActivity {
     EditText counterMin;
     EditText counterMax;
     EditText passwordText;
-    public databaseHelperClass2 databaseHelper2 = new databaseHelperClass2(this);
-    public static SQLiteDatabase counter;
+    databaseHelperClass2 databaseHelper2;
+    SQLiteDatabase counter;
     private boolean dataExist;
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,6 +58,8 @@ public class addNewSetting extends AppCompatActivity {
         passwordText = (EditText) findViewById(R.id.passText);
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
         steps = (RadioGroup) findViewById(R.id.radioGroup);
+
+        databaseHelper2 = new databaseHelperClass2(this);
 
         counter = databaseHelper2.getWritableDatabase();
         Cursor counterCursor = counter.rawQuery("select * from counterDatabase", null);
@@ -83,7 +88,7 @@ public class addNewSetting extends AppCompatActivity {
         headerEditText.setText(String.valueOf(addNew.headerNumber));
         companyEditText.setText(String.valueOf(addNew.companyNumber));
         powerSet.setProgress(addNew.RFPower - 5);
-        powerText.setText("اندازه توان " + String.valueOf(addNew.RFPower) + "dB");
+        powerText.setText("اندازه توان " + addNew.RFPower + "dB");
         serialNumberCounterValue.setText("مقدار کنونی شماره سریال: " + String.valueOf(addNew.counterValue));
         counterMin.setText(String.valueOf(addNew.counterMinValue));
         counterMax.setText(String.valueOf(addNew.counterMaxValue));
@@ -145,7 +150,7 @@ public class addNewSetting extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 
-                addNew.filterNumber = position;
+                addNew.filterNumber = 0;
                 ContentValues val = new ContentValues();
                 val.put("value", addNew.counterValue);
                 val.put("max", addNew.counterMaxValue);
@@ -208,7 +213,6 @@ public class addNewSetting extends AppCompatActivity {
 
                 if(dataExist) {
                     counter.update("counterDatabase", val, null, null);
-
                 }
                 else {
                     counter.insert("counterDatabase", null, val);
@@ -353,12 +357,13 @@ public class addNewSetting extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     public void serialNumberRangeButton(View view) {
 
         addNew.counterValue = Long.parseLong(counterMin.getEditableText().toString());
         addNew.counterMinValue = Long.parseLong(counterMin.getEditableText().toString());
         addNew.counterMaxValue = Long.parseLong(counterMax.getEditableText().toString());
-        serialNumberCounterValue.setText("مقدار کنونی شماره سریال: " + String.valueOf(addNew.counterValue));
+        serialNumberCounterValue.setText("مقدار کنونی شماره سریال: " + addNew.counterValue);
         ContentValues val = new ContentValues();
         val.put("value", addNew.counterValue);
         val.put("max", addNew.counterMaxValue);
@@ -415,5 +420,11 @@ public class addNewSetting extends AppCompatActivity {
             counter.insert("counterDatabase", null, val);
             dataExist = true;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        counter.close();
     }
 }

@@ -100,10 +100,15 @@ public class reading extends AppCompatActivity {
                 if(userSpecActivity.API.wareHouseID == 1706) {
                     status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + allStuffs + '\n');
                     status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
+                    circularProgressBar.setProgress((float)((EPCTableFilter1.size() * 100)/allStuffs));
+                    percentage.setText(String.valueOf((float)((EPCTableFilter1.size() * 100)/allStuffs)) + '%');
+
                 }
                 else if(userSpecActivity.API.wareHouseID == 1707) {
                     status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
                     status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + allStuffs + '\n');
+                    circularProgressBar.setProgress((float)((EPCTableFilter0.size() * 100)/allStuffs));
+                    percentage.setText(String.valueOf((float)((EPCTableFilter0.size() * 100)/allStuffs)) + '%');
                 }
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
                 readingInProgress = false;
@@ -226,15 +231,14 @@ public class reading extends AppCompatActivity {
         if(userSpecActivity.API.wareHouseID == 1706) {
             status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '/' + allStuffs + '\n');
             status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '\n');
-            circularProgressBar.setProgress((float)(EPCTableFilter1.size()/allStuffs)*100);
-            //circularProgressBar.setProgress(70f);
-            percentage.setText(String.valueOf((float)(EPCTableFilter1.size()/allStuffs)*100) + '%');
+            circularProgressBar.setProgress((float)((EPCTableFilter1.size() * 100)/allStuffs));
+            percentage.setText(String.valueOf((float)((EPCTableFilter1.size() * 100)/allStuffs)) + '%');
         }
         else if(userSpecActivity.API.wareHouseID == 1707) {
             status.setText(status.getText() + "تعداد کالا های فروشگاه: " + EPCTableFilter1.size() + '\n');
             status.setText(status.getText() + "تعداد کالا های انبار: " + EPCTableFilter0.size() + '/' + allStuffs + '\n');
-            circularProgressBar.setProgress((float)(EPCTableFilter0.size()/allStuffs)*100);
-            percentage.setText(String.valueOf((float)(EPCTableFilter0.size()/allStuffs)*100) + '%');
+            circularProgressBar.setProgress((float)((EPCTableFilter0.size() * 100)/allStuffs));
+            percentage.setText(String.valueOf((float)((EPCTableFilter0.size() * 100)/allStuffs)) + '%');
         }
 
          status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
@@ -263,6 +267,7 @@ public class reading extends AppCompatActivity {
                     step = false;
                     readingInProgress = false;
                     processingInProgress = true;
+                    status.setText("در حال پردازش ...");
                 }
             }
 
@@ -278,7 +283,6 @@ public class reading extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         RF.stopInventory();
-        finish();
     }
 
     @SuppressLint("SetTextI18n")
