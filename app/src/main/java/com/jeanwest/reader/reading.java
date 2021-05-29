@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,9 +31,11 @@ import java.util.Map;
 public class reading extends AppCompatActivity {
 
     public static RFIDWithUHF RF;
-    public static ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+    public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
     TextView percentage;
+    TextView powerText;
+    SeekBar powerSeekBar;
     public readingThread readTask = new readingThread();
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
@@ -50,6 +53,8 @@ public class reading extends AppCompatActivity {
     CircularProgressBar circularProgressBar;
     Intent intent;
     int allStuffs = 0;
+    int EPCLastLength = 0;
+    int readingPower = 30;
 
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
@@ -60,7 +65,12 @@ public class reading extends AppCompatActivity {
 
             if(readingInProgress) {
                 status.setText("تعداد کالاهای اسکن شده: " + EPCTable.size() + "\n");
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
+
+                if(EPCTable.size() > EPCLastLength) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
+                    EPCLastLength = EPCTable.size();
+                }
+
                 timerHandler.postDelayed(this, 1000);
             }
 
@@ -160,6 +170,32 @@ public class reading extends AppCompatActivity {
         intent = new Intent(this, readingResultActivity.class);
         circularProgressBar = findViewById(R.id.circularProgressBar);
         percentage = (TextView) findViewById(R.id.progressText);
+        powerText = findViewById(R.id.readingPowerTextView);
+        powerSeekBar = findViewById(R.id.readingPowerSeekBar);
+
+        powerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                if(!readingInProgress) {
+                    readingPower = progress + 5;
+                    powerText.setText("اندازه توان(" + readingPower + ")");
+                }
+                else {
+                    powerSeekBar.setProgress(readingPower - 5);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         circularProgressBar.setProgressMax(100f);
         circularProgressBar.setProgressBarColor(Color.BLUE);
@@ -183,7 +219,7 @@ public class reading extends AppCompatActivity {
         }
 
         while(!RF.setEPCTIDMode(false)) {}
-        while(!RF.setPower(30)) {}
+        while(!RF.setPower(readingPower)) {}
         while(!RF.setFrequencyMode((byte) 4)) {}
         while(!RF.setRFLink(2)) {}
 
@@ -242,6 +278,10 @@ public class reading extends AppCompatActivity {
         }
 
          status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableFilterOther.size() + "\n");
+
+        powerText.setText("اندازه توان(" + readingPower + ")");
+        powerSeekBar.setProgress(readingPower - 5);
+
     }
 
     @SuppressLint("SetTextI18n")
@@ -255,6 +295,7 @@ public class reading extends AppCompatActivity {
                 if(!step) {
 
                     readTask.readEnable = true;
+                    while(!RF.setPower(readingPower)) {}
                     timerHandler.post(timerRunnable);
                     step = true;
                     readingInProgress = true;
@@ -304,6 +345,7 @@ public class reading extends AppCompatActivity {
         EPCTableFilter0.clear();
         EPCTableFilterOther.clear();
         EPCTableFilter1.clear();
+        EPCLastLength = 0;
         status.setText("تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
     }
 }

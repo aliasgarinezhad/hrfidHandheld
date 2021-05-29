@@ -1,10 +1,14 @@
 package com.jeanwest.reader;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -41,13 +45,16 @@ public class readingResultActivity extends AppCompatActivity {
 
         super.onResume();
 
-        int sumNotScanned = 0;
-        int sumScanned = 0;
-        int sumExtra = 0;
+        Integer sumNotScanned = 0;
+        Integer sumScanned = 0;
+        Integer sumExtra = 0;
 
         titles.clear();
 
-        titles.add("دسته     تعداد اسکن شده   تعداد اسکن نشده   تعداد اضافی");
+        //String title = "دسته     تعداد اسکن شده   تعداد اسکن نشده   تعداد اضافی";
+        String title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
+
+        titles.add(title);
 
         for (int i = 0; i<reading.API2.stuffs.length(); i++) {
 
@@ -62,11 +69,18 @@ public class readingResultActivity extends AppCompatActivity {
                     temp = "متفرقه";
                 }
 
+                if(temp.length() < 12)
+                {
+                    for(int o =0; o < (12 - temp.length()); o++) {
+                        temp += ' ';
+                    }
+                }
+
                 //temp = String.format("%10s", temp);
 
-                int NotScanned = 0;
-                int scanned = 0;
-                int Extra = 0;
+                Integer NotScanned = 0;
+                Integer scanned = 0;
+                Integer Extra = 0;
                 for (int j = 0; j < subStuffs.length(); j++) {
 
                     JSONObject temp2 = subStuffs.getJSONObject(j);
@@ -80,10 +94,10 @@ public class readingResultActivity extends AppCompatActivity {
                         Extra += temp2.getInt("diffCount");
                     }
                 }
-
-                temp += "          " + scanned;
-                temp += "          " + NotScanned;
-                temp += "          " + Extra;
+                temp = String.format("%s%15s%15s%12s", temp, scanned.toString(), NotScanned.toString(), Extra.toString());
+                //temp += "          " + scanned;
+                //temp += "          " + NotScanned;
+                //temp += "          " + Extra;
                 sumScanned += scanned;
                 sumNotScanned += NotScanned;
                 sumExtra += Extra;
@@ -96,9 +110,10 @@ public class readingResultActivity extends AppCompatActivity {
 
         }
 
-        titles.add(1, "مجموع         " + sumScanned +  "      " + sumNotScanned + "      " + sumExtra);
+        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", sumScanned.toString(), sumNotScanned.toString(), sumExtra.toString()));
+        //titles.add(1, "مجموع         " + sumScanned +  "      " + sumNotScanned + "      " + sumExtra);
 
-        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, titles);
+        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
 
         result.setAdapter(listAdapter);
 

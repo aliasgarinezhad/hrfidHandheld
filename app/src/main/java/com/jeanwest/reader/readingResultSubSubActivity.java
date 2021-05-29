@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.TextView;
 
@@ -36,10 +37,14 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
             status.setText(temp.getString("productName") + "\n" +
                     "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + temp.getString("KBarCode") + "\n" +
                     "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
                     "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
                     "تعداد کل: " + temp.getString("dbCount"));
             picture.loadUrl(temp.getString("ImgUrl"));
+            WebSettings settings = picture.getSettings();
+            settings.setUseWideViewPort(true);
+            settings.setLoadWithOverviewMode(true);
 
         } catch (JSONException e) {
             e.printStackTrace();

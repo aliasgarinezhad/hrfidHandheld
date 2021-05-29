@@ -69,11 +69,6 @@ public class readingResultSubActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        int max = subStuffs.length();
-
-        if (max > 200) {
-            max = 200;
-        }
         index = new int[subStuffs.length() + 100];
 
         for (int i = 0; i < subStuffs.length(); i++) {
@@ -100,15 +95,16 @@ public class readingResultSubActivity extends AppCompatActivity {
         index[j] = -1;
         j++;
 
-        for (int i = 0; i<max; i++) {
+        for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
                 JSONObject temp = subStuffs.getJSONObject(i);
-                if (!temp.getBoolean("status") && temp.getInt("diffCount") > 0) {
+                if (!temp.getBoolean("status") && temp.getInt("diffCount") != 0) {
                     index[j] = i;
                     j++;
                     items.add(temp.getString("productName") + "\n" +
                     "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + temp.getString("KBarCode") + "\n" +
                     "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
                     "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
                     "تعداد کل: " + temp.getString("dbCount"));
@@ -143,7 +139,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         index[j] = -1;
         j++;
 
-        for (int i = 0; i<max; i++) {
+        for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
                 JSONObject temp = subStuffs.getJSONObject(i);
@@ -152,6 +148,7 @@ public class readingResultSubActivity extends AppCompatActivity {
                     j++;
                     items.add(temp.getString("productName") + "\n" +
                     "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + temp.getString("KBarCode") + "\n" +
                     "تعداد اضافی: " + temp.getString("diffCount") + "\n" +
                     "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
                     "تعداد کل: " + temp.getString("dbCount"));

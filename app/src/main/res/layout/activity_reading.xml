@@ -10,7 +10,7 @@
     <TextView
         android:id="@+id/section_label"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="171dp"
         android:text="\n\n\n\n\n"
         android:textSize="24sp"
         app:layout_constraintBottom_toTopOf="@+id/buttonReading"
@@ -68,5 +68,25 @@
         app:layout_constraintEnd_toEndOf="@+id/circularProgressBar"
         app:layout_constraintStart_toStartOf="@+id/circularProgressBar"
         app:layout_constraintTop_toTopOf="@+id/circularProgressBar" />
+
+    <SeekBar
+        android:id="@+id/readingPowerSeekBar"
+        android:layout_width="286dp"
+        android:layout_height="wrap_content"
+        android:max="25"
+        app:layout_constraintBottom_toTopOf="@+id/circularProgressBar"
+        app:layout_constraintEnd_toStartOf="@+id/readingPowerTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button10" />
+
+    <TextView
+        android:id="@+id/readingPowerTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="اندازه توان (30dB)"
+        app:layout_constraintBottom_toBottomOf="@+id/readingPowerSeekBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/readingPowerSeekBar"
+        app:layout_constraintTop_toTopOf="@+id/readingPowerSeekBar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

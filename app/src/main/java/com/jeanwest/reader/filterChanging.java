@@ -54,7 +54,7 @@ public class filterChanging extends AppCompatActivity {
         }
 
         while(!RF.setEPCTIDMode(true)) {}
-        while(!RF.setPower(5)) {}
+        while(!RF.setPower(addNew.RFPower)) {}
         while(!RF.setFrequencyMode((byte) 4)) {}
         while(!RF.setRFLink(0)) {}
 
