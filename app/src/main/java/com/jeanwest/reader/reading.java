@@ -76,29 +76,17 @@ public class reading extends AppCompatActivity {
 
             else if(processingInProgress) {
 
+                EPCTableFilter1.clear();
+                EPCTableFilter0.clear();
+
                 for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
-                    String EPCHexString = EPC.getKey();
-                    Long EPCInt1 = Long.parseLong(EPCHexString.substring(0, 8), 16);
-                    Long EPCInt2 = Long.parseLong(EPCHexString.substring(8, 16), 16);
-                    Long EPCInt3 = Long.parseLong(EPCHexString.substring(16, 24), 16);
+                    String header = EPC.getKey().substring(0,2);
 
-                    String EPCBinaryString1 = Long.toBinaryString(EPCInt1);
-                    EPCBinaryString1 = String.format("%32s", EPCBinaryString1).replaceAll(" ", "0");
-                    String EPCBinaryString2 = Long.toBinaryString(EPCInt2);
-                    EPCBinaryString2 = String.format("%32s", EPCBinaryString2).replaceAll(" ", "0");
-                    String EPCBinaryString3 = Long.toBinaryString(EPCInt3);
-                    EPCBinaryString3 = String.format("%32s", EPCBinaryString3).replaceAll(" ", "0");
-
-                    String EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3;
-
-                    Integer filter = Integer.parseInt(EPCBinaryString.substring(11, 14), 2);
-                    Integer header = Integer.parseInt(EPCBinaryString.substring(0,8), 2);
-
-                    if(filter == 0 && header == 48) {
+                    if(userSpecActivity.API.wareHouseID == 1707 && header.equals("30")) {
                         EPCTableFilter0.put(EPC.getKey(), 1);
                     }
-                    else if(filter == 1 && header == 48) {
+                    else if(userSpecActivity.API.wareHouseID == 1706 && header.equals("30")) {
                         EPCTableFilter1.put(EPC.getKey(), 1);
                     }
                     else {
@@ -294,8 +282,8 @@ public class reading extends AppCompatActivity {
 
                 if(!step) {
 
-                    readTask.readEnable = true;
                     while(!RF.setPower(readingPower)) {}
+                    readTask.readEnable = true;
                     timerHandler.post(timerRunnable);
                     step = true;
                     readingInProgress = true;
