@@ -100,7 +100,7 @@ public class settingActivity extends AppCompatActivity {
         AlertBuilder.setPositiveButton("بله", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Uri uri = Uri.parse("https://avakatan-my.sharepoint.com/:u:/p/a_askarinejad/EbX316y3o3lMuPHNNrGPEcwBQX5hzSYE-9-oYyMhxViyxw?e=ZzXMBu");
+                Uri uri = Uri.parse("http://rfid-api-0-1.avakatan.ir/apk/app-debug.apk");
                 Intent browser = new Intent(Intent.ACTION_VIEW, uri);
                 startActivity(browser);
             }

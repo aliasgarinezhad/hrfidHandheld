@@ -3,7 +3,6 @@ package com.jeanwest.reader;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
@@ -16,8 +15,6 @@ import android.widget.TextView;
 
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
-
-import org.json.JSONArray;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,11 +34,11 @@ public class finding extends AppCompatActivity {
     findingThread findTask = new findingThread();
     int numberOfFound = 0;
     private long stuffCode = 162309L;
-    private long stuffRFIDCode = 162309L;
     WebView picture;
 
     String stuffTitle = "پیراهن";
-    public static String stuffCardCode = "01531052";
+    public static String stuffPrimaryCode = "01531052";
+    public static String stuffRFIDCode = "01531052";
     String stuffBarcode = "01531052J-2420-XL";
     public static String stuffImgUrl = "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=01531052J-2420-XL";
     String stuffTotalNumber = "10";
@@ -102,7 +99,7 @@ public class finding extends AppCompatActivity {
         while(!RF.setEPCTIDMode(false)) {}
         while(!RF.setPower(findingPower)) {}
         while(!RF.setFrequencyMode((byte) 4)) {}
-        while(!RF.setRFLink(0)) {}
+        while(!RF.setRFLink(2)) {}
 
         if(fromReadingResultSubSubActivity) {
             stuffSpec.setText(ReadingResultSubSubString);
@@ -111,7 +108,7 @@ public class finding extends AppCompatActivity {
             setting.setUseWideViewPort(true);
             setting.setLoadWithOverviewMode(true);
             picture.setFocusable(false);
-            stuffCodeString.setText(stuffCardCode);
+            stuffCodeString.setText(stuffPrimaryCode);
             stuffCodeString.setFocusable(false);
         }
 
@@ -144,7 +141,7 @@ public class finding extends AppCompatActivity {
                         setting.setLoadWithOverviewMode(true);
                         picture.setFocusable(false);
                         stuffSpec.setText(stuffTitle + "\n" +
-                                "کد محصول: " + stuffCardCode + "\n" +
+                                "کد محصول: " + stuffPrimaryCode + "\n" +
                                 "بارکد: " + stuffBarcode + "\n" +
                                 "تعداد کل: " + stuffTotalNumber);
                     }
@@ -172,9 +169,16 @@ public class finding extends AppCompatActivity {
 
                         String EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3;
 
-                        Integer header = Integer.parseInt(EPCBinaryString.substring(0, 8), 2);
-                        Long itemNumber = Long.parseLong(EPCBinaryString.substring(26, 58), 2);
+                        int header = Integer.parseInt(EPCBinaryString.substring(0, 8), 2);
+                        int companyNumber = Integer.parseInt(EPCBinaryString.substring(14, 26), 2);
+                        long itemNumber = Long.parseLong(EPCBinaryString.substring(26, 58), 2);
 
+                        if(companyNumber == 100) {
+                            stuffCode = Long.parseLong(stuffPrimaryCode);
+                        }
+                        else if(companyNumber == 101) {
+                            stuffCode = Long.parseLong(stuffRFIDCode);
+                        }
                         if (header == 48 && itemNumber == stuffCode) {
 
                             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);

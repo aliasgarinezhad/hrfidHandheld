@@ -6,7 +6,6 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
-import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.TextView;
@@ -74,7 +73,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                             "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
                             "تعداد کل: " + temp.getString("dbCount");
                     finding.stuffImgUrl = temp.getString("ImgUrl");
-                    finding.stuffCardCode = temp.getString("BarcodeMain_ID");
+                    finding.stuffPrimaryCode = temp.getString("BarcodeMain_ID");
+                    finding.stuffRFIDCode = temp.getString("RFID");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
