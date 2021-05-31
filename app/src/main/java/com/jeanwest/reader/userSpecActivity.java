@@ -35,7 +35,7 @@ public class userSpecActivity extends AppCompatActivity {
     public void startReading(View view) {
 
         if(departmentInfoIDView.getEditableText().toString().length() == 0 || wareHouseIDView.getEditableText().toString().length() == 0) {
-            status.setText("\nلطفا کد فروشگاه و انبار را وارد کنید\n");
+            status.setText("\nلطفا کد شعبه و انبار را وارد کنید\n");
             status.show();
             return;
         }

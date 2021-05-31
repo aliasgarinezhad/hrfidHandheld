@@ -19,7 +19,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     JSONArray subStuffs;
     TextView status;
     WebView picture;
-    JSONObject temp;
+    JSONObject stuff;
     Intent intent;
 
     @Override
@@ -39,16 +39,16 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         try {
             subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
-            temp = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
+            stuff = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
 
-            status.setText(temp.getString("productName") + "\n" +
-                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                    "بارکد: " + temp.getString("KBarCode") + "\n" +
-                    "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + temp.getString("dbCount"));
+            status.setText(stuff.getString("productName") + "\n" +
+                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
+                    "تعداد اسکن نشده: " + stuff.getString("diffCount") + "\n" +
+                    "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
+                    "تعداد کل: " + stuff.getString("dbCount"));
 
-            picture.loadUrl(temp.getString("ImgUrl"));
+            picture.loadUrl(stuff.getString("ImgUrl"));
             WebSettings settings = picture.getSettings();
             settings.setUseWideViewPort(true);
             settings.setLoadWithOverviewMode(true);
@@ -66,15 +66,15 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
                 finding.fromReadingResultSubSubActivity = true;
                 try {
-                    finding.ReadingResultSubSubString = temp.getString("productName") + "\n" +
-                            "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                            "بارکد: " + temp.getString("KBarCode") + "\n" +
-                            "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
-                            "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                            "تعداد کل: " + temp.getString("dbCount");
-                    finding.stuffImgUrl = temp.getString("ImgUrl");
-                    finding.stuffPrimaryCode = temp.getString("BarcodeMain_ID");
-                    finding.stuffRFIDCode = temp.getString("RFID");
+                    finding.ReadingResultSubSubString = stuff.getString("productName") + "\n" +
+                            "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                            "بارکد: " + stuff.getString("KBarCode") + "\n" +
+                            "تعداد اسکن نشده: " + stuff.getString("diffCount") + "\n" +
+                            "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
+                            "تعداد کل: " + stuff.getString("dbCount");
+                    finding.stuffImgUrl = stuff.getString("ImgUrl");
+                    finding.stuffPrimaryCode = stuff.getString("BarcodeMain_ID");
+                    finding.stuffRFIDCode = stuff.getString("RFID");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }

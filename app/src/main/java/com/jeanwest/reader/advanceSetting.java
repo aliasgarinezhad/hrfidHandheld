@@ -20,17 +20,17 @@ public class advanceSetting extends AppCompatActivity {
     }
 
     public void readingSetting(View view) {
-        Intent intent = new Intent(this, readingSetting.class);
-        startActivity(intent);
+        /*Intent intent = new Intent(this, readingSetting.class);
+        startActivity(intent);*/
     }
 
     public void findingSetting(View view) {
-        Intent intent = new Intent(this, findingSetting.class);
-        startActivity(intent);
+        /*Intent intent = new Intent(this, findingSetting.class);
+        startActivity(intent);*/
     }
 
     public void filterChangingSetting(View view) {
-        Intent intent = new Intent(this, filterChangingSetting.class);
-        startActivity(intent);
+        /*Intent intent = new Intent(this, filterChangingSetting.class);
+        startActivity(intent);*/
     }
 }

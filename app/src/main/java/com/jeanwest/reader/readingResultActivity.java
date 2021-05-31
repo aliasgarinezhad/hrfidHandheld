@@ -25,7 +25,7 @@ import java.util.ArrayList;
 public class readingResultActivity extends AppCompatActivity {
 
     ListView result;
-    ArrayList<String> titles = new ArrayList<String>();
+    ArrayList<String> titles = new ArrayList<>();
     Intent intent;
     public static int index = 0;
 
@@ -45,21 +45,18 @@ public class readingResultActivity extends AppCompatActivity {
 
         super.onResume();
 
-        Integer sumNotScanned = 0;
-        Integer sumScanned = 0;
-        Integer sumExtra = 0;
+        int sumNotScanned = 0;
+        int sumScanned = 0;
+        int sumExtra = 0;
 
         titles.clear();
-
-        //String title = "دسته     تعداد اسکن شده   تعداد اسکن نشده   تعداد اضافی";
         String title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
-
         titles.add(title);
 
         for (int i = 0; i<reading.API2.stuffs.length(); i++) {
 
-            String temp = null;
-            JSONArray subStuffs = null;
+            String temp;
+            JSONArray subStuffs;
 
             try {
                 temp = reading.API2.stuffs.getString(i);
@@ -76,11 +73,9 @@ public class readingResultActivity extends AppCompatActivity {
                     }
                 }
 
-                //temp = String.format("%10s", temp);
-
-                Integer NotScanned = 0;
-                Integer scanned = 0;
-                Integer Extra = 0;
+                int NotScanned = 0;
+                int scanned = 0;
+                int Extra = 0;
                 for (int j = 0; j < subStuffs.length(); j++) {
 
                     JSONObject temp2 = subStuffs.getJSONObject(j);
@@ -94,10 +89,7 @@ public class readingResultActivity extends AppCompatActivity {
                         Extra += temp2.getInt("diffCount");
                     }
                 }
-                temp = String.format("%s%15s%15s%12s", temp, scanned.toString(), NotScanned.toString(), Extra.toString());
-                //temp += "          " + scanned;
-                //temp += "          " + NotScanned;
-                //temp += "          " + Extra;
+                temp = String.format("%s%15s%15s%12s", temp, Integer.toString(scanned), Integer.toString(NotScanned), Integer.toString(Extra));
                 sumScanned += scanned;
                 sumNotScanned += NotScanned;
                 sumExtra += Extra;
@@ -110,8 +102,7 @@ public class readingResultActivity extends AppCompatActivity {
 
         }
 
-        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", sumScanned.toString(), sumNotScanned.toString(), sumExtra.toString()));
-        //titles.add(1, "مجموع         " + sumScanned +  "      " + sumNotScanned + "      " + sumExtra);
+        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", Integer.toString(sumScanned), Integer.toString(sumNotScanned), Integer.toString(sumExtra)));
 
         ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
 

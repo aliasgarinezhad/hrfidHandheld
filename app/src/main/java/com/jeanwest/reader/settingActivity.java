@@ -25,9 +25,6 @@ import java.util.Map;
 
 public class settingActivity extends AppCompatActivity {
 
-    Spinner filterSpinner;
-    databaseHelperClass2 databaseHelper2;
-    SQLiteDatabase counter;
     private boolean dataExist;
     Toast response;
     TextView versionName;
@@ -37,59 +34,14 @@ public class settingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
-        filterSpinner = (Spinner) findViewById(R.id.filterSpinner2);
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
         versionName = (TextView) findViewById(R.id.versionNameView);
-        databaseHelper2 = new databaseHelperClass2(this);
 
         try {
             versionName.setText("ورژن: " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-
-        counter = databaseHelper2.getWritableDatabase();
-        Cursor counterCursor = counter.rawQuery("select * from counterDatabase", null);
-        if(counterCursor.getCount() <= 0) {
-            response.setText("دیتای برنامه پاک شده است. جهت استفاده از دستگاه، پارامتر های این صفحه را تنظیم کنید");
-            response.show();
-            dataExist = false;
-        }
-        else {
-            counterCursor.moveToFirst();
-            addNew.filterNumber = counterCursor.getInt(4);
-            dataExist = true;
-        }
-        counterCursor.close();
-
-        if(addNew.filterNumber > 1) {
-            return;
-        }
-
-        String[] items = {"انبار (0)", "فروشگاه (1)"};
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items);
-        filterSpinner.setAdapter(spinnerAdapter);
-        filterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-
-                addNew.filterNumber = position;
-                ContentValues val = new ContentValues();
-                val.put("filter", addNew.filterNumber);
-
-                if(dataExist) {
-                    counter.update("counterDatabase", val, null, null);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
-
-        filterSpinner.setSelection(addNew.filterNumber);
     }
 
     public void update(View view) {
@@ -125,10 +77,5 @@ public class settingActivity extends AppCompatActivity {
     public void advanceSettingButton(View view) {
         Intent intent = new Intent(this, loginActivity.class);
         startActivity(intent);
-    }
-    @Override
-    protected void onPause() {
-        super.onPause();
-        counter.close();
     }
 }

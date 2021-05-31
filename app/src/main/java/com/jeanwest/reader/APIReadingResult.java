@@ -46,7 +46,6 @@ public class APIReadingResult extends Thread {
                         conflicts = Json.getJSONObject("conflicts");
                         stuffs = conflicts.names();
 
-                        //Response = Json.getString("productName") + Json.getString("K_Bar_Code");
                         status = true;
                     }
                     else {

@@ -44,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
     }
     public void filterchangingActivity(View view) {
 
-        Intent intent = new Intent(this, filterChanging.class);
-        startActivity(intent);
+        /*Intent intent = new Intent(this, filterChanging.class);
+        startActivity(intent);*/
     }
 
     public void settingActivity(View view) {

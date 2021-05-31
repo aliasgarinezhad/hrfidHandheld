@@ -49,8 +49,7 @@
             android:name=".filterChanging"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".finding"
-            android:parentActivityName=".MainActivity" />
+            android:name=".finding"/>
         <activity
             android:name=".reading"
             android:parentActivityName=".MainActivity" />

@@ -75,12 +75,12 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
+                JSONObject stuff = subStuffs.getJSONObject(i);
 
-                if (!temp.getBoolean("status")) {
-                    numberOfNotStatusNotScanned += temp.getInt("diffCount");
-                    numberOfNotStatusScanned += temp.getInt("handheldCount");
-                    numberOfNotStatusAll += temp.getInt("dbCount");
+                if (!stuff.getBoolean("status")) {
+                    numberOfNotStatusNotScanned += stuff.getInt("diffCount");
+                    numberOfNotStatusScanned += stuff.getInt("handheldCount");
+                    numberOfNotStatusAll += stuff.getInt("dbCount");
                 }
 
             } catch (JSONException e) {
@@ -99,16 +99,16 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
-                if (!temp.getBoolean("status") && temp.getInt("diffCount") != 0) {
+                JSONObject stuff = subStuffs.getJSONObject(i);
+                if (!stuff.getBoolean("status") && stuff.getInt("diffCount") != 0) {
                     index[j] = i;
                     j++;
-                    items.add(temp.getString("productName") + "\n" +
-                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                    "بارکد: " + temp.getString("KBarCode") + "\n" +
-                    "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + temp.getString("dbCount"));
+                    items.add(stuff.getString("productName") + "\n" +
+                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
+                    "تعداد اسکن نشده: " + stuff.getString("diffCount") + "\n" +
+                    "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
+                    "تعداد کل: " + stuff.getString("dbCount"));
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -119,12 +119,12 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
+                JSONObject stuff = subStuffs.getJSONObject(i);
 
-                if (temp.getBoolean("status")) {
-                    numberOfStatusExtras += temp.getInt("diffCount");
-                    numberOfStatusScanned += temp.getInt("handheldCount");
-                    numberOfStatusAll += temp.getInt("dbCount");
+                if (stuff.getBoolean("status")) {
+                    numberOfStatusExtras += stuff.getInt("diffCount");
+                    numberOfStatusScanned += stuff.getInt("handheldCount");
+                    numberOfStatusAll += stuff.getInt("dbCount");
                 }
 
             } catch (JSONException e) {
@@ -143,16 +143,16 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
-                if (temp.getBoolean("status")) {
+                JSONObject stuff = subStuffs.getJSONObject(i);
+                if (stuff.getBoolean("status")) {
                     index[j] = i;
                     j++;
-                    items.add(temp.getString("productName") + "\n" +
-                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                    "بارکد: " + temp.getString("KBarCode") + "\n" +
-                    "تعداد اضافی: " + temp.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + temp.getString("dbCount"));
+                    items.add(stuff.getString("productName") + "\n" +
+                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
+                    "تعداد اضافی: " + stuff.getString("diffCount") + "\n" +
+                    "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
+                    "تعداد کل: " + stuff.getString("dbCount"));
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -171,15 +171,5 @@ public class readingResultSubActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        if(keyCode == 4) {
-            finish();
-        }
-
-        return true;
     }
 }

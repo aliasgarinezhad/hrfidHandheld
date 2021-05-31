@@ -6,9 +6,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import androidx.annotation.Nullable;
 
-public class databaseHelperClass2 extends SQLiteOpenHelper {
+public class databaseHelperClass extends SQLiteOpenHelper {
 
-    public databaseHelperClass2(@Nullable Context context) {
+    public databaseHelperClass(@Nullable Context context) {
         super(context, "counterDatabase", null, 1);
     }
 

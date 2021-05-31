@@ -7,7 +7,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -35,7 +34,7 @@ public class addNewSetting extends AppCompatActivity {
     EditText counterMin;
     EditText counterMax;
     EditText passwordText;
-    databaseHelperClass2 databaseHelper2;
+    databaseHelperClass databaseHelper2;
     SQLiteDatabase counter;
     private boolean dataExist;
 
@@ -59,7 +58,7 @@ public class addNewSetting extends AppCompatActivity {
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
         steps = (RadioGroup) findViewById(R.id.radioGroup);
 
-        databaseHelper2 = new databaseHelperClass2(this);
+        databaseHelper2 = new databaseHelperClass(this);
 
         counter = databaseHelper2.getWritableDatabase();
         Cursor counterCursor = counter.rawQuery("select * from counterDatabase", null);
@@ -142,7 +141,7 @@ public class addNewSetting extends AppCompatActivity {
             }
         });
 
-        String[] items = {"انبار (0)", "فروشگاه (1)", "2", "3", "4", "5", "6", "7"};
+        String[] items = {"0", "1", "2", "3", "4", "5", "6", "7"};
 
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items);
         filterSpinner.setAdapter(spinnerAdapter);

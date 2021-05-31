@@ -30,7 +30,6 @@ public class finding extends AppCompatActivity {
     SeekBar powerSeekBar;
     EditText stuffCodeString;
     TextView stuffSpec;
-    private boolean step = false;
     findingThread findTask = new findingThread();
     int numberOfFound = 0;
     private long stuffCode = 162309L;
@@ -125,12 +124,11 @@ public class finding extends AppCompatActivity {
                 numberOfFound = 0;
                 status.setText("");
 
-                if(!step) {
+                if(!findTask.readEnable) {
 
                     EPCTableFinding.clear();
                     while(!RF.setPower(findingPower)) {}
                     findTask.readEnable = true;
-                    step = true;
                     stuffCode = Long.parseLong(stuffCodeString.getEditableText().toString());
 
                     if(!fromReadingResultSubSubActivity) {
@@ -151,7 +149,6 @@ public class finding extends AppCompatActivity {
                 else {
                     findTask.readEnable = false;
                     while(!findTask.finished){}
-                    step = false;
 
                     for(Map.Entry<String, Integer> EPC : EPCTableFinding.entrySet()) {
 

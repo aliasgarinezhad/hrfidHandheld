@@ -16,7 +16,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/filterTextView"
+        app:layout_constraintTop_toTopOf="parent"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1" />
 
@@ -59,16 +59,5 @@
         app:layout_constraintEnd_toStartOf="@+id/numberOfWrittenModifiedView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/numberOfWrittenView" />
-
-    <TextView
-        android:id="@+id/filterTextView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="حالت پیشرفته"
-        android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/section_label"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

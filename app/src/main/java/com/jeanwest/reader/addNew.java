@@ -20,9 +20,9 @@ import com.rscja.deviceapi.exception.ConfigurationException;
 
 public class addNew extends AppCompatActivity implements IBarcodeResult{
 
-    public static Barcode2D barcode2D;
+    public Barcode2D barcode2D;
     public String BarcodeID;
-    public static RFIDWithUHF RF;
+    public RFIDWithUHF RF;
     APIAddNew DataBase = new APIAddNew();
     public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public String EPC;
@@ -33,17 +33,16 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     public static long counterMaxValue = 5;
     public static long counterMinValue = 0;
     public static String tagPassword = "00000000";
-    databaseHelperClass2 databaseHelper2;
+    databaseHelperClass databaseHelper2;
     SQLiteDatabase counter;
     public static long counterValue = 0;
     public long counterValueModified = 0;
     public Cursor counterCursor;
     public static boolean isAddNewOK = true;
-    public static Toast warning;
+    public Toast warning;
     public TextView status;
     public TextView numberOfWritten;
     public TextView numberOfWrittenModified;
-    public TextView filterText;
     public static int filterNumber = 0;  // 3bit
     public static int partitionNumber = 6; // 3bit
     public static int headerNumber = 48; // 8bit
@@ -62,11 +61,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         warning = Toast.makeText(this, "", Toast.LENGTH_LONG);
         numberOfWritten = (TextView) findViewById(R.id.numberOfWrittenView);
         numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
-        filterText = (TextView) findViewById(R.id.filterTextView);
         barcode2D = new Barcode2D(this);
-        databaseHelper2 = new databaseHelperClass2(this);
+        databaseHelper2 = new databaseHelperClass(this);
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onResume() {
 
@@ -129,13 +128,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + String.valueOf(counterValue - counterMinValue));
         numberOfWrittenModified.setText(String.valueOf(counterValueModified));
         numberOfWrittenModified.setText("مقدار شمارنده: " + String.valueOf(counterValueModified));
-
-        if(filterNumber == 0) {
-            filterText.setText("در سطح انبار");
-        }
-        else if(filterNumber == 1) {
-            filterText.setText("در سطح فروشگاه");
-        }
     }
 
     @Override
@@ -151,7 +143,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (barcode.length() > 2) {
             BarcodeID = barcode;
-            status.setText("Barcode scanned successfully\nID: " + BarcodeID + "\n");
+            status.setText("اسکن بارکد با موفقیت انجام شد" + "\nID: " + BarcodeID + "\n");
             status.setBackgroundColor(Color.GREEN);
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,150);
             if(oneStepActive) {
@@ -162,7 +154,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             }
 
         } else {
-            status.setText("Barcode not found");
+            status.setText("بارکدی پیدا نشد");
             status.setBackgroundColor(Color.RED);
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
         }
@@ -219,7 +211,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         String tempStr;
         int LoopVariable;
         boolean Collision;
-        Integer tempByte;
+        int tempByte;
 
         RF.startInventoryTag(0, 0);
 

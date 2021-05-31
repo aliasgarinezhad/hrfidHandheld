@@ -10,9 +10,6 @@ public class readingThread extends  Thread {
     public volatile boolean readEnable = false;
 
     String[] tagBuffer = new String[10];
-    int numberOfScans = 0;
-    //ContentValues values = new ContentValues();
-    //int i;
     public volatile boolean finished = false;
 
     public void run() {
