@@ -3,18 +3,14 @@ package com.jeanwest.reader;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
-import android.graphics.Color;
-import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.text.BreakIterator;
-
 public class userSpecActivity extends AppCompatActivity {
 
-    public static APIReading API = new APIReading();
+    public static APIReadingInformation API = new APIReadingInformation();
     private Toast status;
     EditText departmentInfoIDView;
     EditText wareHouseIDView;

@@ -1,6 +1,5 @@
 package com.jeanwest.reader;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -11,15 +10,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 
-public class APIReadingResult extends Thread {
+public class APIFindingEPC extends Thread {
 
+    public String Barcode;
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
-    public JSONArray stuffs;
-    public JSONObject conflicts;
 
     public void run(){
 
@@ -31,8 +28,7 @@ public class APIReadingResult extends Thread {
 
                 try {
 
-                    stuffs = null;
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/conflicts";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs?BarcodeMain_ID=" + finding.stuffPrimaryCode + "&RFID=" + finding.stuffRFIDCode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
@@ -43,18 +39,18 @@ public class APIReadingResult extends Thread {
                         String Receive = reader.readLine();
 
                         JSONObject Json = new JSONObject(Receive);
-                        conflicts = Json.getJSONObject("conflicts");
-                        stuffs = conflicts.names();
 
+                        Response = "";
+                        for(int g=0; g<Json.length(); g++) {
+                            Response += "\n" + Json.getString(String.valueOf(g));
+                        }
+                        //Response = Receive;
                         status = true;
                     }
                     else {
 
-                        Response = Connection.getResponseCode() + " error: " + Connection.getResponseMessage();
-                        reading.databaseInProgress = false;
+                        Response = Connection.getResponseCode() + "Error: " + Connection.getResponseMessage();
                     }
-
-                    Connection.disconnect();
 
                 } catch (IOException | JSONException e) {
                     e.printStackTrace();
@@ -64,4 +60,3 @@ public class APIReadingResult extends Thread {
         }
     }
 }
-

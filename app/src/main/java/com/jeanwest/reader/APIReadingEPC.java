@@ -7,7 +7,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class APIReadingFile extends Thread {
+public class APIReadingEPC extends Thread {
 
     public String Response;
     public boolean status = false;
@@ -23,7 +23,7 @@ public class APIReadingFile extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epc";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
                     Connection.setDoOutput(true);
@@ -40,6 +40,7 @@ public class APIReadingFile extends Thread {
                     }
 
                     out.write(temp.toString());
+                    out.close();
 
                     int statusCode = Connection.getResponseCode();
 

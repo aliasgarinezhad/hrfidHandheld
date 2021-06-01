@@ -42,8 +42,8 @@ public class reading extends AppCompatActivity {
     public static Map<String, Integer> EPCTableValid = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableInvalid = new HashMap<String, Integer>();
     public static Integer ID;
-    APIReadingFile API = new APIReadingFile();
-    public static APIReadingResult API2 = new APIReadingResult();
+    APIReadingEPC API = new APIReadingEPC();
+    public static APIReadingConflicts API2 = new APIReadingConflicts();
     private boolean readingInProgress = false;
     public static boolean databaseInProgress = false;
     private boolean processingInProgress = false;

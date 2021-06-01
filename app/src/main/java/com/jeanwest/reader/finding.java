@@ -21,6 +21,7 @@ import java.util.Map;
 
 public class finding extends AppCompatActivity {
 
+    APIFindingEPC database = new APIFindingEPC();
     public static RFIDWithUHF RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<String, Integer>();
     public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
@@ -81,6 +82,7 @@ public class finding extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onResume() {
         super.onResume();
@@ -100,6 +102,10 @@ public class finding extends AppCompatActivity {
         while(!RF.setFrequencyMode((byte) 4)) {}
         while(!RF.setRFLink(2)) {}
 
+        if(!database.isAlive()) {
+            database.start();
+        }
+
         if(fromReadingResultSubSubActivity) {
             stuffSpec.setText(ReadingResultSubSubString);
             picture.loadUrl(stuffImgUrl);
@@ -109,8 +115,18 @@ public class finding extends AppCompatActivity {
             picture.setFocusable(false);
             stuffCodeString.setText(stuffPrimaryCode);
             stuffCodeString.setFocusable(false);
-        }
 
+            database.run = true;
+            while(database.run) {}
+
+            if(!database.status) {
+                stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
+            }
+            else {
+                stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
+            }
+
+        }
     }
 
     @SuppressLint("SetTextI18n")

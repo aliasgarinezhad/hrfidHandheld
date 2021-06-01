@@ -17,7 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class APIReading extends Thread {
+public class APIReadingInformation extends Thread {
 
     Integer departmentInfoID = 68;
     Integer wareHouseID = 1706;
