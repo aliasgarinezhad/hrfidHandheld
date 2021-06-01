@@ -13,10 +13,10 @@ import java.net.URL;
 
 public class APIFindingEPC extends Thread {
 
-    public String Barcode;
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
+    JSONObject Json;
 
     public void run(){
 
@@ -28,7 +28,7 @@ public class APIFindingEPC extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs?BarcodeMain_ID=" + finding.stuffPrimaryCode + "&RFID=" + finding.stuffRFIDCode;
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs?BarcodeMain_ID=" + readingResultSubSubActivity.stuffPrimaryCode + "&RFID=" + readingResultSubSubActivity.stuffRFIDCode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
@@ -38,7 +38,7 @@ public class APIFindingEPC extends Thread {
                         BufferedReader reader = new BufferedReader(isr);
                         String Receive = reader.readLine();
 
-                        JSONObject Json = new JSONObject(Receive);
+                        Json = new JSONObject(Receive);
 
                         Response = "";
                         for(int g=0; g<Json.length(); g++) {

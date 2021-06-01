@@ -13,18 +13,18 @@ public class findingThread extends  Thread {
 
             if(readEnable) {
 
-                finding.RF.startInventoryTag(0,0);
+                readingResultSubSubActivity.RF.startInventoryTag(0,0);
                 finished = false;
 
                 while(readEnable) {
 
-                    tagBuffer = finding.RF.readTagFromBuffer();
+                    tagBuffer = readingResultSubSubActivity.RF.readTagFromBuffer();
 
                     if(tagBuffer != null) {
-                        finding.EPCTableFinding.put(tagBuffer[1].substring(4), 1);
+                        readingResultSubSubActivity.EPCTableFinding.put(tagBuffer[1].substring(4), 1);
                     }
                 }
-                finding.RF.stopInventory();
+                readingResultSubSubActivity.RF.stopInventory();
 
                 finished = true;
             }

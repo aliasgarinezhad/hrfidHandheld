@@ -13,9 +13,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
         <activity
-            android:name=".readingResultSubSubActivity"
-            android:parentActivityName=".readingResultSubActivity"/>
-        <activity
             android:name=".readingResultSubActivity"
             android:parentActivityName=".readingResultActivity" />
         <activity
@@ -49,7 +46,7 @@
             android:name=".filterChanging"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".finding"/>
+            android:name=".readingResultSubSubActivity"/>
         <activity
             android:name=".reading"
             android:parentActivityName=".MainActivity" />
