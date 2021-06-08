@@ -25,10 +25,11 @@ public class APIReadingInformation extends Thread {
     public boolean status = false;
     public volatile boolean run = false;
     String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations";
+    public boolean stop = false;
 
-    public void run(){
+    public void run() {
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 

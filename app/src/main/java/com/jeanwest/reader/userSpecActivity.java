@@ -4,17 +4,20 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 public class userSpecActivity extends AppCompatActivity {
 
-    public static APIReadingInformation API = new APIReadingInformation();
+    APIReadingInformation API = new APIReadingInformation();
     private Toast status;
     EditText departmentInfoIDView;
     EditText wareHouseIDView;
     Intent intent;
+    public static Integer departmentInfoID;
+    public static Integer wareHouseID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,10 +27,13 @@ public class userSpecActivity extends AppCompatActivity {
         wareHouseIDView = (EditText) findViewById(R.id.WareHouseIDView);
         intent = new Intent(this, reading.class);
 
-        if(!API.isAlive()) {
-            API.start();
-        }
         status = Toast.makeText(this, "", Toast.LENGTH_LONG);
+    }
+
+    protected void onResume() {
+        super.onResume();
+        API.stop = false;
+        API.start();
     }
 
     public void startReading(View view) {
@@ -52,9 +58,31 @@ public class userSpecActivity extends AppCompatActivity {
             return;
         }
 
+        wareHouseID = API.wareHouseID;
+        departmentInfoID = API.departmentInfoID;
+
         reading.ID = Integer.parseInt(API.Response);
 
         reading.fromLogin = true;
         startActivity(intent);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        API.stop = true;
+        finish();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if(keyCode == 4) {
+
+            API.stop = true;
+            finish();
+        }
+
+        return true;
     }
 }

@@ -71,7 +71,7 @@ public class reading extends AppCompatActivity {
 
             if(readingInProgress) {
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
 
                 if(EPCTable.size() > EPCLastLength) {
@@ -99,7 +99,7 @@ public class reading extends AppCompatActivity {
                     }
                 }
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -131,7 +131,7 @@ public class reading extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
@@ -210,17 +210,14 @@ public class reading extends AppCompatActivity {
         API.status = false;
         API2.status = false;
 
-        if (!API.isAlive()) {
-            API.start();
-        }
+        API.stop = false;
+        API.start();
 
-        if (!API2.isAlive()) {
-            API2.start();
-        }
+        API2.stop = false;
+        API2.start();
 
-        if (!readTask.isAlive()) {
-            readTask.start();
-        }
+        readTask.stop = false;
+        readTask.start();
 
         if(fromLogin) {
 
@@ -246,7 +243,7 @@ public class reading extends AppCompatActivity {
             fromLogin = false;
         }
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
+        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
         status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -290,6 +287,9 @@ public class reading extends AppCompatActivity {
                 RF.stopInventory();
                 readingInProgress = false;
             }
+            API.stop = true;
+            API2.stop = true;
+            readTask.stop = true;
             finish();
         }
         return true;
@@ -302,6 +302,9 @@ public class reading extends AppCompatActivity {
             RF.stopInventory();
             readingInProgress = false;
         }
+        API.stop = true;
+        API2.stop = true;
+        readTask.stop = true;
     }
 
     @SuppressLint("SetTextI18n")
@@ -324,7 +327,7 @@ public class reading extends AppCompatActivity {
         EPCTableInvalid.clear();
         EPCLastLength = 0;
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
+        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
         status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
     }
 }

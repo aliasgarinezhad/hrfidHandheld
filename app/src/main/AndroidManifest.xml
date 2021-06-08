@@ -12,6 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
+        <activity android:name=".findingActivity"></activity>
         <activity
             android:name=".readingResultSubActivity"
             android:parentActivityName=".readingResultActivity" />
@@ -45,8 +46,7 @@
         <activity
             android:name=".filterChanging"
             android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".readingResultSubSubActivity"/>
+        <activity android:name=".readingResultSubSubActivity" />
         <activity
             android:name=".reading"
             android:parentActivityName=".MainActivity" />

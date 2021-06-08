@@ -63,7 +63,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
         databaseHelper2 = new databaseHelperClass(this);
-
+        
         try {
             RF = RFIDWithUHF.getInstance();
         } catch (ConfigurationException e) {
@@ -86,9 +86,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         while(!RF.setEPCTIDMode(true)) {}
 
-        if(!DataBase.isAlive()) {
-            DataBase.start();
-        }
+        DataBase.stop = false;
+        DataBase.start();
+
         counter = databaseHelper2.getWritableDatabase();
         counterCursor = counter.rawQuery("select * from counterDatabase", null);
 
@@ -137,6 +137,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         super.onPause();
         counter.close();
         close();
+        DataBase.stop = true;
     }
 
     @SuppressLint("SetTextI18n")
@@ -200,8 +201,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         } else if (keyCode == 4) {
             counter.close();
-            finish();
             close();
+            DataBase.stop = true;
+            finish();
         }
         return true;
     }

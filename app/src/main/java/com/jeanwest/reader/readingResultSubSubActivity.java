@@ -145,16 +145,14 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        if (!findTask.isAlive()) {
-            findTask.start();
-        }
+        findTask.stop = false;
+        findTask.start();
 
         while (!RF.setPower(findingPower)) {
         }
 
-        if (!database.isAlive()) {
-            database.start();
-        }
+        database.stop = false;
+        database.start();
 
         try {
 
@@ -292,6 +290,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                 RF.stopInventory();
                 findTask.readEnable = false;
             }
+            database.stop = true;
+            findTask.stop = true;
             finish();
         }
         return true;

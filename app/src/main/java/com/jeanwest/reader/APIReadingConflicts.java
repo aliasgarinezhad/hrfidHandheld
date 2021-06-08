@@ -21,10 +21,11 @@ public class APIReadingConflicts extends Thread {
     public volatile boolean run = false;
     public JSONArray stuffs;
     public JSONObject conflicts;
+    public boolean stop = false;
 
     public void run(){
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 

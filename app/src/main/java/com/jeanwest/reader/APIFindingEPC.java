@@ -17,10 +17,11 @@ public class APIFindingEPC extends Thread {
     public boolean status = false;
     public volatile boolean run = false;
     JSONObject Json;
+    public boolean stop;
 
     public void run(){
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 

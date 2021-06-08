@@ -45,13 +45,13 @@ public class MainActivity extends AppCompatActivity {
     }
     public void findingActivity(View view) {
 
-        /*Intent intent = new Intent(this, readingResultSubSubActivity.class);
-        startActivity(intent);*/
+        Intent intent = new Intent(this, findingActivity.class);
+        startActivity(intent);
     }
     public void filterchangingActivity(View view) {
 
-        Intent intent = new Intent(this, filterChanging.class);
-        startActivity(intent);
+        /*Intent intent = new Intent(this, filterChanging.class);
+        startActivity(intent);*/
     }
 
     public void settingActivity(View view) {
@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         if(keyCode == 4) {
 
             RF.free();
+            finish();
         }
         return true;
     }

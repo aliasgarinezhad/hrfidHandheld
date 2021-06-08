@@ -11,10 +11,11 @@ public class readingThread extends  Thread {
 
     String[] tagBuffer = new String[10];
     public volatile boolean finished = false;
+    public boolean stop;
 
     public void run() {
 
-        while(true) {
+        while(!stop) {
 
             if(readEnable) {
 

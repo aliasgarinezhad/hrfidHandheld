@@ -17,10 +17,11 @@ public class APIAddNew extends Thread {
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
+    public boolean stop = false;
 
     public void run(){
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 
