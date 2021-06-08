@@ -23,7 +23,7 @@ public class APIReadingEPC extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs/v2";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
                     Connection.setDoOutput(true);

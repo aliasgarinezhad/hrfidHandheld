@@ -1,27 +1,21 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.annotation.SuppressLint;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
-import android.media.AudioManager;
-import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.view.KeyEvent;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import com.rscja.deviceapi.RFIDWithUHF;
-import com.rscja.deviceapi.exception.ConfigurationException;
+public class filterChanging extends AppCompatActivity implements IBarcodeResult {
 
-public class filterChanging extends AppCompatActivity {
+    Barcode2D barcode2D;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_filter_changing);
+
+        barcode2D = new Barcode2D(this);
+
+        open();
     }
 
     @Override
@@ -37,6 +31,29 @@ public class filterChanging extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
+        if (keyCode == 280 || keyCode == 139) {
+            start();
+        }
         return true;
+    }
+
+    @Override
+    public void getBarcode(String barcode) throws InterruptedException {
+
+    }
+
+
+    public void start() {
+        barcode2D.startScan(this);
+    }
+    public void stop() {
+        barcode2D.stopScan(this);
+    }
+    public void open() {
+        barcode2D.open(this,this);
+    }
+    public void close() {
+        barcode2D.stopScan(this);
+        barcode2D.close(this);
     }
 }

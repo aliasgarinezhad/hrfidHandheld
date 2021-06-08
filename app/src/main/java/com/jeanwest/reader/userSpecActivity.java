@@ -14,6 +14,7 @@ public class userSpecActivity extends AppCompatActivity {
     private Toast status;
     EditText departmentInfoIDView;
     EditText wareHouseIDView;
+    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +22,7 @@ public class userSpecActivity extends AppCompatActivity {
         setContentView(R.layout.activity_user_spec);
         departmentInfoIDView = (EditText) findViewById(R.id.DepartmentInfoIDView);
         wareHouseIDView = (EditText) findViewById(R.id.WareHouseIDView);
+        intent = new Intent(this, reading.class);
 
         if(!API.isAlive()) {
             API.start();
@@ -52,7 +54,7 @@ public class userSpecActivity extends AppCompatActivity {
 
         reading.ID = Integer.parseInt(API.Response);
 
-        Intent intent = new Intent(this, reading.class);
+        reading.fromLogin = true;
         startActivity(intent);
     }
 }

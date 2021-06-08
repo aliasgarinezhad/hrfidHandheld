@@ -54,6 +54,14 @@ public class reading extends AppCompatActivity {
     int EPCLastLength = 0;
     int readingPower = 30;
 
+    String temp;
+    JSONArray subStuffs;
+    JSONObject temp2;
+
+    public static boolean fromLogin = false;
+
+    String header;
+
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
 
@@ -63,7 +71,7 @@ public class reading extends AppCompatActivity {
 
             if(readingInProgress) {
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: 1706" + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
 
                 if(EPCTable.size() > EPCLastLength) {
@@ -80,7 +88,7 @@ public class reading extends AppCompatActivity {
 
                 for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
-                    String header = EPC.getKey().substring(0,2);
+                    header = EPC.getKey().substring(0,2);
 
                     if(header.equals("30")) {
                         EPCTableValid.put(EPC.getKey(), 1);
@@ -91,7 +99,7 @@ public class reading extends AppCompatActivity {
                     }
                 }
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: 1706" + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -123,7 +131,7 @@ public class reading extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: 1706" + '\n');
+                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
                 status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
@@ -176,6 +184,12 @@ public class reading extends AppCompatActivity {
         circularProgressBar.setBackgroundProgressBarWidth(7f); // in DP
         circularProgressBar.setRoundBorder(true);
         circularProgressBar.setProgressDirection(CircularProgressBar.ProgressDirection.TO_RIGHT);
+
+        try {
+            RF = RFIDWithUHF.getInstance();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -184,16 +198,12 @@ public class reading extends AppCompatActivity {
 
         super.onResume();
 
-        try {
-            RF = RFIDWithUHF.getInstance();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
-        }
-
         while(!RF.setEPCTIDMode(false)) {}
-        while(!RF.setPower(readingPower)) {}
-        while(!RF.setFrequencyMode((byte) 4)) {}
-        while(!RF.setRFLink(2)) {}
+
+        if(RF.getPower() != readingPower) {
+
+            while(!RF.setPower(readingPower)) {}
+        }
 
         databaseInProgress = false;
         readingInProgress = false;
@@ -212,29 +222,31 @@ public class reading extends AppCompatActivity {
             readTask.start();
         }
 
-        API2.status = false;
-        API2.run = true;
-        while(API2.run){}
+        if(fromLogin) {
 
-        allStuffs = 0;
-        for (int i = 0; i<API2.stuffs.length(); i++) {
-            String temp;
-            JSONArray subStuffs;
+            API2.status = false;
+            API2.run = true;
+            while(API2.run){}
 
-            try {
-                temp = API2.stuffs.getString(i);
-                subStuffs = API2.conflicts.getJSONArray(temp);
+            allStuffs = 0;
+            for (int i = 0; i<API2.stuffs.length(); i++) {
 
-                for (int j = 0; j < subStuffs.length(); j++) {
-                    JSONObject temp2 = subStuffs.getJSONObject(j);
-                    allStuffs += temp2.getInt("dbCount");
+                try {
+                    temp = API2.stuffs.getString(i);
+                    subStuffs = API2.conflicts.getJSONArray(temp);
+
+                    for (int j = 0; j < subStuffs.length(); j++) {
+                        temp2 = subStuffs.getJSONObject(j);
+                        allStuffs += temp2.getInt("dbCount");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
             }
+            fromLogin = false;
         }
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: 1706" + '\n');
+        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
         status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -274,7 +286,10 @@ public class reading extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            RF.stopInventory();
+            if(readingInProgress) {
+                RF.stopInventory();
+                readingInProgress = false;
+            }
             finish();
         }
         return true;
@@ -283,7 +298,10 @@ public class reading extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        RF.stopInventory();
+        if(readingInProgress) {
+            RF.stopInventory();
+            readingInProgress = false;
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -306,7 +324,7 @@ public class reading extends AppCompatActivity {
         EPCTableInvalid.clear();
         EPCLastLength = 0;
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: 1706" + '\n');
+        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.API.wareHouseID + '\n');
         status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
     }
 }

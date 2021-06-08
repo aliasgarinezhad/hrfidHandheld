@@ -28,23 +28,23 @@ public class APIAddNew extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
-                    URL server = new URL(GetCommand);
-                    HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
+                    String getCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
+                    URL server = new URL(getCommand);
+                    HttpURLConnection connection = (HttpURLConnection) server.openConnection();
 
-                    if (Connection.getResponseCode() == 200) {
-                        InputStream input = new BufferedInputStream(Connection.getInputStream());
+                    if (connection.getResponseCode() == 200) {
+                        InputStream input = new BufferedInputStream(connection.getInputStream());
                         InputStreamReader isr = new InputStreamReader(input, "UTF-8");
                         BufferedReader reader = new BufferedReader(isr);
-                        String Receive = reader.readLine();
+                        String receive = reader.readLine();
 
-                        JSONObject Json = new JSONObject(Receive);
-                        Response = Json.getString("RFID");
+                        JSONObject json = new JSONObject(receive);
+                        Response = json.getString("RFID");
                         status = true;
                     }
                     else {
 
-                        Response = Connection.getResponseCode() + "Error: " + Connection.getResponseMessage();
+                        Response = connection.getResponseCode() + "Error: " + connection.getResponseMessage();
                     }
 
                 } catch (JSONException | IOException e) {

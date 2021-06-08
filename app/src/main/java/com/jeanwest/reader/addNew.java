@@ -20,13 +20,13 @@ import com.rscja.deviceapi.exception.ConfigurationException;
 
 public class addNew extends AppCompatActivity implements IBarcodeResult{
 
-    public Barcode2D barcode2D;
-    public String BarcodeID;
-    public RFIDWithUHF RF;
+    Barcode2D barcode2D;
+    String BarcodeID;
+    RFIDWithUHF RF;
     APIAddNew DataBase = new APIAddNew();
-    public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-    public String EPC;
-    public String TID;
+    ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+    String EPC;
+    String TID;
     public static boolean step2 = false;
     public static int RFPower = 5;
     public static boolean oneStepActive = false;
@@ -36,13 +36,13 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     databaseHelperClass databaseHelper2;
     SQLiteDatabase counter;
     public static long counterValue = 0;
-    public long counterValueModified = 0;
-    public Cursor counterCursor;
+    long counterValueModified = 0;
+    Cursor counterCursor;
     public static boolean isAddNewOK = true;
-    public Toast warning;
-    public TextView status;
-    public TextView numberOfWritten;
-    public TextView numberOfWrittenModified;
+    Toast warning;
+    TextView status;
+    TextView numberOfWritten;
+    TextView numberOfWrittenModified;
     public static int filterNumber = 0;  // 3bit
     public static int partitionNumber = 6; // 3bit
     public static int headerNumber = 48; // 8bit
@@ -63,6 +63,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
         databaseHelper2 = new databaseHelperClass(this);
+
+        try {
+            RF = RFIDWithUHF.getInstance();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -73,16 +79,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         open();
 
-        try {
-            RF = RFIDWithUHF.getInstance();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
+        if(RF.getPower() != RFPower) {
+
+            while(!RF.setPower(RFPower)) {}
         }
 
         while(!RF.setEPCTIDMode(true)) {}
-        while(!RF.setPower(RFPower)) {}
-        while(!RF.setFrequencyMode((byte) 4)) {}
-        while(!RF.setRFLink(0)) {}
 
         if(!DataBase.isAlive()) {
             DataBase.start();
@@ -133,8 +135,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     @Override
     protected void onPause() {
         super.onPause();
-        close();
         counter.close();
+        close();
     }
 
     @SuppressLint("SetTextI18n")
@@ -197,9 +199,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 }
 
         } else if (keyCode == 4) {
-            close();
             counter.close();
             finish();
+            close();
         }
         return true;
     }
@@ -330,9 +332,23 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
 
-            Thread.sleep(100);
+            String EPCVerify;
 
-            if(!New.equals(RF.inventorySingleTag().substring(4).toLowerCase())) {
+            try {
+                EPCVerify = RF.inventorySingleTag().substring(4).toLowerCase();
+            }
+            catch (NullPointerException e) {
+
+                status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
+                status.setText(status.getText() + RF.inventorySingleTag().substring(4));
+                status.setText(status.getText() + New);
+
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                status.setBackgroundColor(Color.RED);
+                return;
+            }
+
+            if(!New.equals(EPCVerify)) {
                 status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
                 status.setText(status.getText() + RF.inventorySingleTag().substring(4));
                 status.setText(status.getText() + New);

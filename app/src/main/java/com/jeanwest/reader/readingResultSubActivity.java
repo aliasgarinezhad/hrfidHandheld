@@ -5,19 +5,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class readingResultSubActivity extends AppCompatActivity {
 
@@ -34,6 +31,10 @@ public class readingResultSubActivity extends AppCompatActivity {
 
     int[] index;
     public static int subIndex;
+
+    ArrayList<String> items;
+    ArrayAdapter<String> listAdapter;
+    JSONObject stuff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,9 +61,9 @@ public class readingResultSubActivity extends AppCompatActivity {
         numberOfStatusAll = 0;
         j = 0;
 
-        ArrayList<String> items = new ArrayList<>();
+        items = new ArrayList<>();
 
-        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1 ,items);
+        listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1 ,items);
 
         try {
             subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
@@ -75,7 +76,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
 
                 if (!stuff.getBoolean("status")) {
                     numberOfNotStatusNotScanned += stuff.getInt("diffCount");
@@ -99,7 +100,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
                 if (!stuff.getBoolean("status") && stuff.getInt("diffCount") != 0) {
                     index[j] = i;
                     j++;
@@ -119,7 +120,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
 
                 if (stuff.getBoolean("status")) {
                     numberOfStatusExtras += stuff.getInt("diffCount");
@@ -143,7 +144,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
                 if (stuff.getBoolean("status")) {
                     index[j] = i;
                     j++;

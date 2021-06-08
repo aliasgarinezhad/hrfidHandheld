@@ -1,21 +1,14 @@
 package com.jeanwest.reader;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,7 +21,17 @@ public class readingResultActivity extends AppCompatActivity {
     ArrayList<String> titles = new ArrayList<>();
     Intent intent;
     public static int index = 0;
-
+    String title;
+    String temp;
+    JSONArray subStuffs;
+    JSONObject temp2;
+    int NotScanned = 0;
+    int scanned = 0;
+    int Extra = 0;
+    int sumNotScanned = 0;
+    int sumScanned = 0;
+    int sumExtra = 0;
+    ArrayAdapter<String> listAdapter;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -45,18 +48,15 @@ public class readingResultActivity extends AppCompatActivity {
 
         super.onResume();
 
-        int sumNotScanned = 0;
-        int sumScanned = 0;
-        int sumExtra = 0;
+        sumNotScanned = 0;
+        sumScanned = 0;
+        sumExtra = 0;
 
         titles.clear();
-        String title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
+        title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
         titles.add(title);
 
         for (int i = 0; i<reading.API2.stuffs.length(); i++) {
-
-            String temp;
-            JSONArray subStuffs;
 
             try {
                 temp = reading.API2.stuffs.getString(i);
@@ -73,12 +73,12 @@ public class readingResultActivity extends AppCompatActivity {
                     }
                 }
 
-                int NotScanned = 0;
-                int scanned = 0;
-                int Extra = 0;
+                NotScanned = 0;
+                scanned = 0;
+                Extra = 0;
                 for (int j = 0; j < subStuffs.length(); j++) {
 
-                    JSONObject temp2 = subStuffs.getJSONObject(j);
+                    temp2 = subStuffs.getJSONObject(j);
 
                     if (!temp2.getBoolean("status")) {
                         scanned += temp2.getInt("handheldCount");
@@ -104,7 +104,7 @@ public class readingResultActivity extends AppCompatActivity {
 
         titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", Integer.toString(sumScanned), Integer.toString(sumNotScanned), Integer.toString(sumExtra)));
 
-        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
+        listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
 
         result.setAdapter(listAdapter);
 

@@ -11,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import com.rscja.deviceapi.RFIDWithUHF;
@@ -36,12 +37,18 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     findingThread findTask = new findingThread();
     private long stuffCode;
     WebView picture;
+    CheckBox option;
 
     public static String stuffPrimaryCode;
     public static String stuffRFIDCode;
     JSONArray subStuffs;
     JSONObject stuff;
     Map<String, Integer> EPCTableFindingMatched = new HashMap<>();
+    String temp;
+    JSONObject temp2;
+    WebSettings setting;
+
+    boolean isChecked = true;
 
     Handler databaseBackgroundTaskHandler = new Handler();
 
@@ -62,12 +69,12 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     try {
 
                         for(int i = 0; i < reading.API2.stuffs.length(); i++) {
-                            String temp = reading.API2.stuffs.getString(i);
+                            temp = reading.API2.stuffs.getString(i);
                             subStuffs = reading.API2.conflicts.getJSONArray(temp);
 
                             for (int j = 0; j < subStuffs.length(); j++) {
 
-                                JSONObject temp2 = subStuffs.getJSONObject(j);
+                                temp2 = subStuffs.getJSONObject(j);
                                 if(temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)){
                                     readingResultActivity.index = i;
                                     readingResultSubActivity.subIndex = j;
@@ -100,6 +107,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         powerText = findViewById(R.id.findingPowerTextView);
         powerSeekBar = findViewById(R.id.findingPowerSeekBar);
         numberOfFoundText = findViewById(R.id.numberOfFoundTextView);
+        option = findViewById(R.id.checkBox);
 
         powerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @SuppressLint("SetTextI18n")
@@ -124,6 +132,12 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
             }
         });
+
+        try {
+            RF = RFIDWithUHF.getInstance();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -131,23 +145,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        try {
-            RF = RFIDWithUHF.getInstance();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
-        }
-
         if (!findTask.isAlive()) {
             findTask.start();
         }
 
-        while (!RF.setEPCTIDMode(false)) {
-        }
         while (!RF.setPower(findingPower)) {
-        }
-        while (!RF.setFrequencyMode((byte) 4)) {
-        }
-        while (!RF.setRFLink(2)) {
         }
 
         if (!database.isAlive()) {
@@ -184,7 +186,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        WebSettings setting = picture.getSettings();
+        setting = picture.getSettings();
         setting.setUseWideViewPort(true);
         setting.setLoadWithOverviewMode(true);
         picture.setFocusable(false);
@@ -201,6 +203,19 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
     }
 
+    int header;
+    int companyNumber;
+    long itemNumber;
+    boolean flag;
+    long EPCInt1;
+    long EPCInt2;
+    long EPCInt3;
+    String EPCHexString;
+    String EPCBinaryString;
+    String EPCBinaryString1;
+    String EPCBinaryString2;
+    String EPCBinaryString3;
+
     @SuppressLint("SetTextI18n")
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -213,6 +228,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
                 if (!findTask.readEnable) {
 
+                    if(!isChecked) {
+                        EPCTableFinding.clear();
+                        EPCTableFindingMatched.clear();
+                    }
+
                     while (!RF.setPower(findingPower)) {
                     }
                     findTask.readEnable = true;
@@ -223,27 +243,27 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     while (!findTask.finished) {
                     }
 
-                    boolean flag = false;
+                    flag = false;
 
                     for (Map.Entry<String, Integer> EPC : EPCTableFinding.entrySet()) {
 
-                        String EPCHexString = EPC.getKey();
-                        Long EPCInt1 = Long.parseLong(EPCHexString.substring(0, 8), 16);
-                        Long EPCInt2 = Long.parseLong(EPCHexString.substring(8, 16), 16);
-                        Long EPCInt3 = Long.parseLong(EPCHexString.substring(16, 24), 16);
+                        EPCHexString = EPC.getKey();
+                        EPCInt1 = Long.parseLong(EPCHexString.substring(0, 8), 16);
+                        EPCInt2 = Long.parseLong(EPCHexString.substring(8, 16), 16);
+                        EPCInt3 = Long.parseLong(EPCHexString.substring(16, 24), 16);
 
-                        String EPCBinaryString1 = Long.toBinaryString(EPCInt1);
+                        EPCBinaryString1 = Long.toBinaryString(EPCInt1);
                         EPCBinaryString1 = String.format("%32s", EPCBinaryString1).replaceAll(" ", "0");
-                        String EPCBinaryString2 = Long.toBinaryString(EPCInt2);
+                        EPCBinaryString2 = Long.toBinaryString(EPCInt2);
                         EPCBinaryString2 = String.format("%32s", EPCBinaryString2).replaceAll(" ", "0");
-                        String EPCBinaryString3 = Long.toBinaryString(EPCInt3);
+                        EPCBinaryString3 = Long.toBinaryString(EPCInt3);
                         EPCBinaryString3 = String.format("%32s", EPCBinaryString3).replaceAll(" ", "0");
 
-                        String EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3;
+                        EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3;
 
-                        int header = Integer.parseInt(EPCBinaryString.substring(0, 8), 2);
-                        int companyNumber = Integer.parseInt(EPCBinaryString.substring(14, 26), 2);
-                        long itemNumber = Long.parseLong(EPCBinaryString.substring(26, 58), 2);
+                        header = Integer.parseInt(EPCBinaryString.substring(0, 8), 2);
+                        companyNumber = Integer.parseInt(EPCBinaryString.substring(14, 26), 2);
+                        itemNumber = Long.parseLong(EPCBinaryString.substring(26, 58), 2);
 
                         if (companyNumber == 100) {
                             stuffCode = Long.parseLong(stuffPrimaryCode);
@@ -268,10 +288,22 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            RF.stopInventory();
+            if(findTask.readEnable) {
+                RF.stopInventory();
+                findTask.readEnable = false;
+            }
             finish();
         }
         return true;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(findTask.readEnable) {
+            RF.stopInventory();
+            findTask.readEnable = false;
+        }
     }
 
     public void clearEPCs(View view) {
@@ -291,5 +323,10 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         reading.API.run = true;
         reading.databaseInProgress = true;
         databaseBackgroundTaskHandler.post(databaseBackgroundTask);
+    }
+
+    public void optionChange(View view) {
+
+        isChecked = option.isChecked();
     }
 }

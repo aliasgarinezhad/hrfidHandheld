@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class APIReadingConflicts extends Thread {
@@ -32,13 +33,14 @@ public class APIReadingConflicts extends Thread {
                 try {
 
                     stuffs = null;
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/conflicts";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/conflicts/v2";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
                     if (Connection.getResponseCode() == 200) {
                         InputStream input = new BufferedInputStream(Connection.getInputStream());
-                        InputStreamReader isr = new InputStreamReader(input, "UTF-8");
+                        InputStreamReader isr = new InputStreamReader(input, StandardCharsets.UTF_8);
+
                         BufferedReader reader = new BufferedReader(isr);
                         String Receive = reader.readLine();
 
