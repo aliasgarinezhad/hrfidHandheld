@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class readingResultSubSubActivity extends AppCompatActivity {
 
-    APIFindingEPC database = new APIFindingEPC();
+    APIFindingEPC database;
     public static RFIDWithUHF RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<>();
     public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
@@ -34,7 +34,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     SeekBar powerSeekBar;
     TextView numberOfFoundText;
     TextView stuffSpec;
-    findingThread findTask = new findingThread();
+    findingThread findTask;
     private long stuffCode;
     WebView picture;
     CheckBox option;
@@ -48,7 +48,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     JSONObject temp2;
     WebSettings setting;
 
-    boolean isChecked = true;
+    boolean isChecked = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
 
@@ -91,6 +91,13 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     EPCTableFinding.clear();
                     EPCTableFindingMatched.clear();
                     status.setText("");
+                    database.stop = true;
+                    findTask.stop = true;
+                    reading.API.stop = true;
+                    reading.API2.stop = true;
+
+                    while(database.isAlive() || findTask.isAlive() || reading.API.isAlive() || reading.API2.isAlive()){}
+
                     onResume();
                 }
             }
@@ -145,12 +152,14 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        findTask = new findingThread();
         findTask.stop = false;
         findTask.start();
 
         while (!RF.setPower(findingPower)) {
         }
 
+        database = new APIFindingEPC();
         database.stop = false;
         database.start();
 
@@ -292,6 +301,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             }
             database.stop = true;
             findTask.stop = true;
+            reading.API.stop = true;
+            reading.API2.stop = true;
             finish();
         }
         return true;
@@ -304,6 +315,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             RF.stopInventory();
             findTask.readEnable = false;
         }
+        reading.API.stop = true;
+        reading.API2.stop = true;
     }
 
     public void clearEPCs(View view) {
@@ -318,6 +331,14 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         reading.EPCTable.putAll(EPCTableFindingMatched);
         reading.EPCTableValid.putAll(EPCTableFindingMatched);
+
+        reading.API = new APIReadingEPC();
+        reading.API2 = new APIReadingConflicts();
+        reading.API.stop = false;
+        reading.API2.stop = false;
+        reading.API.start();
+        reading.API2.start();
+
         reading.API.status = false;
         reading.API2.status = false;
         reading.API.run = true;

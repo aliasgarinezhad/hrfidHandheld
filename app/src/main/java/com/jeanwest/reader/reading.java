@@ -31,19 +31,19 @@ import java.util.Map;
 public class reading extends AppCompatActivity {
 
     public static RFIDWithUHF RF;
-    public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+    ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
     TextView percentage;
     TextView powerText;
     SeekBar powerSeekBar;
-    public readingThread readTask = new readingThread();
+    readingThread readTask;
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableValid = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableInvalid = new HashMap<String, Integer>();
     public static Integer ID;
-    public static APIReadingEPC API = new APIReadingEPC();
-    public static APIReadingConflicts API2 = new APIReadingConflicts();
+    public static APIReadingEPC API;
+    public static APIReadingConflicts API2;
     private boolean readingInProgress = false;
     public static boolean databaseInProgress = false;
     private boolean processingInProgress = false;
@@ -204,6 +204,10 @@ public class reading extends AppCompatActivity {
 
             while(!RF.setPower(readingPower)) {}
         }
+
+        API = new APIReadingEPC();
+        API2 = new APIReadingConflicts();
+        readTask = new readingThread();
 
         databaseInProgress = false;
         readingInProgress = false;

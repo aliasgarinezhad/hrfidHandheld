@@ -11,7 +11,7 @@ import android.widget.Toast;
 
 public class userSpecActivity extends AppCompatActivity {
 
-    APIReadingInformation API = new APIReadingInformation();
+    APIReadingInformation API;
     private Toast status;
     EditText departmentInfoIDView;
     EditText wareHouseIDView;
@@ -32,6 +32,9 @@ public class userSpecActivity extends AppCompatActivity {
 
     protected void onResume() {
         super.onResume();
+
+        API = new APIReadingInformation();
+
         API.stop = false;
         API.start();
     }
@@ -71,7 +74,6 @@ public class userSpecActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         API.stop = true;
-        finish();
     }
 
     @Override
