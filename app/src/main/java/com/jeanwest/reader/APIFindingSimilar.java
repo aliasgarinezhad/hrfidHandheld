@@ -30,7 +30,7 @@ public class APIFindingSimilar extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=68&K_Bar_Code=" + barcode;
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=68&" + barcode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection connection = (HttpURLConnection) server.openConnection();
 

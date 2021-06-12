@@ -47,13 +47,14 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                 startActivity(intent);
             }
         });
+
+        API = new APIFindingSimilar();
+        API.start();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        API = new APIFindingSimilar();
-        API.start();
         open();
 
         ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
@@ -61,12 +62,12 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
         list.setAdapter(findingListAdapter);
     }
 
-    @Override
+    /*@Override
     protected void onPause() {
         super.onPause();
         close();
         API.stop = true;
-    }
+    }*/
 
     @Override
     public void getBarcode(String barcode) throws InterruptedException {
@@ -75,7 +76,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
 
         if(barcode.length() > 0) {
 
-            API.barcode = barcode;
+            API.barcode = "kbarcode=" + barcode;
             API.run = true;
             while (API.run) {}
 
@@ -90,13 +91,16 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
             for(int i=0; i< API.similar.length(); i++) {
                 try {
                     json = API.similar.getJSONObject(i);
-                    listString.add(json.getString("productName") + "\n" +
+                    /*listString.add(json.getString("productName") + "\n" +
                             "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
                             "بارکد: " + json.getString("KBarCode") + "\n" +
                             "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
                             "قیمت مصرف کننده: " + json.getString("WareHouseTitle") + "\n" +
                             "قیمت فروش: " + json.getString("WareHouseTitle") + "\n" +
-                            "موجودی: " + json.getString("dbCount"));
+                            "موجودی: " + json.getString("dbCount"));*/
+
+                    listString.add(json.getString("KBarCode"));
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -143,7 +147,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     public void receive(View view) {
 
         JSONObject json;
-        API.barcode = K_Bar_Code.getEditableText().toString();
+        API.barcode = "K_Bar_Code=" + K_Bar_Code.getEditableText().toString();
         API.run = true;
         while (API.run) {}
 
@@ -158,14 +162,17 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
         for(int i=0; i< API.similar.length(); i++) {
             try {
                 json = API.similar.getJSONObject(i);
-                listString.add(json.getString("productName") + "\n" +
+                /*listString.add(json.getString("productName") + "\n" +
                         "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
                         "بارکد: " + json.getString("KBarCode") + "\n" +
                         "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
                         "قیمت مصرف کننده: " + json.getString("OrigPrice").substring(0, json.getString("OrigPrice").length()-1) + " تومان" + "\n" +
                         "تخفیف: " + json.getString("SalePercent") + " درصد" + "\n" +
                         "قیمت فروش: " + json.getString("SalePrice").substring(0, json.getString("SalePrice").length()-1) + " تومان"+ "\n" +
-                        "موجودی: " + json.getString("dbCount"));
+                        "موجودی: " + json.getString("dbCount"));*/
+
+                listString.add(json.getString("KBarCode"));
+
             } catch (JSONException e) {
                 e.printStackTrace();
             }
