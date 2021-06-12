@@ -72,7 +72,7 @@ public class reading extends AppCompatActivity {
             if(readingInProgress) {
 
                 status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
-                status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+                status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + (EPCTable.size() - EPCLastLength) + '\n');
 
                 if(EPCTable.size() > EPCLastLength) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
@@ -100,7 +100,7 @@ public class reading extends AppCompatActivity {
                 }
 
                 status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
-                status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+                status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
                 percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
@@ -132,7 +132,7 @@ public class reading extends AppCompatActivity {
                 response.show();
 
                 status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
-                status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+                status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
             }
@@ -248,7 +248,7 @@ public class reading extends AppCompatActivity {
         }
 
         status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
-        status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+        status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
         percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
@@ -332,6 +332,6 @@ public class reading extends AppCompatActivity {
         EPCLastLength = 0;
 
         status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
-        status.setText(status.getText() + "تعداد کل کالاهای اسکن شده: " + EPCTable.size() + '\n');
+        status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
     }
 }

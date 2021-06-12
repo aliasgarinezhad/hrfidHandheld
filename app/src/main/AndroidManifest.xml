@@ -12,7 +12,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".findingActivity"></activity>
+        <activity android:name=".findingResultSubActivity"></activity>
+        <activity android:name=".findingActivity" />
         <activity
             android:name=".readingResultSubActivity"
             android:parentActivityName=".readingResultActivity" />

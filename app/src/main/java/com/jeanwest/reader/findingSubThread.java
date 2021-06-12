@@ -1,6 +1,6 @@
 package com.jeanwest.reader;
 
-public class findingThread extends  Thread {
+public class findingSubThread extends  Thread {
 
     public volatile boolean readEnable = false;
 
@@ -14,20 +14,20 @@ public class findingThread extends  Thread {
 
             if(readEnable) {
 
-                readingResultSubSubActivity.RF.startInventoryTag(0,0);
+                findingResultSubActivity.RF.startInventoryTag(0,0);
                 finished = false;
 
                 while(readEnable) {
 
-                    tagBuffer = readingResultSubSubActivity.RF.readTagFromBuffer();
+                    tagBuffer = findingResultSubActivity.RF.readTagFromBuffer();
 
                     if(tagBuffer != null) {
-                        if(!readingResultSubSubActivity.isProcessing) {
-                            readingResultSubSubActivity.EPCTableFinding.put(tagBuffer[1].substring(4), 1);
+                        if(!findingResultSubActivity.isProcessing) {
+                            findingResultSubActivity.EPCTableFinding.put(tagBuffer[1].substring(4), 1);
                         }
                     }
                 }
-                readingResultSubSubActivity.RF.stopInventory();
+                findingResultSubActivity.RF.stopInventory();
 
                 finished = true;
             }

@@ -5,10 +5,10 @@
     android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".readingResultSubSubActivity">
+    tools:context=".findingResultSubActivity">
 
     <SeekBar
-        android:id="@+id/findingPowerSeekBar"
+        android:id="@+id/findingPowerSeekBar0"
         android:layout_width="227dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -16,13 +16,13 @@
         android:layout_marginEnd="29dp"
         android:layout_marginBottom="26dp"
         android:max="25"
-        app:layout_constraintBottom_toTopOf="@+id/scrollView2"
-        app:layout_constraintEnd_toStartOf="@+id/findingPowerTextView"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView20"
+        app:layout_constraintEnd_toStartOf="@+id/findingPowerTextView0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/findingPowerTextView"
+        android:id="@+id/findingPowerTextView0"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="13dp"
@@ -30,37 +30,22 @@
         android:layout_marginBottom="23dp"
         android:text="قدرت سیگنال(5dB)"
         android:textSize="18sp"
-        app:layout_constraintBottom_toTopOf="@+id/pictureView"
+        app:layout_constraintBottom_toTopOf="@+id/pictureView0"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/findingPowerSeekBar"
+        app:layout_constraintStart_toEndOf="@+id/findingPowerSeekBar0"
         app:layout_constraintTop_toTopOf="parent" />
 
     <WebView
-        android:id="@+id/pictureView"
+        android:id="@+id/pictureView0"
         android:layout_width="157dp"
         android:layout_height="253dp"
         android:layout_marginStart="4dp"
         android:layout_marginEnd="6dp"
         android:layout_marginBottom="14dp"
-        app:layout_constraintBottom_toTopOf="@+id/scrollView4"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView40"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/scrollView2"
-        app:layout_constraintTop_toBottomOf="@+id/findingPowerTextView" />
-
-    <Button
-        android:id="@+id/button11"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="14dp"
-        android:layout_marginEnd="37dp"
-        android:layout_marginBottom="23dp"
-        android:onClick="updateDatabase"
-        android:text="آپدیت"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/button120"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintStart_toEndOf="@+id/scrollView20"
+        app:layout_constraintTop_toBottomOf="@+id/findingPowerTextView0" />
 
     <Button
         android:id="@+id/button120"
@@ -72,19 +57,19 @@
         android:onClick="clearEPCs"
         android:text="پاک کردن"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/checkBox"
-        app:layout_constraintStart_toEndOf="@+id/button11"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintEnd_toStartOf="@+id/checkBox0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollView40" />
 
     <ScrollView
-        android:id="@+id/scrollView2"
+        android:id="@+id/scrollView20"
         android:layout_width="237dp"
         android:layout_height="251dp"
         android:layout_marginBottom="15dp"
-        app:layout_constraintBottom_toTopOf="@+id/scrollView4"
-        app:layout_constraintEnd_toStartOf="@+id/pictureView"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView40"
+        app:layout_constraintEnd_toStartOf="@+id/pictureView0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/findingPowerSeekBar">
+        app:layout_constraintTop_toBottomOf="@+id/findingPowerSeekBar0">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -92,20 +77,20 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/result"
+                android:id="@+id/result0"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
         </LinearLayout>
     </ScrollView>
 
     <ScrollView
-        android:id="@+id/scrollView4"
+        android:id="@+id/scrollView40"
         android:layout_width="261dp"
         android:layout_height="191dp"
         android:layout_marginTop="14dp"
-        app:layout_constraintEnd_toStartOf="@+id/numberOfFoundTextView"
+        app:layout_constraintEnd_toStartOf="@+id/numberOfFoundTextView0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/pictureView">
+        app:layout_constraintTop_toBottomOf="@+id/pictureView0">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -113,7 +98,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/section_label"
+                android:id="@+id/section_label0"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginTop="17dp"
@@ -125,7 +110,7 @@
     </ScrollView>
 
     <TextView
-        android:id="@+id/numberOfFoundTextView"
+        android:id="@+id/numberOfFoundTextView0"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="69dp"
@@ -133,13 +118,13 @@
         android:layout_marginEnd="61dp"
         android:text="0"
         android:textSize="36sp"
-        app:layout_constraintBottom_toTopOf="@+id/checkBox"
+        app:layout_constraintBottom_toTopOf="@+id/checkBox0"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/scrollView4"
-        app:layout_constraintTop_toBottomOf="@+id/pictureView" />
+        app:layout_constraintStart_toEndOf="@+id/scrollView40"
+        app:layout_constraintTop_toBottomOf="@+id/pictureView0" />
 
     <CheckBox
-        android:id="@+id/checkBox"
+        android:id="@+id/checkBox0"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
@@ -150,6 +135,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/button120"
-        app:layout_constraintTop_toBottomOf="@+id/numberOfFoundTextView" />
+        app:layout_constraintTop_toBottomOf="@+id/numberOfFoundTextView0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

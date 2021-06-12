@@ -1,6 +1,5 @@
 package com.jeanwest.reader;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -13,38 +12,39 @@ import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class readingResultSubSubActivity extends AppCompatActivity {
+public class findingResultSubActivity extends AppCompatActivity {
 
-    APIFindingEPC database;
     public static RFIDWithUHF RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<>();
-    public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+    ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     private int findingPower = 30;
     TextView status;
     TextView powerText;
     SeekBar powerSeekBar;
     TextView numberOfFoundText;
     TextView stuffSpec;
-    findingThread findTask;
+    findingSubThread findTask;
     private long stuffCode;
     WebView picture;
     CheckBox option;
 
     public static String stuffPrimaryCode;
     public static String stuffRFIDCode;
-    JSONArray subStuffs;
     JSONObject stuff;
     Map<String, Integer> EPCTableFindingMatched = new HashMap<>();
-    String temp;
-    JSONObject temp2;
     WebSettings setting;
 
     boolean isChecked = false;
@@ -123,67 +123,20 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
                 }
             }
-
-            if (reading.databaseInProgress) {
-
-                if(!reading.API.status) {
-                    status.setText("در حال ارسال به سرور ");
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                }
-                else if(!reading.API2.status) {
-                    status.setText("در حال دریافت اطلاعات از سرور ");
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                }
-                else {
-                    try {
-
-                        for(int i = 0; i < reading.API2.stuffs.length(); i++) {
-                            temp = reading.API2.stuffs.getString(i);
-                            subStuffs = reading.API2.conflicts.getJSONArray(temp);
-
-                            for (int j = 0; j < subStuffs.length(); j++) {
-
-                                temp2 = subStuffs.getJSONObject(j);
-                                if(temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)){
-                                    readingResultActivity.index = i;
-                                    readingResultSubActivity.subIndex = j;
-                                    i = reading.API2.stuffs.length() + 10;
-                                    j = subStuffs.length() + 10;
-                                }
-                            }
-                        }
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                    EPCTableFinding.clear();
-                    EPCTableFindingMatched.clear();
-                    status.setText("");
-                    database.stop = true;
-                    findTask.stop = true;
-                    reading.API.stop = true;
-                    reading.API2.stop = true;
-
-                    while(database.isAlive() || findTask.isAlive() || reading.API.isAlive() || reading.API2.isAlive()){}
-
-                    onResume();
-                }
-            }
         }
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_reading_result_sub_sub);
-        status = findViewById(R.id.section_label);
-        stuffSpec = findViewById(R.id.result);
-        picture = findViewById(R.id.pictureView);
-        powerText = findViewById(R.id.findingPowerTextView);
-        powerSeekBar = findViewById(R.id.findingPowerSeekBar);
-        numberOfFoundText = findViewById(R.id.numberOfFoundTextView);
-        option = findViewById(R.id.checkBox);
+        setContentView(R.layout.activity_finding_result_sub);
+        status = findViewById(R.id.section_label0);
+        stuffSpec = findViewById(R.id.result0);
+        picture = findViewById(R.id.pictureView0);
+        powerText = findViewById(R.id.findingPowerTextView0);
+        powerSeekBar = findViewById(R.id.findingPowerSeekBar0);
+        numberOfFoundText = findViewById(R.id.numberOfFoundTextView0);
+        option = findViewById(R.id.checkBox0);
 
         powerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @SuppressLint("SetTextI18n")
@@ -221,39 +174,23 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        findTask = new findingThread();
+        findTask = new findingSubThread();
         findTask.stop = false;
         findTask.start();
 
         while (!RF.setPower(findingPower)) {
         }
 
-        database = new APIFindingEPC();
-        database.stop = false;
-        database.start();
-
         try {
 
-            subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
-            stuff = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
-
-            if (stuff.getBoolean("status")) {
-                stuffSpec.setText(stuff.getString("productName") + "\n" +
-                        "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                        "بارکد: " + stuff.getString("KBarCode") + "\n" +
-                        "تعداد اضافی: " + stuff.getString("diffCount") + "\n" +
-                        "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
-                        "تعداد کل: " + stuff.getString("dbCount"));
-
-            }
-            else {
-                stuffSpec.setText(stuff.getString("productName") + "\n" +
-                        "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                        "بارکد: " + stuff.getString("KBarCode") + "\n" +
-                        "تعداد اسکن نشده: " + stuff.getString("diffCount") + "\n" +
-                        "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
-                        "تعداد کل: " + stuff.getString("dbCount"));
-            }
+            stuff = findingActivity.API.similar.getJSONObject(findingActivity.index);
+            stuffSpec.setText(stuff.getString("productName") + "\n" +
+                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
+                    "دپارتمان: " + stuff.getString("WareHouseTitle") + "\n" +
+                    "قیمت مصرف کننده: " + stuff.getString("WareHouseTitle") + "\n" +
+                    "قیمت فروش: " + stuff.getString("WareHouseTitle") + "\n" +
+                    "موجودی: " + stuff.getString("dbCount"));
 
             picture.loadUrl(stuff.getString("ImgUrl"));
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID");
@@ -266,16 +203,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         setting.setUseWideViewPort(true);
         setting.setLoadWithOverviewMode(true);
         picture.setFocusable(false);
-
-        database.run = true;
-        while (database.run) {
-        }
-
-        if (!database.status) {
-            stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
-        } else {
-            stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
-        }
 
         reading.databaseInProgress = false;
         powerSeekBar.setProgress(findingPower - 5);
@@ -391,10 +318,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             findingInProgress = false;
             databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
-            database.stop = true;
             findTask.stop = true;
-            reading.API.stop = true;
-            reading.API2.stop = true;
             finish();
         }
         return true;
@@ -407,8 +331,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             RF.stopInventory();
             findTask.readEnable = false;
         }
-        reading.API.stop = true;
-        reading.API2.stop = true;
     }
 
     public void clearEPCs(View view) {
@@ -416,30 +338,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         EPCTableFinding.clear();
         EPCTableFindingMatched.clear();
         status.setText("");
-    }
-
-    @SuppressLint("SetTextI18n")
-    public void updateDatabase(View view) {
-
-        if(findingInProgress) {
-            return;
-        }
-
-        reading.EPCTable.putAll(EPCTableFindingMatched);
-        reading.EPCTableValid.putAll(EPCTableFindingMatched);
-
-        reading.API = new APIReadingEPC();
-        reading.API2 = new APIReadingConflicts();
-        reading.API.stop = false;
-        reading.API2.stop = false;
-        reading.API.start();
-        reading.API2.start();
-
-        reading.API.status = false;
-        reading.API2.status = false;
-        reading.API.run = true;
-        reading.databaseInProgress = true;
-        databaseBackgroundTaskHandler.post(databaseBackgroundTask);
     }
 
     public void optionChange(View view) {

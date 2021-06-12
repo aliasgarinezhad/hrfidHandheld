@@ -1,31 +1,178 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Intent;
 import android.os.Bundle;
-import com.rscja.deviceapi.RFIDWithUHF;
-import com.rscja.deviceapi.exception.ConfigurationException;
+import android.view.KeyEvent;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Toast;
 
-public class findingActivity extends AppCompatActivity {
+import org.json.JSONException;
+import org.json.JSONObject;
 
-    RFIDWithUHF RF;
+import java.util.ArrayList;
+import java.util.List;
+
+public class findingActivity extends AppCompatActivity implements IBarcodeResult {
+
+    Barcode2D barcode2D;
+    static APIFindingSimilar API;
+    Toast result;
+    ListView list;
+    ArrayList<String> listString = new ArrayList<>();
+    EditText K_Bar_Code;
+    public static int index = 0;
+    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_finding);
+        barcode2D = new Barcode2D(this);
+        result = Toast.makeText(this, "", Toast.LENGTH_LONG);
+        list = findViewById(R.id.findingListView);
+        K_Bar_Code = findViewById(R.id.K_Bar_CodeView);
+        intent = new Intent(this, findingResultSubActivity.class);
 
-        try {
-            RF = RFIDWithUHF.getInstance();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                index = i;
+                startActivity(intent);
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        API = new APIFindingSimilar();
+        API.start();
+        open();
+
+        ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+
+        list.setAdapter(findingListAdapter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        close();
+        API.stop = true;
+    }
+
+    @Override
+    public void getBarcode(String barcode) throws InterruptedException {
+
+        JSONObject json;
+
+        if(barcode.length() > 0) {
+
+            API.barcode = barcode;
+            API.run = true;
+            while (API.run) {}
+
+            if(!API.status) {
+                result.setText(API.response);
+                result.show();
+                return;
+            }
+
+            listString.clear();
+
+            for(int i=0; i< API.similar.length(); i++) {
+                try {
+                    json = API.similar.getJSONObject(i);
+                    listString.add(json.getString("productName") + "\n" +
+                            "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
+                            "بارکد: " + json.getString("KBarCode") + "\n" +
+                            "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
+                            "قیمت مصرف کننده: " + json.getString("WareHouseTitle") + "\n" +
+                            "قیمت فروش: " + json.getString("WareHouseTitle") + "\n" +
+                            "موجودی: " + json.getString("dbCount"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+
+            list.setAdapter(findingListAdapter);
+
+        }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if(keyCode == 280 || keyCode == 139) {
+
+            start();
+        }
+        else if(keyCode == 4) {
+
+            close();
+            finish();
+            API.stop = true;
         }
 
-        if(RF.getPower() != 5) {
+        return true;
+    }
 
-            while(!RF.setPower(5)) {}
+    public void start() {
+        barcode2D.startScan(this);
+    }
+    public void stop() {
+        barcode2D.stopScan(this);
+    }
+    public void open() {
+        barcode2D.open(this,this);
+    }
+    public void close() {
+        barcode2D.stopScan(this);
+        barcode2D.close(this);
+    }
+
+    public void receive(View view) {
+
+        JSONObject json;
+        API.barcode = K_Bar_Code.getEditableText().toString();
+        API.run = true;
+        while (API.run) {}
+
+        if(!API.status) {
+            result.setText(API.response);
+            result.show();
+            return;
         }
 
-        while(!RF.setEPCTIDMode(true)) {}
+        listString.clear();
 
+        for(int i=0; i< API.similar.length(); i++) {
+            try {
+                json = API.similar.getJSONObject(i);
+                listString.add(json.getString("productName") + "\n" +
+                        "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
+                        "بارکد: " + json.getString("KBarCode") + "\n" +
+                        "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
+                        "قیمت مصرف کننده: " + json.getString("OrigPrice").substring(0, json.getString("OrigPrice").length()-1) + " تومان" + "\n" +
+                        "تخفیف: " + json.getString("SalePercent") + " درصد" + "\n" +
+                        "قیمت فروش: " + json.getString("SalePrice").substring(0, json.getString("SalePrice").length()-1) + " تومان"+ "\n" +
+                        "موجودی: " + json.getString("dbCount"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+
+        list.setAdapter(findingListAdapter);
     }
 }
