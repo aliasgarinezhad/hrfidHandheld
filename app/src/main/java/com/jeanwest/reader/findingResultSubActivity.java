@@ -188,8 +188,8 @@ public class findingResultSubActivity extends AppCompatActivity {
                     "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
                     "بارکد: " + stuff.getString("KBarCode") + "\n" +
                     "دپارتمان: " + stuff.getString("WareHouseTitle") + "\n" +
-                    "قیمت مصرف کننده: " + stuff.getString("WareHouseTitle") + "\n" +
-                    "قیمت فروش: " + stuff.getString("WareHouseTitle") + "\n" +
+                    //"قیمت مصرف کننده: " + stuff.getString("WareHouseTitle") + "\n" +
+                    //"قیمت فروش: " + stuff.getString("WareHouseTitle") + "\n" +
                     "موجودی: " + stuff.getString("dbCount"));
 
             picture.loadUrl(stuff.getString("ImgUrl"));
