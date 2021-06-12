@@ -190,6 +190,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 if (step2) {
                     try {
                         addNewTag();
+                        while (!RF.setPower(RFPower)){}
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -270,6 +271,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             return;
         }
 
+        RF.setPower(30);
         //EPC values
         Long itemNumber = Long.parseLong(DataBase.Response); // 32 bit
         Long serialNumber = counterValue; // 38 bit
@@ -332,17 +334,40 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         String New = EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11;
 
-        if (RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
+        int k;
+        for(k = 0; k < 15; k++) {
 
-            String EPCVerify;
-
-            try {
-                EPCVerify = RF.inventorySingleTag().substring(4).toLowerCase();
+            if(RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
+                break;
             }
-            catch (NullPointerException e) {
+        }
 
+        if (k < 15) {
+
+            String EPCVerify = null;
+
+            int o;
+
+            for(o=0; o < 15; o++) {
+
+                try {
+                    EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
+                    break;
+                }
+                catch (NullPointerException e) {
+
+                    status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
+                    status.setText(status.getText() + "EPCVerify");
+                    status.setText(status.getText() + New);
+
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                    status.setBackgroundColor(Color.RED);
+                }
+            }
+
+            if(o >= 15) {
                 status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-                status.setText(status.getText() + RF.inventorySingleTag().substring(4));
+                status.setText(status.getText() + "EPCVerify");
                 status.setText(status.getText() + New);
 
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
@@ -352,8 +377,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
             if(!New.equals(EPCVerify)) {
                 status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-                status.setText(status.getText() + RF.inventorySingleTag().substring(4));
-                status.setText(status.getText() + New);
+                status.setText(status.getText() + "\n" + EPCVerify);
+                status.setText(status.getText() + "\n" + New);
 
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
@@ -363,6 +388,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
             status.setBackgroundColor(Color.GREEN);
             status.setText(status.getText() + "\nبا موفقیت اضافه شد");
+            status.setText(status.getText() + "\nnumber of try in writing: " + k);
+            status.setText(status.getText() + "\nnumber of try in confirming: " + o);
             status.setText(status.getText() + "\nHeader: " + String.valueOf(headerNumber));
             status.setText(status.getText() + "\nFilter: " + String.valueOf(filterNumber));
             status.setText(status.getText() + "\nPartition: " + String.valueOf(partitionNumber));

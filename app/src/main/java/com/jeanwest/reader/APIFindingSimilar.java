@@ -60,4 +60,3 @@ public class APIFindingSimilar extends Thread {
         }
     }
 }
-

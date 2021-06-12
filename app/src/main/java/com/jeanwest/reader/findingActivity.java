@@ -99,7 +99,9 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                             "قیمت فروش: " + json.getString("WareHouseTitle") + "\n" +
                             "موجودی: " + json.getString("dbCount"));*/
 
-                    listString.add(json.getString("KBarCode"));
+                    if(!listString.contains(json.getString("KBarCode"))) {
+                        listString.add(json.getString("KBarCode"));
+                    }
 
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -160,6 +162,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
         listString.clear();
 
         for(int i=0; i< API.similar.length(); i++) {
+
             try {
                 json = API.similar.getJSONObject(i);
                 /*listString.add(json.getString("productName") + "\n" +
@@ -170,8 +173,9 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                         "تخفیف: " + json.getString("SalePercent") + " درصد" + "\n" +
                         "قیمت فروش: " + json.getString("SalePrice").substring(0, json.getString("SalePrice").length()-1) + " تومان"+ "\n" +
                         "موجودی: " + json.getString("dbCount"));*/
-
-                listString.add(json.getString("KBarCode"));
+                if(!listString.contains(json.getString("KBarCode"))) {
+                    listString.add(json.getString("KBarCode"));
+                }
 
             } catch (JSONException e) {
                 e.printStackTrace();

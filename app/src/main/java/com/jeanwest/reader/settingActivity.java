@@ -25,7 +25,6 @@ import java.util.Map;
 
 public class settingActivity extends AppCompatActivity {
 
-    private boolean dataExist;
     Toast response;
     TextView versionName;
 

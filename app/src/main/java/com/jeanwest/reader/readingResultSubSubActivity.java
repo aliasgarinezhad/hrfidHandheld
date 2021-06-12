@@ -2,6 +2,7 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
@@ -10,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -46,6 +48,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     String temp;
     JSONObject temp2;
     WebSettings setting;
+    Button update;
 
     boolean isChecked = false;
     boolean findingInProgress = false;
@@ -184,6 +187,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         powerSeekBar = findViewById(R.id.findingPowerSeekBar);
         numberOfFoundText = findViewById(R.id.numberOfFoundTextView);
         option = findViewById(R.id.checkBox);
+        update = findViewById(R.id.updateButton);
 
         powerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @SuppressLint("SetTextI18n")
@@ -308,6 +312,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
                 if (!findTask.readEnable) {
 
+                    update.setBackgroundColor(Color.GRAY);
+
                     EPCTableFinding.clear();
                     if(!isChecked) {
                         EPCTableFindingMatched.clear();
@@ -322,6 +328,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
                 }
                 else {
+
+                    update.setBackgroundColor(Color.BLUE);
 
                     databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
