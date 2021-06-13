@@ -9,7 +9,7 @@
 
     <SeekBar
         android:id="@+id/findingPowerSeekBar"
-        android:layout_width="227dp"
+        android:layout_width="178dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="17dp"

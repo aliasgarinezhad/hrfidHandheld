@@ -142,7 +142,12 @@ public class findingResultSubActivity extends AppCompatActivity {
                     findingPower = progress + 5;
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                 } else {
-                    powerSeekBar.setProgress(findingPower - 5);
+                    RF.stopInventory();
+                    findingPower = progress + 5;
+                    powerText.setText("قدرت سیگنال(" + findingPower + ")");
+                    //powerSeekBar.setProgress(findingPower - 5);
+                    while (!RF.setPower(findingPower)) {}
+                    RF.startInventoryTag(0,0);
                 }
             }
 
