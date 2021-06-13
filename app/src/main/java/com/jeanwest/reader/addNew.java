@@ -63,7 +63,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
         databaseHelper2 = new databaseHelperClass(this);
-        
+
         try {
             RF = RFIDWithUHF.getInstance();
         } catch (ConfigurationException e) {
@@ -187,18 +187,18 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (keyCode == 280 || keyCode == 139) {
 
-                if (step2) {
-                    try {
-                        addNewTag();
-                        while (!RF.setPower(RFPower)){}
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    step2 = false;
+            if (step2) {
+                try {
+                    addNewTag();
+                    while (!RF.setPower(RFPower)){}
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-                else {
-                    start();
-                }
+                step2 = false;
+            }
+            else {
+                start();
+            }
 
         } else if (keyCode == 4) {
             counter.close();
@@ -225,6 +225,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         for(LoopVariable=0; LoopVariable<10; LoopVariable++) {
             TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
         }
+
+        RF.stopInventory();
 
         if (TIDBuffer[9] == null) {
 
@@ -256,7 +258,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         EPC = TIDBuffer[0][1].substring(4);
 
         status.setText(status.getText() + "اسکن با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
-        RF.stopInventory();
 
         DataBase.Barcode = BarcodeID;
         DataBase.run = true;
@@ -271,7 +272,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             return;
         }
 
-        RF.setPower(30);
+        while (!RF.setPower(30)){}
         //EPC values
         Long itemNumber = Long.parseLong(DataBase.Response); // 32 bit
         Long serialNumber = counterValue; // 38 bit
@@ -337,7 +338,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         int k;
         for(k = 0; k < 15; k++) {
 
-            if(RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
+            if(RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
                 break;
             }
         }
@@ -351,7 +352,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             for(o=0; o < 15; o++) {
 
                 try {
-                    EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 6, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
+                    EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
                     break;
                 }
                 catch (NullPointerException e) {

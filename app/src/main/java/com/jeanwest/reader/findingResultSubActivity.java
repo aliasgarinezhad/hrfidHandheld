@@ -182,10 +182,10 @@ public class findingResultSubActivity extends AppCompatActivity {
             stuffSpec.setText(stuff.getString("productName") + "\n" +
                     "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
                     "بارکد: " + stuff.getString("KBarCode") + "\n" +
-                    "دپارتمان: " + stuff.getString("WareHouseTitle") + "\n" +
-                    //"قیمت مصرف کننده: " + stuff.getString("WareHouseTitle") + "\n" +
-                    //"قیمت فروش: " + stuff.getString("WareHouseTitle") + "\n" +
-                    "موجودی: " + stuff.getString("dbCount"));
+                    "قیمت مصرف کننده: " + stuff.getString("OrigPrice") + "\n" +
+                    "قیمت فروش: " + stuff.getString("SalePrice") + "\n" +
+                    "موجودی فروشگاه: " + stuff.getString("dbCountStore") + "\n" +
+                    "موجودی انبار: " + stuff.getString("dbCountDepo"));
 
             picture.loadUrl(stuff.getString("ImgUrl"));
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID");

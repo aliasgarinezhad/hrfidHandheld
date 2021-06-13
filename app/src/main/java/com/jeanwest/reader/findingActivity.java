@@ -99,9 +99,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                             "قیمت فروش: " + json.getString("WareHouseTitle") + "\n" +
                             "موجودی: " + json.getString("dbCount"));*/
 
-                    if(!listString.contains(json.getString("KBarCode"))) {
                         listString.add(json.getString("KBarCode"));
-                    }
 
                 } catch (JSONException e) {
                     e.printStackTrace();
