@@ -6,15 +6,19 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class userSpecActivity extends AppCompatActivity {
 
     APIReadingInformation API;
     private Toast status;
     EditText departmentInfoIDView;
-    EditText wareHouseIDView;
+    Spinner wareHouseIDView;
     Intent intent;
     public static Integer departmentInfoID;
     public static Integer wareHouseID;
@@ -24,10 +28,17 @@ public class userSpecActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_spec);
         departmentInfoIDView = (EditText) findViewById(R.id.DepartmentInfoIDView);
-        wareHouseIDView = (EditText) findViewById(R.id.WareHouseIDView);
+        wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner);
         intent = new Intent(this, reading.class);
 
         status = Toast.makeText(this, "", Toast.LENGTH_LONG);
+
+        ArrayList<String> spinnerString = new ArrayList<>();
+        spinnerString.add("فروشگاه");
+        spinnerString.add("انبار");
+
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, spinnerString);
+        wareHouseIDView.setAdapter(spinnerAdapter);
     }
 
     protected void onResume() {
@@ -41,14 +52,14 @@ public class userSpecActivity extends AppCompatActivity {
 
     public void startReading(View view) {
 
-        if(departmentInfoIDView.getEditableText().toString().length() == 0 || wareHouseIDView.getEditableText().toString().length() == 0) {
-            status.setText("\nلطفا کد شعبه و انبار را وارد کنید\n");
+        if(departmentInfoIDView.getEditableText().toString().length() == 0) {
+            status.setText("\nلطفا کد شعبه را وارد کنید\n");
             status.show();
             return;
         }
 
         API.departmentInfoID = Integer.parseInt(departmentInfoIDView.getEditableText().toString());
-        API.wareHouseID = Integer.parseInt(wareHouseIDView.getEditableText().toString());
+        API.wareHouseID = wareHouseIDView.getSelectedItemPosition() + 1;
 
         API.run = true;
         while (API.run) {}

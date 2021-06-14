@@ -31,6 +31,7 @@ import java.util.Map;
 public class reading extends AppCompatActivity {
 
     public static RFIDWithUHF RF;
+
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
     TextView percentage;
@@ -71,7 +72,13 @@ public class reading extends AppCompatActivity {
 
             if(readingInProgress) {
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
+                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if(userSpecActivity.wareHouseID == 1) {
+                    status.setText(status.getText() + "در سطح فروش" + '\n');
+                }
+                else {
+                    status.setText(status.getText() + "در سطح انبار" + '\n');
+                }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + (EPCTable.size() - EPCLastLength) + '\n');
 
                 if(EPCTable.size() > EPCLastLength) {
@@ -99,7 +106,14 @@ public class reading extends AppCompatActivity {
                     }
                 }
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
+                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if(userSpecActivity.wareHouseID == 1) {
+                    status.setText(status.getText() + "در سطح فروش" + '\n');
+                }
+                else {
+                    status.setText(status.getText() + "در سطح انبار" + '\n');
+                }
+
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -131,7 +145,13 @@ public class reading extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
+                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if(userSpecActivity.wareHouseID == 1) {
+                    status.setText(status.getText() + "در سطح فروش" + '\n');
+                }
+                else {
+                    status.setText(status.getText() + "در سطح انبار" + '\n');
+                }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
@@ -247,7 +267,13 @@ public class reading extends AppCompatActivity {
             fromLogin = false;
         }
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
+        status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+        if(userSpecActivity.wareHouseID == 1) {
+            status.setText(status.getText() + "در سطح فروش" + '\n');
+        }
+        else {
+            status.setText(status.getText() + "در سطح انبار" + '\n');
+        }
         status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
@@ -331,7 +357,13 @@ public class reading extends AppCompatActivity {
         EPCTableInvalid.clear();
         EPCLastLength = 0;
 
-        status.setText( "کد شعبه: 68" + '\n' + "کد انبار: " + userSpecActivity.wareHouseID + '\n');
+        status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+        if(userSpecActivity.wareHouseID == 1) {
+            status.setText(status.getText() + "در سطح فروش" + '\n');
+        }
+        else {
+            status.setText(status.getText() + "در سطح انبار" + '\n');
+        }
         status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
     }
 }

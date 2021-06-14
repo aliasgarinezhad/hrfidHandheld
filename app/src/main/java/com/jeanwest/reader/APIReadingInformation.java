@@ -24,7 +24,7 @@ public class APIReadingInformation extends Thread {
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
-    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations";
+    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations/v2";
     public boolean stop = false;
 
     public void run() {
@@ -39,9 +39,9 @@ public class APIReadingInformation extends Thread {
 
                     JSONObject body = new JSONObject();
                     body.put("DepartmentInfo_ID", departmentInfoID);
-                    body.put("WareHouse_ID", wareHouseID);
-                    body.put("ReviewControlDate", "2021-05-02T16:04:39.0Z");
-                    body.put("StartDate", "2021-05-02T16:04:39.0Z");
+                    body.put("WareHouseTypes_ID", wareHouseID);
+                    body.put("ReviewControlDate", "2021-06-14T08:47:08.799Z");
+                    body.put("StartDate", "2021-06-14T08:47:08.799Z");
 
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
