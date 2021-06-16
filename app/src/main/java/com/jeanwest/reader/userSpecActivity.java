@@ -4,7 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -21,10 +23,12 @@ public class userSpecActivity extends AppCompatActivity {
     EditText departmentInfoIDView;
     Spinner wareHouseIDView;
     Intent intent;
-    public static Integer departmentInfoID = 68;
+    public static Integer departmentInfoID;
     public static Integer wareHouseID;
+    SharedPreferences memory;
+    SharedPreferences.Editor editor;
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint({"SetTextI18n", "CommitPrefEdits"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,11 +45,16 @@ public class userSpecActivity extends AppCompatActivity {
 
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, spinnerString);
         wareHouseIDView.setAdapter(spinnerAdapter);
+
+        memory = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = memory.edit();
     }
 
     @SuppressLint("SetTextI18n")
     protected void onResume() {
         super.onResume();
+
+        departmentInfoID = memory.getInt("ID", 1); // value to store
         departmentInfoIDView.setText(departmentInfoID.toString());
 
         API = new APIReadingInformation();
@@ -64,6 +73,12 @@ public class userSpecActivity extends AppCompatActivity {
 
         API.departmentInfoID = Integer.parseInt(departmentInfoIDView.getEditableText().toString());
         API.wareHouseID = wareHouseIDView.getSelectedItemPosition() + 1;
+
+        departmentInfoID = API.departmentInfoID;
+        wareHouseID = API.wareHouseID;
+
+        editor.putInt("ID", departmentInfoID); // value to store
+        editor.commit();
 
         API.run = true;
         while (API.run) {}

@@ -380,7 +380,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             }
         }
 
-        if (k < 15) {
+        //if (k < 15) {
 
             String EPCVerify = null;
 
@@ -449,12 +449,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             val.put("counterModified", counterValueModified);
             counter.update("counterDatabase", val, null, null);
 
-        } else {
+        /*} else {
 
             status.setText(status.getText() + "\nخطا در نوشتن");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
-        }
+        }*/
     }
 
     @SuppressLint("SetTextI18n")
