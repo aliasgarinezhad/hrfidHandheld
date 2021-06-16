@@ -2,6 +2,7 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -20,9 +21,10 @@ public class userSpecActivity extends AppCompatActivity {
     EditText departmentInfoIDView;
     Spinner wareHouseIDView;
     Intent intent;
-    public static Integer departmentInfoID;
+    public static Integer departmentInfoID = 68;
     public static Integer wareHouseID;
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,8 +43,10 @@ public class userSpecActivity extends AppCompatActivity {
         wareHouseIDView.setAdapter(spinnerAdapter);
     }
 
+    @SuppressLint("SetTextI18n")
     protected void onResume() {
         super.onResume();
+        departmentInfoIDView.setText(departmentInfoID.toString());
 
         API = new APIReadingInformation();
 

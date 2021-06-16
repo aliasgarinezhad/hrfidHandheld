@@ -12,11 +12,15 @@ import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class addNew extends AppCompatActivity implements IBarcodeResult{
 
@@ -43,6 +47,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     TextView status;
     TextView numberOfWritten;
     TextView numberOfWrittenModified;
+    CheckBox editOption;
     public static int filterNumber = 0;  // 3bit
     public static int partitionNumber = 6; // 3bit
     public static int headerNumber = 48; // 8bit
@@ -52,17 +57,19 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     String positionStr;
     String companynumberStr;
     String CONumber;
+    boolean edit = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_new);
-        status = (TextView) findViewById(R.id.section_label);
+        status = findViewById(R.id.section_label);
         warning = Toast.makeText(this, "", Toast.LENGTH_LONG);
-        numberOfWritten = (TextView) findViewById(R.id.numberOfWrittenView);
-        numberOfWrittenModified = (TextView) findViewById(R.id.numberOfWrittenModifiedView);
+        numberOfWritten = findViewById(R.id.numberOfWrittenView);
+        numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
         databaseHelper2 = new databaseHelperClass(this);
+        editOption = findViewById(R.id.checkBox2);
 
         try {
             RF = RFIDWithUHF.getInstance();
@@ -127,9 +134,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         String temp = Integer.toHexString(headerNumber);
         CONumber = String.format("%2s", temp).replaceAll(" ", "0");
 
-        numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + String.valueOf(counterValue - counterMinValue));
+        numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
         numberOfWrittenModified.setText(String.valueOf(counterValueModified));
-        numberOfWrittenModified.setText("مقدار شمارنده: " + String.valueOf(counterValueModified));
+        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
     }
 
     @Override
@@ -187,19 +194,21 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if (keyCode == 280 || keyCode == 139) {
 
-            if (step2) {
-                try {
-                    addNewTag();
-                    while (!RF.setPower(RFPower)){}
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            if (event.getRepeatCount() == 0) {
+                if (step2) {
+                    try {
+                        addNewTag();
+                        while (!RF.setPower(RFPower)) {
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    step2 = false;
+                } else {
+                    start();
                 }
-                step2 = false;
-            }
-            else {
-                start();
-            }
 
+            }
         } else if (keyCode == 4) {
             counter.close();
             close();
@@ -217,6 +226,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         int LoopVariable;
         boolean Collision;
         int tempByte;
+        Map<String, Integer> EPCs = new HashMap<>();
 
         RF.startInventoryTag(0, 0);
 
@@ -236,27 +246,54 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             return;
         }
 
-        Collision = false;
+        for(LoopVariable=0; LoopVariable<10; LoopVariable++) {
+            if(edit) {
+                EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                TID = TIDBuffer[LoopVariable][0];
+                EPC = TIDBuffer[LoopVariable][1].substring(4);
+            }
+            else {
+                if(!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
+                    EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                    TID = TIDBuffer[LoopVariable][0];
+                    EPC = TIDBuffer[LoopVariable][1].substring(4);
+                }
+            }
+        }
+
+        /*Collision = false;
         for(LoopVariable=0;LoopVariable<10;LoopVariable++) {
 
             if(!(TIDBuffer[LoopVariable][0].equals(TIDBuffer[0][0]))) {
                 Collision = true;
                 break;
             }
-        }
+        }*/
+
+        Collision = EPCs.size() != 1;
 
         if(Collision) {
 
-            status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+            if(edit) {
+                status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+            }
+            else {
+                if(EPCs.size() == 0) {
+                    status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                }
+                else {
+                    status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                }
+            }
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             status.setBackgroundColor(Color.RED);
             return;
         }
 
-        TID = TIDBuffer[0][0];
+        /*TID = TIDBuffer[0][0];
         EPC = TIDBuffer[0][1].substring(4);
-
+        */
         status.setText(status.getText() + "اسکن با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
 
         DataBase.Barcode = BarcodeID;
@@ -391,17 +428,17 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             status.setText(status.getText() + "\nبا موفقیت اضافه شد");
             status.setText(status.getText() + "\nnumber of try in writing: " + k);
             status.setText(status.getText() + "\nnumber of try in confirming: " + o);
-            status.setText(status.getText() + "\nHeader: " + String.valueOf(headerNumber));
-            status.setText(status.getText() + "\nFilter: " + String.valueOf(filterNumber));
-            status.setText(status.getText() + "\nPartition: " + String.valueOf(partitionNumber));
-            status.setText(status.getText() + "\nCompany number: " + String.valueOf(companyNumber));
-            status.setText(status.getText() + "\nItem number: " + String.valueOf(itemNumber));
-            status.setText(status.getText() + "\nSerial number: " + String.valueOf(serialNumber));
-            status.setText(status.getText() + "\nNew EPC: " + String.valueOf(New));
+            status.setText(status.getText() + "\nHeader: " + headerNumber);
+            status.setText(status.getText() + "\nFilter: " + filterNumber);
+            status.setText(status.getText() + "\nPartition: " + partitionNumber);
+            status.setText(status.getText() + "\nCompany number: " + companyNumber);
+            status.setText(status.getText() + "\nItem number: " + itemNumber);
+            status.setText(status.getText() + "\nSerial number: " + serialNumber);
+            status.setText(status.getText() + "\nNew EPC: " + New);
             counterValue++;
             counterValueModified++;
-            numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + String.valueOf(counterValue - counterMinValue));
-            numberOfWrittenModified.setText("مقدار شمارنده: " + String.valueOf(counterValueModified));
+            numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
+            numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
 
             if(counterValue >= counterMaxValue) {
                 isAddNewOK = false;
@@ -428,5 +465,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         ContentValues val = new ContentValues();
         val.put("counterModified", counterValueModified);
         counter.update("counterDatabase", val, null, null);
+    }
+
+    public void changeOption(View view) {
+        edit = editOption.isChecked();
     }
 }

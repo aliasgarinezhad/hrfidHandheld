@@ -14,6 +14,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class readingResultActivity extends AppCompatActivity {
 
@@ -38,7 +40,7 @@ public class readingResultActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_result);
-        result = (ListView) findViewById(R.id.readingResult);
+        result = findViewById(R.id.readingResult);
         intent = new Intent(this, readingResultSubActivity.class);
     }
 
@@ -54,7 +56,6 @@ public class readingResultActivity extends AppCompatActivity {
 
         titles.clear();
         title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
-        titles.add(title);
 
         for (int i = 0; i<reading.API2.stuffs.length(); i++) {
 
@@ -89,7 +90,7 @@ public class readingResultActivity extends AppCompatActivity {
                         Extra += temp2.getInt("diffCount");
                     }
                 }
-                temp = String.format("%s%15s%15s%12s", temp, Integer.toString(scanned), Integer.toString(NotScanned), Integer.toString(Extra));
+                temp = String.format("%s%15s%15s%12s", temp, scanned, NotScanned, Extra);
                 sumScanned += scanned;
                 sumNotScanned += NotScanned;
                 sumExtra += Extra;
@@ -102,7 +103,9 @@ public class readingResultActivity extends AppCompatActivity {
 
         }
 
-        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", Integer.toString(sumScanned), Integer.toString(sumNotScanned), Integer.toString(sumExtra)));
+        titles = sortArray(titles);
+        titles.add(0, title);
+        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", sumScanned, sumNotScanned, sumExtra));
 
         listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
 
@@ -119,6 +122,28 @@ public class readingResultActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    ArrayList<String> sortArray(ArrayList<String> array) {
+
+        ArrayList<String> outputArray = new ArrayList<String>();
+        String template = "";
+
+        char[] comparator = {'ا', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح','خ','د', 'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق'
+        , 'ک', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'};
+
+        for(int j = 0; j < comparator.length; j++) {
+
+            for(int i = 0; i< array.size(); i++) {
+
+                template = array.get(i);
+                if (template.startsWith(String.valueOf(comparator[j]))) {
+                    outputArray.add(template);
+                }
+            }
+        }
+
+        return outputArray;
     }
 
 }

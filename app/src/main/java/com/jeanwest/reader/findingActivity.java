@@ -6,17 +6,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.List;
 
 public class findingActivity extends AppCompatActivity implements IBarcodeResult {
 
@@ -85,6 +83,10 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                 result.show();
                 return;
             }
+
+            View view = this.getCurrentFocus();
+            InputMethodManager imm =(InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 
             listString.clear();
 
@@ -157,6 +159,8 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
             return;
         }
 
+        InputMethodManager imm =(InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         listString.clear();
 
         for(int i=0; i< API.similar.length(); i++) {

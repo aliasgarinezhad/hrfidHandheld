@@ -118,7 +118,7 @@ public class reading extends AppCompatActivity {
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
                 percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
-                status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
+                //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
                 readingInProgress = false;
                 databaseInProgress = true;
@@ -154,7 +154,7 @@ public class reading extends AppCompatActivity {
                 }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
-                status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
+                //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
             }
         }
     };
@@ -278,7 +278,7 @@ public class reading extends AppCompatActivity {
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
         percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
-        status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
+        //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
         powerText.setText("اندازه توان(" + readingPower + ")");
         powerSeekBar.setProgress(readingPower - 5);
