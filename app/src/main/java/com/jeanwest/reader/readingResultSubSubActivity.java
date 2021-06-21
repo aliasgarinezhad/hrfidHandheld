@@ -148,7 +148,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
                                 temp2 = subStuffs.getJSONObject(j);
                                 if(temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)){
-                                    readingResultActivity.index = i;
+                                    readingResultActivity.index = reading.API2.stuffs.getString(i);
                                     readingResultSubActivity.subIndex = j;
                                     i = reading.API2.stuffs.length() + 10;
                                     j = subStuffs.length() + 10;
@@ -243,7 +243,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         try {
 
-            subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
+            subStuffs = reading.API2.conflicts.getJSONArray(readingResultActivity.index);
             stuff = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
 
             if (stuff.getBoolean("status")) {

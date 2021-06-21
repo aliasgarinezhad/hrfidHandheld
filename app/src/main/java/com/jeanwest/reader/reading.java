@@ -51,7 +51,7 @@ public class reading extends AppCompatActivity {
     Button button;
     CircularProgressBar circularProgressBar;
     Intent intent;
-    int allStuffs = 0;
+    public static int allStuffs = 0;
     int EPCLastLength = 0;
     int readingPower = 30;
 

@@ -21,8 +21,9 @@ public class readingResultActivity extends AppCompatActivity {
 
     ListView result;
     ArrayList<String> titles = new ArrayList<>();
+    ArrayList<String> titleTemp = new ArrayList<>();
     Intent intent;
-    public static int index = 0;
+    public static String index;
     String title;
     String temp;
     JSONArray subStuffs;
@@ -55,6 +56,8 @@ public class readingResultActivity extends AppCompatActivity {
         sumExtra = 0;
 
         titles.clear();
+        titleTemp.clear();
+
         title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
 
         for (int i = 0; i<reading.API2.stuffs.length(); i++) {
@@ -66,6 +69,8 @@ public class readingResultActivity extends AppCompatActivity {
                 if(temp.equals("null")) {
                     temp = "متفرقه";
                 }
+
+                titleTemp.add(temp);
 
                 if(temp.length() < 12)
                 {
@@ -104,6 +109,7 @@ public class readingResultActivity extends AppCompatActivity {
         }
 
         titles = sortArray(titles);
+        titleTemp = sortArray(titleTemp);
         titles.add(0, title);
         titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", sumScanned, sumNotScanned, sumExtra));
 
@@ -118,7 +124,12 @@ public class readingResultActivity extends AppCompatActivity {
                 if(i==0 || i==1) {
                     return;
                 }
-                index = i-2;
+                index = titleTemp.get(i-2);
+
+                if(index == "متفرقه") {
+                    index = "null";
+                }
+
                 startActivity(intent);
             }
         });
@@ -130,7 +141,7 @@ public class readingResultActivity extends AppCompatActivity {
         String template = "";
 
         char[] comparator = {'ا', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح','خ','د', 'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق'
-        , 'ک', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'};
+        , 'ك', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'};
 
         for(int j = 0; j < comparator.length; j++) {
 

@@ -66,7 +66,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1 ,items);
 
         try {
-            subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
+            subStuffs = reading.API2.conflicts.getJSONArray(readingResultActivity.index);
         } catch (JSONException e) {
             e.printStackTrace();
         }
