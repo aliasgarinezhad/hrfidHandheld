@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
         RF.init();
         while(!RF.setFrequencyMode((byte) 4)) {}
         while(!RF.setRFLink(2)) {}
+
     }
 
     public void addNewActivity(View view) {

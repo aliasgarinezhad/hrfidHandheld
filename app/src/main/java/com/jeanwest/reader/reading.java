@@ -5,11 +5,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +19,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
@@ -41,7 +44,7 @@ public class reading extends AppCompatActivity {
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableValid = new HashMap<String, Integer>();
-    public static Map<String, Integer> EPCTableInvalid = new HashMap<String, Integer>();
+    //public static Map<String, Integer> EPCTableInvalid = new HashMap<String, Integer>();
     public static Integer ID;
     public static APIReadingEPC API;
     public static APIReadingConflicts API2;
@@ -54,6 +57,9 @@ public class reading extends AppCompatActivity {
     public static int allStuffs = 0;
     int EPCLastLength = 0;
     int readingPower = 30;
+
+    SharedPreferences table;
+    SharedPreferences.Editor tableEditor;
 
     String temp;
     JSONArray subStuffs;
@@ -102,7 +108,7 @@ public class reading extends AppCompatActivity {
                     }
 
                     else {
-                        EPCTableInvalid.put(EPC.getKey(), 1);
+                        //EPCTableInvalid.put(EPC.getKey(), 1);
                     }
                 }
 
@@ -159,7 +165,7 @@ public class reading extends AppCompatActivity {
         }
     };
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint({"SetTextI18n", "CommitPrefEdits"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -209,6 +215,19 @@ public class reading extends AppCompatActivity {
             RF = RFIDWithUHF.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
+        }
+
+        table = PreferenceManager.getDefaultSharedPreferences(this);
+        tableEditor = table.edit();
+
+        EPCTableValid = new Gson().fromJson(table.getString("0", ""), HashMap.class);
+
+        if(EPCTableValid == null) {
+            EPCTableValid = new HashMap<String, Integer>();
+        }
+        else {
+            EPCTable.putAll(EPCTableValid);
+            EPCLastLength = EPCTable.size();
         }
     }
 
@@ -328,6 +347,9 @@ public class reading extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+
+        JSONObject tableJson;
+
         if(readingInProgress) {
             RF.stopInventory();
             readingInProgress = false;
@@ -335,6 +357,10 @@ public class reading extends AppCompatActivity {
         API.stop = true;
         API2.stop = true;
         readTask.stop = true;
+
+        tableJson = new JSONObject(EPCTableValid);
+        tableEditor.putString("0", tableJson.toString());
+        tableEditor.commit();
     }
 
     @SuppressLint("SetTextI18n")
@@ -354,7 +380,9 @@ public class reading extends AppCompatActivity {
     public void clearAll(View view) {
         EPCTable.clear();
         EPCTableValid.clear();
-        EPCTableInvalid.clear();
+        tableEditor.putString("0", "");
+        tableEditor.commit();
+        //EPCTableInvalid.clear();
         EPCLastLength = 0;
 
         status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');

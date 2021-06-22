@@ -3,19 +3,15 @@ package com.jeanwest.reader;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class APIReadingInformation extends Thread {
 
@@ -40,8 +36,12 @@ public class APIReadingInformation extends Thread {
                     JSONObject body = new JSONObject();
                     body.put("DepartmentInfo_ID", departmentInfoID);
                     body.put("WareHouseTypes_ID", wareHouseID);
-                    body.put("ReviewControlDate", "2021-06-14T08:47:08.799Z");
-                    body.put("StartDate", "2021-06-14T08:47:08.799Z");
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.UK);
+                    String formattedDate = sdf.format(new Date());
+
+                    body.put("ReviewControlDate", formattedDate);
+                    body.put("StartDate", formattedDate);
 
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
