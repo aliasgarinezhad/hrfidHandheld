@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">RFID</string>
+    <string name="colorPrimary">#008080</string>
+
 </resources>

@@ -124,9 +124,4 @@ public class settingActivity extends AppCompatActivity {
         });
         alertUpdatePermit.show();
     }
-
-    public void advanceSettingButton(View view) {
-        Intent intent = new Intent(this, loginActivity.class);
-        startActivity(intent);
-    }
 }

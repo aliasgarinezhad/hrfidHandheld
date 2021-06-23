@@ -1,6 +1,7 @@
 
 package com.jeanwest.reader;
 
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
@@ -12,6 +13,7 @@ import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
@@ -72,7 +74,7 @@ public class reading extends AppCompatActivity {
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
 
-        @SuppressLint("SetTextI18n")
+        @SuppressLint({"SetTextI18n", "ResourceAsColor"})
         @Override
         public void run() {
 
@@ -128,7 +130,7 @@ public class reading extends AppCompatActivity {
 
                 readingInProgress = false;
                 databaseInProgress = true;
-                button.setBackgroundColor(Color.BLUE);
+                button.setBackgroundColor(getColor(R.color.Primary));
                 processingInProgress = false;
             }
 
@@ -204,7 +206,7 @@ public class reading extends AppCompatActivity {
         });
 
         circularProgressBar.setProgressMax(100f);
-        circularProgressBar.setProgressBarColor(Color.BLUE);
+        circularProgressBar.setProgressBarColor(getColor(R.color.Primary));
         circularProgressBar.setBackgroundProgressBarColor(Color.GRAY);
         circularProgressBar.setProgressBarWidth(15f); // in DP
         circularProgressBar.setBackgroundProgressBarWidth(7f); // in DP
@@ -358,9 +360,13 @@ public class reading extends AppCompatActivity {
         API2.stop = true;
         readTask.stop = true;
 
+        //Log.e("0", "start");
+
         tableJson = new JSONObject(EPCTableValid);
         tableEditor.putString("0", tableJson.toString());
         tableEditor.commit();
+
+        //Log.e("0","stop");
     }
 
     @SuppressLint("SetTextI18n")

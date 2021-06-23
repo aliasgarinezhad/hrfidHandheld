@@ -195,11 +195,43 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 
                 if (!findTask.readEnable) {
-                    findingPower = progress + 5;
+                    switch(progress) {
+                        case 0:
+                            findingPower = 5;
+                            break;
+                        case 1:
+                            findingPower = 10;
+                            break;
+                        case 2:
+                            findingPower = 15;
+                            break;
+                        case 3:
+                            findingPower = 20;
+                            break;
+                        case 4:
+                            findingPower = 30;
+                            break;
+                    }
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                 } else {
                     RF.stopInventory();
-                    findingPower = progress + 5;
+                    switch(progress) {
+                        case 0:
+                            findingPower = 5;
+                            break;
+                        case 1:
+                            findingPower = 10;
+                            break;
+                        case 2:
+                            findingPower = 15;
+                            break;
+                        case 3:
+                            findingPower = 20;
+                            break;
+                        case 4:
+                            findingPower = 30;
+                            break;
+                    }
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                     //powerSeekBar.setProgress(findingPower - 5);
                     while (!RF.setPower(findingPower)) {}
@@ -287,8 +319,23 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         }
 
         reading.databaseInProgress = false;
-        powerSeekBar.setProgress(findingPower - 5);
-        powerText.setText("قدرت سیگنال(" + findingPower + ")");
+        switch(findingPower) {
+            case 5:
+                powerSeekBar.setProgress(0);
+                break;
+            case 10:
+                powerSeekBar.setProgress(1);
+                break;
+            case 15:
+                powerSeekBar.setProgress(2);
+                break;
+            case 20:
+                powerSeekBar.setProgress(3);
+                break;
+            case 30:
+                powerSeekBar.setProgress(4);
+                break;
+        }        powerText.setText("قدرت سیگنال(" + findingPower + ")");
 
     }
 
@@ -334,7 +381,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                 }
                 else {
 
-                    update.setBackgroundColor(Color.BLUE);
+                    update.setBackgroundColor(getColor(R.color.Primary));
 
                     databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 

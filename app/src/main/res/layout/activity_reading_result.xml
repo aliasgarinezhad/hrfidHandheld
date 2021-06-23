@@ -4,19 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".readingResultActivity"
     android:layout_gravity="right"
-    android:foregroundGravity="right">
+    android:background="@color/pagesBackground"
+    android:foregroundGravity="right"
+    tools:context=".readingResultActivity">
 
     <ListView
         android:id="@+id/readingResult"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:foregroundGravity="right"
+        android:layoutDirection="rtl"
+        android:textAlignment="gravity"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:foregroundGravity="right"
-        android:layoutDirection="rtl"
-        android:textAlignment="gravity"/>
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

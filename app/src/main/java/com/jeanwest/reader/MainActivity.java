@@ -48,14 +48,14 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, findingActivity.class);
         startActivity(intent);
     }
-    public void filterchangingActivity(View view) {
-
-        /*Intent intent = new Intent(this, filterChanging.class);
-        startActivity(intent);*/
-    }
 
     public void settingActivity(View view) {
         Intent intent = new Intent(this, settingActivity.class);
+        startActivity(intent);
+    }
+
+    public void advanceSettingButton(View view) {
+        Intent intent = new Intent(this, loginActivity.class);
         startActivity(intent);
     }
 

@@ -24,7 +24,7 @@ public class loginActivity extends AppCompatActivity {
 
     public void loginButton(View view) {
         if(password.getText().toString().equals("123456")) {
-            Intent intent = new Intent(this, advanceSetting.class);
+            Intent intent = new Intent(this, addNewSetting.class);
             startActivity(intent);
         }
         else{

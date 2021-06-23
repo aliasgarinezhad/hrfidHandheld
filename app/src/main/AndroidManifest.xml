@@ -21,34 +21,19 @@
             android:name=".readingResultSubActivity"
             android:parentActivityName=".readingResultActivity" />
         <activity
+            android:name=".addNewSetting"
+            android:parentActivityName=".settingActivity" />
+        <activity
             android:name=".readingResultActivity"
             android:parentActivityName=".reading" />
         <activity
             android:name=".userSpecActivity"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".filterChangingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".findingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".readingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".addNewSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".advanceSetting"
-            android:parentActivityName=".loginActivity" />
-        <activity
             android:name=".loginActivity"
             android:parentActivityName=".settingActivity" />
         <activity
             android:name=".settingActivity"
-            android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".filterChanging"
             android:parentActivityName=".MainActivity" />
         <activity android:name=".readingResultSubSubActivity" />
         <activity
