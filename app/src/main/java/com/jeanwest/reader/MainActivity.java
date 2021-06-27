@@ -32,21 +32,16 @@ public class MainActivity extends AppCompatActivity {
         while(!RF.setRFLink(2)) {
             RF.free();
         }
-
     }
 
     public void addNewActivity(View view) {
 
         Intent intent = new Intent(this, addNew.class);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
-        //finishAffinity();
         startActivity(intent);
     }
     public void readingActivity(View view) {
 
         Intent intent = new Intent(this, userSpecActivity.class);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
     public void findingActivity(View view) {
