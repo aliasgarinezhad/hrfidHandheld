@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,10 +22,12 @@ public class readingResultActivity extends AppCompatActivity {
 
     ListView result;
     ArrayList<String> titles = new ArrayList<>();
+    ArrayList<String> allNumber = new ArrayList<>();
+    ArrayList<String> scannedNumber = new ArrayList<>();
+    ArrayList<String> extraNumber = new ArrayList<>();
     ArrayList<String> titleTemp = new ArrayList<>();
     Intent intent;
     public static String index;
-    String title;
     String temp;
     JSONArray subStuffs;
     JSONObject temp2;
@@ -34,7 +37,7 @@ public class readingResultActivity extends AppCompatActivity {
     int sumNotScanned = 0;
     int sumScanned = 0;
     int sumExtra = 0;
-    ArrayAdapter<String> listAdapter;
+    MyListAdapter listAdapter;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -57,27 +60,36 @@ public class readingResultActivity extends AppCompatActivity {
 
         titles.clear();
         titleTemp.clear();
+        scannedNumber.clear();
+        allNumber.clear();
+        extraNumber.clear();
 
-        title = String.format("%s%15s%15s%12s", "دسته        ", "اسکن شده", "اسکن نشده", "اضافی");
-
-        for (int i = 0; i<reading.API2.stuffs.length(); i++) {
+        for (int i = 0; i < reading.API2.stuffs.length(); i++) {
 
             try {
                 temp = reading.API2.stuffs.getString(i);
                 subStuffs = reading.API2.conflicts.getJSONArray(temp);
 
-                if(temp.equals("null")) {
-                    temp = "متفرقه";
-                }
-
                 titleTemp.add(temp);
+                titles.add(temp);
 
-                if(temp.length() < 12)
-                {
-                    for(int o =0; o < (12 - temp.length()); o++) {
-                        temp += ' ';
-                    }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        titles = sortArray(titles);
+        titleTemp = sortArray(titleTemp);
+
+
+        for (int i = 0; i < titles.size(); i++) {
+
+            try {
+                temp = titles.get(i);
+                if (temp == "متفرقه") {
+                    temp = "null";
                 }
+                subStuffs = reading.API2.conflicts.getJSONArray(temp);
 
                 NotScanned = 0;
                 scanned = 0;
@@ -89,31 +101,36 @@ public class readingResultActivity extends AppCompatActivity {
                     if (!temp2.getBoolean("status")) {
                         scanned += temp2.getInt("handheldCount");
                         NotScanned += temp2.getInt("diffCount");
-                    }
-                    else {
+                    } else {
                         scanned += temp2.getInt("dbCount");
                         Extra += temp2.getInt("diffCount");
                     }
                 }
-                temp = String.format("%s%15s%15s%12s", temp, scanned, NotScanned, Extra);
-                sumScanned += scanned;
-                sumNotScanned += NotScanned;
-                sumExtra += Extra;
+            } catch (JSONException ignored) {
 
-                titles.add(temp);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
             }
 
+            sumScanned += scanned;
+            sumNotScanned += NotScanned;
+            sumExtra += Extra;
+
+            allNumber.add(String.valueOf(NotScanned));
+            extraNumber.add(String.valueOf(Extra));
+            scannedNumber.add(String.valueOf(scanned));
         }
 
-        titles = sortArray(titles);
-        titleTemp = sortArray(titleTemp);
-        titles.add(0, title);
-        titles.add(1, String.format("%s%15s%15s%12s", "مجموع       ", sumScanned, sumNotScanned, sumExtra));
+        titles.add(0, "دسته");
+        allNumber.add(0, "اسکن نشده");
+        scannedNumber.add(0, "اسکن شده");
+        extraNumber.add(0, "اضافی");
 
-        listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1, titles);
+        //titles.add(1, "String.format("%s%15s%15s%12s", "مجموع       ", sumScanned, sumNotScanned, sumExtra)");
+        titles.add(1, "مجموع");
+        allNumber.add(1, String.valueOf(sumNotScanned));
+        scannedNumber.add(1, String.valueOf(sumScanned));
+        extraNumber.add(1, String.valueOf(sumExtra));
+
+        listAdapter = new MyListAdapter(this, titles, scannedNumber, allNumber, extraNumber);
 
         result.setAdapter(listAdapter);
 
@@ -121,15 +138,10 @@ public class readingResultActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-                if(i==0 || i==1) {
+                if (i == 0 || i == 1) {
                     return;
                 }
-                index = titleTemp.get(i-2);
-
-                if(index == "متفرقه") {
-                    index = "null";
-                }
-
+                index = titles.get(i);
                 startActivity(intent);
             }
         });
@@ -140,12 +152,12 @@ public class readingResultActivity extends AppCompatActivity {
         ArrayList<String> outputArray = new ArrayList<String>();
         String template = "";
 
-        char[] comparator = {'ا', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح','خ','د', 'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق'
-        , 'ك', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'};
+        char[] comparator = {'ا', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق'
+                , 'ك', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'};
 
-        for(int j = 0; j < comparator.length; j++) {
+        for (int j = 0; j < comparator.length; j++) {
 
-            for(int i = 0; i< array.size(); i++) {
+            for (int i = 0; i < array.size(); i++) {
 
                 template = array.get(i);
                 if (template.startsWith(String.valueOf(comparator[j]))) {

@@ -15,8 +15,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".findingResultSubActivity"></activity>
-        <activity android:name=".findingActivity" />
+        <activity android:name=".findingResultSubActivity"
+            android:parentActivityName=".findingActivity"/>
+        <activity android:name=".findingActivity"
+            android:parentActivityName=".MainActivity"/>
         <activity
             android:name=".readingResultSubActivity"
             android:parentActivityName=".readingResultActivity" />
@@ -35,7 +37,8 @@
         <activity
             android:name=".settingActivity"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".readingResultSubSubActivity" />
+        <activity android:name=".readingResultSubSubActivity"
+            android:parentActivityName=".readingResultSubActivity"/>
         <activity
             android:name=".reading"
             android:parentActivityName=".MainActivity" />

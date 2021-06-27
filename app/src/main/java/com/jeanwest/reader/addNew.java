@@ -58,6 +58,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     String companynumberStr;
     String CONumber;
     boolean edit = false;
+    private boolean barcodeIsScanning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,6 +146,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         counter.close();
         close();
         DataBase.stop = true;
+
+        if(barcodeIsScanning) {
+            barcodeIsScanning = false;
+            RF.stopInventory();
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -152,6 +158,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     public void getBarcode(String barcode) throws InterruptedException {
 
         if (barcode.length() > 2) {
+            barcodeIsScanning = false;
             BarcodeID = barcode;
             status.setText("اسکن بارکد با موفقیت انجام شد" + "\nID: " + BarcodeID + "\n");
             status.setBackgroundColor(Color.GREEN);
@@ -164,6 +171,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             }
 
         } else {
+            barcodeIsScanning = false;
+            RF.stopInventory();
             status.setText("بارکدی پیدا نشد");
             status.setBackgroundColor(Color.RED);
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
@@ -195,8 +204,14 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         if (keyCode == 280 || keyCode == 139) {
 
             if (event.getRepeatCount() == 0) {
+
+                if(barcodeIsScanning) {
+                    return true;
+                }
+
                 if (step2) {
                     try {
+                        RF.stopInventory();
                         addNewTag();
                         while (!RF.setPower(RFPower)) {
                         }
@@ -206,6 +221,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                     step2 = false;
                 } else {
                     start();
+                    RF.startInventoryTag(0, 0);
+                    barcodeIsScanning = true;
                 }
 
             }
@@ -213,6 +230,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             counter.close();
             close();
             DataBase.stop = true;
+
+            if(barcodeIsScanning) {
+                barcodeIsScanning = false;
+                RF.stopInventory();
+            }
+
             finish();
         }
         return true;
@@ -221,80 +244,140 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     @SuppressLint("SetTextI18n")
     public void addNewTag() throws InterruptedException {
 
-        String[][] TIDBuffer = new String[20][10];
+        String[][] TIDBuffer = new String[1000][10];
+        int TIDBufferSize = 0;
         String tempStr;
         int LoopVariable;
         boolean Collision;
         int tempByte;
         Map<String, Integer> EPCs = new HashMap<>();
 
-        RF.startInventoryTag(0, 0);
+        boolean isOK = false;
 
-        Thread.sleep(1000);
-
-        for(LoopVariable=0; LoopVariable<10; LoopVariable++) {
+        for (LoopVariable = 0; LoopVariable < 1000; LoopVariable++) {
             TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
+            if(TIDBuffer[LoopVariable] == null) {
+                break;
+            }
         }
 
-        RF.stopInventory();
+        TIDBufferSize = LoopVariable;
 
-        if (TIDBuffer[9] == null) {
-
-            status.setText(status.getText() + "هیچ تگی یافت نشد");
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
-            status.setBackgroundColor(Color.RED);
+        if(TIDBufferSize > 980) {
+            start();
+            Thread.sleep(100);
+            RF.startInventoryTag(0, 0);
+            barcodeIsScanning = true;
             return;
         }
 
-        for(LoopVariable=0; LoopVariable<10; LoopVariable++) {
-            if(edit) {
-                EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                TID = TIDBuffer[LoopVariable][0];
-                EPC = TIDBuffer[LoopVariable][1].substring(4);
-            }
-            else {
-                if(!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
+        try {
+
+            for (LoopVariable = 0; LoopVariable < TIDBufferSize; LoopVariable++) {
+                if (edit) {
                     EPCs.put(TIDBuffer[LoopVariable][1], 1);
                     TID = TIDBuffer[LoopVariable][0];
                     EPC = TIDBuffer[LoopVariable][1].substring(4);
+                } else {
+                    if (!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
+                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                        TID = TIDBuffer[LoopVariable][0];
+                        EPC = TIDBuffer[LoopVariable][1].substring(4);
+                    }
                 }
+            }
+
+            Collision = EPCs.size() != 1;
+
+            if (Collision) {
+
+                if (edit) {
+                    status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+                } else {
+                    if (EPCs.size() == 0) {
+                        status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                    } else {
+                        status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                    }
+                }
+
+                //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                status.setBackgroundColor(Color.RED);
+            } else {
+                status.setText(status.getText() + "اسکن اول با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
+                isOK = true;
             }
         }
-
-        /*Collision = false;
-        for(LoopVariable=0;LoopVariable<10;LoopVariable++) {
-
-            if(!(TIDBuffer[LoopVariable][0].equals(TIDBuffer[0][0]))) {
-                Collision = true;
-                break;
-            }
-        }*/
-
-        Collision = EPCs.size() != 1;
-
-        if(Collision) {
-
-            if(edit) {
-                status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
-            }
-            else {
-                if(EPCs.size() == 0) {
-                    status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
-                }
-                else {
-                    status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
-                }
-            }
-
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
+        catch (NullPointerException e) {
+            status.setText(status.getText() + "هیچ تگی یافت نشد");
+            //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
-            return;
         }
 
-        /*TID = TIDBuffer[0][0];
-        EPC = TIDBuffer[0][1].substring(4);
-        */
-        status.setText(status.getText() + "اسکن با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
+        status.setText(status.getText() + "\n" + String.valueOf(TIDBufferSize) + "\n");
+
+        if(!isOK) {
+
+            TIDBuffer = new String[20][10];
+            EPCs.clear();
+            status.setText(status.getText() + "\n");
+
+            Thread.sleep(100);
+
+            RF.startInventoryTag(0, 0);
+
+            Thread.sleep(900);
+
+            for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
+                TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
+            }
+
+            RF.stopInventory();
+
+            try {
+
+                for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
+                    if (edit) {
+                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                        TID = TIDBuffer[LoopVariable][0];
+                        EPC = TIDBuffer[LoopVariable][1].substring(4);
+                    } else {
+                        if (!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
+                            EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                            TID = TIDBuffer[LoopVariable][0];
+                            EPC = TIDBuffer[LoopVariable][1].substring(4);
+                        }
+                    }
+                }
+
+                Collision = EPCs.size() != 1;
+
+                if (Collision) {
+
+                    if (edit) {
+                        status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+                    } else {
+                        if (EPCs.size() == 0) {
+                            status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                        } else {
+                            status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                        }
+                    }
+
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                    status.setBackgroundColor(Color.RED);
+                    return;
+                }
+
+                status.setText(status.getText() + "اسکن دوم با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
+            }
+            catch (NullPointerException e) {
+                status.setText(status.getText() + "هیچ تگی یافت نشد");
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                status.setBackgroundColor(Color.RED);
+                return;
+            }
+        }
 
         DataBase.Barcode = BarcodeID;
         DataBase.run = true;
@@ -380,81 +463,73 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             }
         }
 
-        //if (k < 15) {
+        String EPCVerify = null;
 
-            String EPCVerify = null;
+        int o;
 
-            int o;
+        for(o=0; o < 15; o++) {
 
-            for(o=0; o < 15; o++) {
-
-                try {
-                    EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
-                    break;
-                }
-                catch (NullPointerException e) {
-
-                    status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-                    status.setText(status.getText() + "EPCVerify");
-                    status.setText(status.getText() + New);
-
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    status.setBackgroundColor(Color.RED);
-                }
+            try {
+                EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
+                break;
             }
+            catch (NullPointerException e) {
 
-            if(o >= 15) {
                 status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
                 status.setText(status.getText() + "EPCVerify");
                 status.setText(status.getText() + New);
 
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
-                return;
             }
+        }
 
-            if(!New.equals(EPCVerify)) {
-                status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-                status.setText(status.getText() + "\n" + EPCVerify);
-                status.setText(status.getText() + "\n" + New);
+        if(o >= 15) {
+            status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
+            status.setText(status.getText() + "EPCVerify");
+            status.setText(status.getText() + New);
 
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(Color.RED);
-                return;
-            }
-
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
-            status.setBackgroundColor(Color.GREEN);
-            status.setText(status.getText() + "\nبا موفقیت اضافه شد");
-            status.setText(status.getText() + "\nnumber of try in writing: " + k);
-            status.setText(status.getText() + "\nnumber of try in confirming: " + o);
-            status.setText(status.getText() + "\nHeader: " + headerNumber);
-            status.setText(status.getText() + "\nFilter: " + filterNumber);
-            status.setText(status.getText() + "\nPartition: " + partitionNumber);
-            status.setText(status.getText() + "\nCompany number: " + companyNumber);
-            status.setText(status.getText() + "\nItem number: " + itemNumber);
-            status.setText(status.getText() + "\nSerial number: " + serialNumber);
-            status.setText(status.getText() + "\nNew EPC: " + New);
-            counterValue++;
-            counterValueModified++;
-            numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
-            numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
-
-            if(counterValue >= counterMaxValue) {
-                isAddNewOK = false;
-            }
-
-            ContentValues val = new ContentValues();
-            val.put("value", counterValue);
-            val.put("counterModified", counterValueModified);
-            counter.update("counterDatabase", val, null, null);
-
-        /*} else {
-
-            status.setText(status.getText() + "\nخطا در نوشتن");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
-        }*/
+            return;
+        }
+
+        if(!New.equals(EPCVerify)) {
+            status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
+            status.setText(status.getText() + "\n" + EPCVerify);
+            status.setText(status.getText() + "\n" + New);
+
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+            status.setBackgroundColor(Color.RED);
+            return;
+        }
+
+        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
+        status.setBackgroundColor(Color.GREEN);
+        status.setText(status.getText() + "\nبا موفقیت اضافه شد");
+        status.setText(status.getText() + "\nnumber of try in writing: " + k);
+        status.setText(status.getText() + "\nnumber of try in confirming: " + o);
+        status.setText(status.getText() + "\nHeader: " + headerNumber);
+        status.setText(status.getText() + "\nFilter: " + filterNumber);
+        status.setText(status.getText() + "\nPartition: " + partitionNumber);
+        status.setText(status.getText() + "\nCompany number: " + companyNumber);
+        status.setText(status.getText() + "\nItem number: " + itemNumber);
+        status.setText(status.getText() + "\nSerial number: " + serialNumber);
+        status.setText(status.getText() + "\nNew EPC: " + New);
+        counterValue++;
+        counterValueModified++;
+        numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
+        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
+
+        if(counterValue >= counterMaxValue) {
+            isAddNewOK = false;
+        }
+
+        ContentValues val = new ContentValues();
+        val.put("value", counterValue);
+        val.put("counterModified", counterValueModified);
+        counter.update("counterDatabase", val, null, null);
+
     }
 
     @SuppressLint("SetTextI18n")
