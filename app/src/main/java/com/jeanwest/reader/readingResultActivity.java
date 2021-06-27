@@ -25,7 +25,6 @@ public class readingResultActivity extends AppCompatActivity {
     ArrayList<String> allNumber = new ArrayList<>();
     ArrayList<String> scannedNumber = new ArrayList<>();
     ArrayList<String> extraNumber = new ArrayList<>();
-    ArrayList<String> titleTemp = new ArrayList<>();
     Intent intent;
     public static String index;
     String temp;
@@ -59,7 +58,6 @@ public class readingResultActivity extends AppCompatActivity {
         sumExtra = 0;
 
         titles.clear();
-        titleTemp.clear();
         scannedNumber.clear();
         allNumber.clear();
         extraNumber.clear();
@@ -69,8 +67,6 @@ public class readingResultActivity extends AppCompatActivity {
             try {
                 temp = reading.API2.stuffs.getString(i);
                 subStuffs = reading.API2.conflicts.getJSONArray(temp);
-
-                titleTemp.add(temp);
                 titles.add(temp);
 
             } catch (JSONException e) {
@@ -79,16 +75,11 @@ public class readingResultActivity extends AppCompatActivity {
         }
 
         titles = sortArray(titles);
-        titleTemp = sortArray(titleTemp);
-
 
         for (int i = 0; i < titles.size(); i++) {
 
             try {
                 temp = titles.get(i);
-                if (temp == "متفرقه") {
-                    temp = "null";
-                }
                 subStuffs = reading.API2.conflicts.getJSONArray(temp);
 
                 NotScanned = 0;
@@ -124,7 +115,6 @@ public class readingResultActivity extends AppCompatActivity {
         scannedNumber.add(0, "اسکن شده");
         extraNumber.add(0, "اضافی");
 
-        //titles.add(1, "String.format("%s%15s%15s%12s", "مجموع       ", sumScanned, sumNotScanned, sumExtra)");
         titles.add(1, "مجموع");
         allNumber.add(1, String.valueOf(sumNotScanned));
         scannedNumber.add(1, String.valueOf(sumScanned));

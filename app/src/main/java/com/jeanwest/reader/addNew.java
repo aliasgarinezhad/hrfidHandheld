@@ -59,6 +59,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     String CONumber;
     boolean edit = false;
     private boolean barcodeIsScanning = false;
+    private boolean RFIsScanning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,7 +148,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         close();
         DataBase.stop = true;
 
-        if(barcodeIsScanning) {
+        step2 = false;
+        if(barcodeIsScanning || RFIsScanning) {
             barcodeIsScanning = false;
             RF.stopInventory();
         }
@@ -173,6 +175,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         } else {
             barcodeIsScanning = false;
             RF.stopInventory();
+            RFIsScanning = false;
             status.setText("بارکدی پیدا نشد");
             status.setBackgroundColor(Color.RED);
             beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
@@ -212,15 +215,15 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 if (step2) {
                     try {
                         RF.stopInventory();
+                        RFIsScanning = false;
                         addNewTag();
-                        while (!RF.setPower(RFPower)) {
-                        }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     step2 = false;
                 } else {
                     start();
+                    RFIsScanning = true;
                     RF.startInventoryTag(0, 0);
                     barcodeIsScanning = true;
                 }
@@ -231,7 +234,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             close();
             DataBase.stop = true;
 
-            if(barcodeIsScanning) {
+            step2 = false;
+            if(barcodeIsScanning || RFIsScanning) {
                 barcodeIsScanning = false;
                 RF.stopInventory();
             }
@@ -264,10 +268,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         TIDBufferSize = LoopVariable;
 
         if(TIDBufferSize > 980) {
-            start();
             Thread.sleep(100);
             RF.startInventoryTag(0, 0);
+            start();
             barcodeIsScanning = true;
+            RFIsScanning = true;
             return;
         }
 
@@ -482,6 +487,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
             }
+        }
+        while (!RF.setPower(RFPower)) {
         }
 
         if(o >= 15) {

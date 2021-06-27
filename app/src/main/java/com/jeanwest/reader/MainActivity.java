@@ -23,9 +23,15 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        RF.init();
-        while(!RF.setFrequencyMode((byte) 4)) {}
-        while(!RF.setRFLink(2)) {}
+        while(!RF.init()) {
+            RF.free();
+        }
+        while(!RF.setFrequencyMode((byte) 4)) {
+            RF.free();
+        }
+        while(!RF.setRFLink(2)) {
+            RF.free();
+        }
 
     }
 
