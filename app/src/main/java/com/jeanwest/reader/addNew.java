@@ -95,7 +95,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         while(!RF.setEPCTIDMode(true)) {}
 
+        DataBase = new APIAddNew();
         DataBase.stop = false;
+
         DataBase.start();
 
         counter = databaseHelper2.getWritableDatabase();

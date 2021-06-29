@@ -36,7 +36,6 @@ public class readingResultSubActivity extends AppCompatActivity {
     ArrayList<String> scanned;
     ArrayList<String> notScanned;
     ArrayList<String> all;
-    //ArrayAdapter<String> listAdapter;
     MyListAdapterSub listAdapter;
     JSONObject stuff;
 
@@ -44,7 +43,7 @@ public class readingResultSubActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_result_sub);
-        subResult = (ListView) findViewById(R.id.subResultView);
+        subResult = findViewById(R.id.subResultView);
         intent = new Intent(this, readingResultSubSubActivity.class);
     }
 
@@ -101,7 +100,7 @@ public class readingResultSubActivity extends AppCompatActivity {
                 + "تعداد کل کالاها " + numberOfNotStatusAll);*/
 
         titles.add("کالاهای اسکن نشده ");
-        specs.add("موجود در انبار، ناموجود در سرور");
+        specs.add("ناموجود در انبار، موجود در سرور");
         notScanned.add("تعداد اسکن نشده: " + numberOfNotStatusNotScanned);
         scanned.add("تعداد اسکن شده: " + numberOfNotStatusScanned);
         all.add("تعداد کل: " + numberOfNotStatusAll);
@@ -159,7 +158,7 @@ public class readingResultSubActivity extends AppCompatActivity {
                 + "تعداد کل کالاها " + numberOfStatusAll);*/
 
         titles.add("کالاهای اضافی ");
-        specs.add("موجود در سرور، ناموجود در انبار");
+        specs.add("ناموجود در سرور، موجود در انبار");
         notScanned.add("تعداد اسکن نشده: " + numberOfStatusExtras);
         scanned.add("تعداد اسکن شده: " + numberOfStatusScanned);
         all.add("تعداد کل: " + numberOfStatusAll);
