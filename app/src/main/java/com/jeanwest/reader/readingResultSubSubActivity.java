@@ -2,11 +2,13 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.WebSettings;
@@ -49,6 +51,9 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     JSONObject temp2;
     WebSettings setting;
     Button update;
+
+    SharedPreferences table;
+    SharedPreferences.Editor tableEditor;
 
     boolean isChecked = false;
     boolean findingInProgress = false;
@@ -255,6 +260,9 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
+
+        table = PreferenceManager.getDefaultSharedPreferences(this);
+        tableEditor = table.edit();
     }
 
     @SuppressLint("SetTextI18n")
@@ -485,8 +493,14 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             return;
         }
 
+        JSONObject tableJson;
+
         reading.EPCTable.putAll(EPCTableFindingMatched);
         reading.EPCTableValid.putAll(EPCTableFindingMatched);
+
+        tableJson = new JSONObject(reading.EPCTableValid);
+        tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), tableJson.toString());
+        tableEditor.commit();
 
         reading.API = new APIReadingEPC();
         reading.API2 = new APIReadingConflicts();

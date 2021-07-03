@@ -52,10 +52,6 @@ public class readingResultSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        if(reading.API2.stuffs == null) {
-            return;
-        }
-
         numberOfNotStatusNotScanned = 0;
         numberOfStatusExtras = 0;
         numberOfStatusScanned = 0;
@@ -74,6 +70,7 @@ public class readingResultSubActivity extends AppCompatActivity {
             subStuffs = reading.API2.conflicts.getJSONArray(readingResultActivity.index);
         } catch (JSONException e) {
             e.printStackTrace();
+            return;
         }
 
         index = new int[subStuffs.length() + 100];
@@ -91,6 +88,7 @@ public class readingResultSubActivity extends AppCompatActivity {
 
             } catch (JSONException e) {
                 e.printStackTrace();
+                return;
             }
         }
 

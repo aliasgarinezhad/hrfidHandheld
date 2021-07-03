@@ -1,9 +1,7 @@
 
 package com.jeanwest.reader;
 
-import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,23 +11,19 @@ import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +40,6 @@ public class reading extends AppCompatActivity {
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableValid = new HashMap<String, Integer>();
-    //public static Map<String, Integer> EPCTableInvalid = new HashMap<String, Integer>();
     public static Integer ID;
     public static APIReadingEPC API;
     public static APIReadingConflicts API2;
@@ -221,8 +214,19 @@ public class reading extends AppCompatActivity {
 
         table = PreferenceManager.getDefaultSharedPreferences(this);
         tableEditor = table.edit();
+    }
 
-        EPCTableValid = new Gson().fromJson(table.getString("0", ""), HashMap.class);
+    @SuppressLint("SetTextI18n")
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        EPCTable.clear();
+        EPCTableValid.clear();
+
+        EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(userSpecActivity.wareHouseID), ""), HashMap.class);
+        //EPCTableValid = new Gson().fromJson(table.getString("0", ""), HashMap.class);
 
         if(EPCTableValid == null) {
             EPCTableValid = new HashMap<String, Integer>();
@@ -231,13 +235,6 @@ public class reading extends AppCompatActivity {
             EPCTable.putAll(EPCTableValid);
             EPCLastLength = EPCTable.size();
         }
-    }
-
-    @SuppressLint("SetTextI18n")
-    @Override
-    protected void onResume() {
-
-        super.onResume();
 
         while(!RF.setEPCTIDMode(false)) {}
 
@@ -363,7 +360,8 @@ public class reading extends AppCompatActivity {
         //Log.e("0", "start");
 
         tableJson = new JSONObject(EPCTableValid);
-        tableEditor.putString("0", tableJson.toString());
+        tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), tableJson.toString());
+        tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.wareHouseID, ID);
         tableEditor.commit();
 
         //Log.e("0","stop");
@@ -379,6 +377,7 @@ public class reading extends AppCompatActivity {
         API2.status = false;
         API.run = true;
         databaseInProgress = true;
+
         timerHandler.post(timerRunnable);
     }
 
@@ -386,7 +385,8 @@ public class reading extends AppCompatActivity {
     public void clearAll(View view) {
         EPCTable.clear();
         EPCTableValid.clear();
-        tableEditor.putString("0", "");
+        tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), "");
+        tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.departmentInfoID, ID);
         tableEditor.commit();
         //EPCTableInvalid.clear();
         EPCLastLength = 0;

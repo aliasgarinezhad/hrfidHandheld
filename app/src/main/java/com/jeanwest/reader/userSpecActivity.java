@@ -117,4 +117,29 @@ public class userSpecActivity extends AppCompatActivity {
 
         return true;
     }
+
+    public void sendFileWithClearing(View view) {
+        reading.EPCTable.clear();
+        reading.EPCTableValid.clear();
+
+        editor.putString("1", "");
+        editor.putString("2", "");
+        editor.commit();
+
+        startReading(view);
+    }
+
+    public void finishReading(View view) {
+
+        APIReadingFinish APIFinish = new APIReadingFinish();
+
+        APIFinish.DepoMojodiReviewInfo_ID = memory.getInt(String.valueOf(departmentInfoID) + 2, 0);
+        APIFinish.StoreMojodiReviewInfo_ID = memory.getInt(String.valueOf(departmentInfoID) + 1, 0);
+        APIFinish.start();
+        while(APIFinish.run) {}
+
+        status.setText(APIFinish.Response);
+        status.show();
+
+    }
 }

@@ -41,7 +41,7 @@
             android:parentActivityName=".readingResultSubActivity"/>
         <activity
             android:name=".reading"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".userSpecActivity" />
         <activity
             android:name=".addNew"
             android:parentActivityName=".MainActivity" />
