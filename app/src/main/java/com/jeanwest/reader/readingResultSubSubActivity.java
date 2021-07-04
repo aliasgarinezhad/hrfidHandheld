@@ -69,6 +69,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             if(findingInProgress) {
 
                 isProcessing = true;
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 if(EPCTableFinding.size() > 0) {
 

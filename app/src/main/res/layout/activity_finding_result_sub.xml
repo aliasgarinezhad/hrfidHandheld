@@ -13,7 +13,6 @@
         style="@style/Widget.AppCompat.SeekBar.Discrete"
         android:layout_width="179dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="17dp"
         android:layout_marginEnd="29dp"
         android:layout_marginBottom="26dp"
@@ -65,7 +64,7 @@
 
     <ScrollView
         android:id="@+id/scrollView20"
-        android:layout_width="237dp"
+        android:layout_width="0dp"
         android:layout_height="251dp"
         android:layout_marginBottom="15dp"
         app:layout_constraintBottom_toTopOf="@+id/scrollView40"
@@ -87,7 +86,7 @@
 
     <ScrollView
         android:id="@+id/scrollView40"
-        android:layout_width="261dp"
+        android:layout_width="0dp"
         android:layout_height="191dp"
         android:layout_marginTop="14dp"
         app:layout_constraintEnd_toStartOf="@+id/numberOfFoundTextView0"

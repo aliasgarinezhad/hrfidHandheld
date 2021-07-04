@@ -32,6 +32,5 @@ public class findingThread extends  Thread {
                 finished = true;
             }
         }
-
     }
 }

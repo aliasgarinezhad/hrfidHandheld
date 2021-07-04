@@ -296,7 +296,6 @@ public class reading extends AppCompatActivity {
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
         circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
         percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
-        //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
         powerText.setText("اندازه توان(" + readingPower + ")");
         powerSeekBar.setProgress(readingPower - 5);
@@ -357,14 +356,10 @@ public class reading extends AppCompatActivity {
         API2.stop = true;
         readTask.stop = true;
 
-        //Log.e("0", "start");
-
         tableJson = new JSONObject(EPCTableValid);
         tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), tableJson.toString());
         tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.wareHouseID, ID);
         tableEditor.commit();
-
-        //Log.e("0","stop");
     }
 
     @SuppressLint("SetTextI18n")
@@ -373,6 +368,7 @@ public class reading extends AppCompatActivity {
         if(readingInProgress) {
             return;
         }
+        readingResultActivity.indexNumber = 0;
         API.status = false;
         API2.status = false;
         API.run = true;

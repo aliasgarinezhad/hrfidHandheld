@@ -24,7 +24,7 @@ public class APIReadingFinish extends Thread {
             URL server = new URL(getCommand);
             HttpURLConnection connection = (HttpURLConnection) server.openConnection();
 
-            if (connection.getResponseCode() == 200) {
+            if (connection.getResponseCode() == 200 || connection.getResponseCode() == 204) {
 
                 Response = "با موفقیت ارسال شد";
                 status = true;

@@ -28,6 +28,8 @@ public class readingResultSubActivity extends AppCompatActivity {
     int numberOfStatusAll = 0;
     Intent intent;
 
+    public static Integer indexNumberSub;
+
     int[] index;
     public static int subIndex;
 
@@ -92,11 +94,6 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        /*titles.add("کالاهای اسکن نشده " + "\n"
-                + "تعداد اسکن نشده " + numberOfNotStatusNotScanned + "\n"
-                + "تعداد اسکن شده " + numberOfNotStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfNotStatusAll);*/
-
         titles.add("کالاهای اسکن نشده ");
         specs.add("ناموجود در انبار، موجود در سرور");
         notScanned.add("تعداد اسکن نشده: " + numberOfNotStatusNotScanned);
@@ -113,12 +110,6 @@ public class readingResultSubActivity extends AppCompatActivity {
                 if (!stuff.getBoolean("status") && stuff.getInt("diffCount") != 0) {
                     index[j] = i;
                     j++;
-                    /*titles.add(stuff.getString("productName") + "\n" +
-                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
-                    "تعداد اسکن نشده: " + stuff.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + stuff.getString("dbCount"));*/
 
                     titles.add(stuff.getString("productName"));
                     specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
@@ -150,11 +141,6 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        /*titles.add("کالاهای اضافی " + "\n"
-                + "تعداد اضافی " + numberOfStatusExtras + "\n"
-                + "تعداد اسکن شده " + numberOfStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfStatusAll);*/
-
         titles.add("کالاهای اضافی ");
         specs.add("ناموجود در سرور، موجود در انبار");
         notScanned.add("تعداد اسکن نشده: " + numberOfStatusExtras);
@@ -171,12 +157,6 @@ public class readingResultSubActivity extends AppCompatActivity {
                 if (stuff.getBoolean("status")) {
                     index[j] = i;
                     j++;
-                    /*titles.add(stuff.getString("productName") + "\n" +
-                    "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                    "بارکد: " + stuff.getString("KBarCode") + "\n" +
-                    "تعداد اضافی: " + stuff.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + stuff.getString("dbCount"));*/
 
                     titles.add(stuff.getString("productName"));
                     specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
@@ -196,10 +176,13 @@ public class readingResultSubActivity extends AppCompatActivity {
 
         subResult.setAdapter(listAdapter);
 
+        subResult.setSelection(indexNumberSub);
+
         subResult.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 if(index[i] != -1) {
+                    indexNumberSub = i;
                     subIndex = index[i];
                     startActivity(intent);
                 }

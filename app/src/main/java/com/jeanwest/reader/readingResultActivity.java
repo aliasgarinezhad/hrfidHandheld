@@ -7,16 +7,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 public class readingResultActivity extends AppCompatActivity {
 
@@ -27,6 +22,7 @@ public class readingResultActivity extends AppCompatActivity {
     ArrayList<String> extraNumber = new ArrayList<>();
     Intent intent;
     public static String index;
+    public static Integer indexNumber;
     String temp;
     JSONArray subStuffs;
     JSONObject temp2;
@@ -124,6 +120,8 @@ public class readingResultActivity extends AppCompatActivity {
 
         result.setAdapter(listAdapter);
 
+        result.setSelection(indexNumber);
+
         result.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -131,7 +129,9 @@ public class readingResultActivity extends AppCompatActivity {
                 if (i == 0 || i == 1) {
                     return;
                 }
+                indexNumber = i;
                 index = titles.get(i);
+                readingResultSubActivity.indexNumberSub = 0;
                 startActivity(intent);
             }
         });

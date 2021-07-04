@@ -1,7 +1,6 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -15,10 +14,8 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -321,7 +318,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             status.setBackgroundColor(Color.RED);
         }
 
-        status.setText(status.getText() + "\n" + String.valueOf(TIDBufferSize) + "\n");
+        status.setText(status.getText() + "\n" + "تعداد دفعات اسکن:" + TIDBufferSize + "\n");
 
         if(!isOK) {
 
@@ -482,12 +479,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             }
             catch (NullPointerException e) {
 
-                status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-                status.setText(status.getText() + "EPCVerify");
-                status.setText(status.getText() + New);
-
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(Color.RED);
             }
         }
         while (!RF.setPower(RFPower)) {
@@ -495,8 +486,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if(o >= 15) {
             status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-            status.setText(status.getText() + "EPCVerify");
-            status.setText(status.getText() + New);
+            status.setText(status.getText() + "\n" + "EPCVerify");
+            status.setText(status.getText() + "\n" + New);
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
