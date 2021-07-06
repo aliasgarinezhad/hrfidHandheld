@@ -1,18 +1,15 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
 
 public class readingResultSubActivity extends AppCompatActivity {
@@ -38,6 +35,8 @@ public class readingResultSubActivity extends AppCompatActivity {
     ArrayList<String> scanned;
     ArrayList<String> notScanned;
     ArrayList<String> all;
+    ArrayList<String> pictureURL;
+
     MyListAdapterSub listAdapter;
     JSONObject stuff;
 
@@ -67,6 +66,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         scanned = new ArrayList<>();
         notScanned = new ArrayList<>();
         all = new ArrayList<>();
+        pictureURL = new ArrayList<>();
 
         try {
             subStuffs = reading.API2.conflicts.getJSONArray(readingResultActivity.index);
@@ -94,11 +94,13 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        titles.add("کالاهای اسکن نشده ");
+        titles.add("کالاهای اسکن نشده");
         specs.add("ناموجود در انبار، موجود در سرور");
         notScanned.add("تعداد اسکن نشده: " + numberOfNotStatusNotScanned);
         scanned.add("تعداد اسکن شده: " + numberOfNotStatusScanned);
         all.add("تعداد کل: " + numberOfNotStatusAll);
+        pictureURL.add("a");
+
 
         index[j] = -1;
         j++;
@@ -117,6 +119,7 @@ public class readingResultSubActivity extends AppCompatActivity {
                     notScanned.add("تعداد اسکن نشده: " + stuff.getString("diffCount"));
                     scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
                     all.add("تعداد کل: " + stuff.getString("dbCount"));
+                    pictureURL.add(stuff.getString("ImgUrl"));
 
                 }
             } catch (JSONException e) {
@@ -141,11 +144,12 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        titles.add("کالاهای اضافی ");
+        titles.add("کالاهای اضافی");
         specs.add("ناموجود در سرور، موجود در انبار");
         notScanned.add("تعداد اسکن نشده: " + numberOfStatusExtras);
         scanned.add("تعداد اسکن شده: " + numberOfStatusScanned);
         all.add("تعداد کل: " + numberOfStatusAll);
+        pictureURL.add("a");
 
         index[j] = -1;
         j++;
@@ -164,6 +168,7 @@ public class readingResultSubActivity extends AppCompatActivity {
                     notScanned.add("تعداد اضافی: " + stuff.getString("diffCount"));
                     scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
                     all.add("تعداد کل: " + stuff.getString("dbCount"));
+                    pictureURL.add(stuff.getString("ImgUrl"));
 
                 }
             } catch (JSONException e) {
@@ -172,7 +177,7 @@ public class readingResultSubActivity extends AppCompatActivity {
 
         }
 
-        listAdapter = new MyListAdapterSub(this, titles, specs, scanned, all, notScanned);
+        listAdapter = new MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL);
 
         subResult.setAdapter(listAdapter);
 

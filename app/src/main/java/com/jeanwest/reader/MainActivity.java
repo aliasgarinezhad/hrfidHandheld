@@ -2,9 +2,12 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Toast;
+
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.exception.ConfigurationException;
 
@@ -26,9 +29,20 @@ public class MainActivity extends AppCompatActivity {
         while(!RF.init()) {
             RF.free();
         }
-        while(!RF.setFrequencyMode((byte) 4)) {
-            RF.free();
+
+        if(Build.MODEL.equals("EXARKXK650")) {
+            Toast.makeText(this, "4", Toast.LENGTH_LONG).show();
+
+            while(!RF.setFrequencyMode((byte) 4)) {
+                RF.free();
+            }
+        } else if(Build.MODEL.equals("c72")) {
+            Toast.makeText(this, "2", Toast.LENGTH_LONG).show();
+            while(!RF.setFrequencyMode((byte) 2)) {
+                RF.free();
+            }
         }
+
         while(!RF.setRFLink(2)) {
             RF.free();
         }

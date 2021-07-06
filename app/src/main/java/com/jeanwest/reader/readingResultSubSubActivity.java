@@ -55,8 +55,9 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     SharedPreferences table;
     SharedPreferences.Editor tableEditor;
 
-    boolean isChecked = false;
+    boolean isChecked = true;
     boolean findingInProgress = false;
+    private boolean updateDatabaseInProgress;
     public static boolean isProcessing = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
@@ -69,11 +70,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             if(findingInProgress) {
 
                 isProcessing = true;
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
 
                 if(EPCTableFinding.size() > 0) {
 
@@ -275,6 +271,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        updateDatabaseInProgress = false;
         findTask = new findingThread();
         findTask.stop = false;
         findTask.start();
@@ -369,7 +366,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (keyCode == 280 || keyCode == 139) {
+        if(updateDatabaseInProgress) {
+            return true;
+        }
+
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             if (event.getRepeatCount() == 0) {
 
@@ -489,6 +490,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         EPCTableFinding.clear();
         EPCTableFindingMatched.clear();
         status.setText("");
+        numberOfFoundText.setText("0");
     }
 
     @SuppressLint("SetTextI18n")
@@ -497,6 +499,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         if(findingInProgress) {
             return;
         }
+
+        updateDatabaseInProgress = true;
 
         JSONObject tableJson;
 

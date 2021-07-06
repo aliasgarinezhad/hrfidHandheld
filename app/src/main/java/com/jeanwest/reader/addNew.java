@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
@@ -82,7 +83,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     protected void onResume() {
 
         super.onResume();
-
         open();
 
         if(RF.getPower() != RFPower) {
@@ -203,7 +203,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (keyCode == 280 || keyCode == 139) {
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             if (event.getRepeatCount() == 0) {
 

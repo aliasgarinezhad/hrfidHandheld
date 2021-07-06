@@ -277,7 +277,7 @@ public class findingResultSubActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (keyCode == 280 || keyCode == 139) {
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             if (event.getRepeatCount() == 0) {
 

@@ -165,12 +165,12 @@ public class reading extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading);
-        status = (TextView) findViewById(R.id.section_label);
+        status = findViewById(R.id.section_label);
         response = Toast.makeText(this, "", Toast.LENGTH_LONG);
-        button = (Button) findViewById(R.id.buttonReading);
+        button = findViewById(R.id.buttonReading);
         intent = new Intent(this, readingResultActivity.class);
         circularProgressBar = findViewById(R.id.circularProgressBar);
-        percentage = (TextView) findViewById(R.id.progressText);
+        percentage = findViewById(R.id.progressText);
         powerText = findViewById(R.id.readingPowerTextView);
         powerSeekBar = findViewById(R.id.readingPowerSeekBar);
 
@@ -306,7 +306,7 @@ public class reading extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (keyCode == 280 || keyCode == 139) {
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             if(event.getRepeatCount() == 0) {
 

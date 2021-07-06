@@ -1,5 +1,9 @@
 package com.jeanwest.reader;
 
+import android.app.admin.DevicePolicyManager;
+import android.content.Context;
+import android.telephony.TelephonyManager;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -8,10 +12,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.NetworkInterface;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import static androidx.core.content.ContextCompat.getSystemService;
 
 public class APIReadingInformation extends Thread {
 
@@ -22,6 +29,7 @@ public class APIReadingInformation extends Thread {
     public volatile boolean run = false;
     String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations/v2";
     public boolean stop = false;
+    public Context context;
 
     public void run() {
 
@@ -36,6 +44,8 @@ public class APIReadingInformation extends Thread {
                     JSONObject body = new JSONObject();
                     body.put("DepartmentInfo_ID", departmentInfoID);
                     body.put("WareHouseTypes_ID", wareHouseID);
+
+                    body.put("CreateUserID", System.currentTimeMillis());
 
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.UK);
                     String formattedDate = sdf.format(new Date());
