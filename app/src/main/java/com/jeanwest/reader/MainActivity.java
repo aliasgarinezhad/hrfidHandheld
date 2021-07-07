@@ -9,11 +9,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
 
-    RFIDWithUHF RF;
+    RFIDWithUHFUART RF;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -31,14 +32,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if(Build.MODEL.equals("EXARKXK650")) {
-            Toast.makeText(this, "4", Toast.LENGTH_LONG).show();
-
+            //Toast.makeText(this, "4", Toast.LENGTH_LONG).show();
             while(!RF.setFrequencyMode((byte) 4)) {
                 RF.free();
             }
         } else if(Build.MODEL.equals("c72")) {
-            Toast.makeText(this, "2", Toast.LENGTH_LONG).show();
-            while(!RF.setFrequencyMode((byte) 2)) {
+            //Toast.makeText(this, "0x04", Toast.LENGTH_LONG).show();
+            while(!RF.setFrequencyMode((byte) 0x04)) {
                 RF.free();
             }
         }

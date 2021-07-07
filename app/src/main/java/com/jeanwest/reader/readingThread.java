@@ -1,15 +1,12 @@
 package com.jeanwest.reader;
 
-import android.content.ContentValues;
-
-import com.rscja.deviceapi.RFIDWithUHF;
-import com.rscja.deviceapi.exception.ConfigurationException;
+import com.rscja.deviceapi.entity.UHFTAGInfo;
 
 public class readingThread extends  Thread {
 
     public volatile boolean readEnable = false;
 
-    String[] tagBuffer = new String[10];
+    UHFTAGInfo tagBuffer = new UHFTAGInfo();
     public volatile boolean finished = false;
     public boolean stop;
 
@@ -19,7 +16,7 @@ public class readingThread extends  Thread {
 
             if(readEnable) {
 
-                reading.RF.startInventoryTag(0,0);
+                reading.RF.startInventoryTag(0, 0, 0);
                 finished = false;
 
                 while(readEnable) {
@@ -27,7 +24,7 @@ public class readingThread extends  Thread {
                     tagBuffer = reading.RF.readTagFromBuffer();
 
                     if(tagBuffer != null) {
-                        reading.EPCTable.put(tagBuffer[1].substring(4), 1);
+                        reading.EPCTable.put(tagBuffer.getEPC(), 1);
                     }
                 }
                 reading.RF.stopInventory();

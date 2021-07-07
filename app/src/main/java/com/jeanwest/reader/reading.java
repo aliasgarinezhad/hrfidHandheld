@@ -11,6 +11,7 @@ import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
@@ -20,6 +21,7 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,7 +31,7 @@ import java.util.Map;
 
 public class reading extends AppCompatActivity {
 
-    public static RFIDWithUHF RF;
+    public static RFIDWithUHFUART RF;
 
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
@@ -96,14 +98,11 @@ public class reading extends AppCompatActivity {
 
                 for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
+                    Log.e("errorm", EPC.getKey());
                     header = EPC.getKey().substring(0,2);
 
                     if(header.equals("30")) {
                         EPCTableValid.put(EPC.getKey(), 1);
-                    }
-
-                    else {
-                        //EPCTableInvalid.put(EPC.getKey(), 1);
                     }
                 }
 
@@ -122,9 +121,9 @@ public class reading extends AppCompatActivity {
                 //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
                 readingInProgress = false;
-                databaseInProgress = true;
-                button.setBackgroundColor(getColor(R.color.Primary));
+                databaseInProgress = false;
                 processingInProgress = false;
+                button.setBackgroundColor(getColor(R.color.Primary));
             }
 
             else if (databaseInProgress) {
@@ -207,7 +206,7 @@ public class reading extends AppCompatActivity {
         circularProgressBar.setProgressDirection(CircularProgressBar.ProgressDirection.TO_RIGHT);
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -236,7 +235,7 @@ public class reading extends AppCompatActivity {
             EPCLastLength = EPCTable.size();
         }
 
-        while(!RF.setEPCTIDMode(false)) {}
+        while(!RF.setEPCMode()) {}
 
         if(RF.getPower() != readingPower) {
 
@@ -249,6 +248,8 @@ public class reading extends AppCompatActivity {
 
         databaseInProgress = false;
         readingInProgress = false;
+        processingInProgress = false;
+
         API.status = false;
         API2.status = false;
 
@@ -313,18 +314,22 @@ public class reading extends AppCompatActivity {
                 if(!readingInProgress) {
 
                     while(!RF.setPower(readingPower)) {}
+                    databaseInProgress = false;
+                    processingInProgress = false;
+                    readingInProgress = true;
+                    button.setBackgroundColor(Color.GRAY);
                     readTask.readEnable = true;
                     timerHandler.post(timerRunnable);
-                    readingInProgress = true;
-                    databaseInProgress = false;
-                    button.setBackgroundColor(Color.GRAY);
                 }
                 else {
+                    timerHandler.removeCallbacks(timerRunnable);
                     readTask.readEnable = false;
                     while(!readTask.finished){}
+                    databaseInProgress = false;
                     readingInProgress = false;
                     processingInProgress = true;
                     status.setText("در حال پردازش ...");
+                    timerHandler.post(timerRunnable);
                 }
             }
 
@@ -365,7 +370,7 @@ public class reading extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     public void sendFile(View view) {
 
-        if(readingInProgress) {
+        if(readingInProgress || processingInProgress) {
             return;
         }
         readingResultActivity.indexNumber = 0;
