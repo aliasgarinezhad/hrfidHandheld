@@ -95,6 +95,11 @@ public class reading extends AppCompatActivity {
             else if(processingInProgress) {
 
                 EPCTableValid.clear();
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 

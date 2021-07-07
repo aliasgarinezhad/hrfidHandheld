@@ -118,7 +118,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if(keyCode == 280 || keyCode == 139) {
+        if(keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             start();
         }

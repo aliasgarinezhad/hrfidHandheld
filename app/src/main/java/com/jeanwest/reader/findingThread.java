@@ -1,10 +1,12 @@
 package com.jeanwest.reader;
 
+import com.rscja.deviceapi.entity.UHFTAGInfo;
+
 public class findingThread extends  Thread {
 
     public volatile boolean readEnable = false;
 
-    String[] tagBuffer = new String[10];
+    UHFTAGInfo tagBuffer = new UHFTAGInfo();
     public volatile boolean finished = false;
     public boolean stop;
 
@@ -14,7 +16,7 @@ public class findingThread extends  Thread {
 
             if(readEnable) {
 
-                readingResultSubSubActivity.RF.startInventoryTag(0,0);
+                readingResultSubSubActivity.RF.startInventoryTag(0, 0, 0);
                 finished = false;
 
                 while(readEnable) {
@@ -23,7 +25,7 @@ public class findingThread extends  Thread {
 
                     if(tagBuffer != null) {
                         if(!readingResultSubSubActivity.isProcessing) {
-                            readingResultSubSubActivity.EPCTableFinding.put(tagBuffer[1].substring(4), 1);
+                            readingResultSubSubActivity.EPCTableFinding.put(tagBuffer.getEPC(), 1);
                         }
                     }
                 }

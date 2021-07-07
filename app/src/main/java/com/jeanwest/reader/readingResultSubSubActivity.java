@@ -18,6 +18,7 @@ import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -28,7 +29,7 @@ import java.util.Map;
 public class readingResultSubSubActivity extends AppCompatActivity {
 
     APIFindingEPC database;
-    public static RFIDWithUHF RF;
+    public static RFIDWithUHFUART RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<>();
     public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     private int findingPower = 30;
@@ -241,7 +242,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                     //powerSeekBar.setProgress(findingPower - 5);
                     while (!RF.setPower(findingPower)) {}
-                    RF.startInventoryTag(0,0);
+                    RF.startInventoryTag(0, 0, 0);
                 }
             }
 
@@ -257,7 +258,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         });
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
