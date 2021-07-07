@@ -95,11 +95,6 @@ public class reading extends AppCompatActivity {
             else if(processingInProgress) {
 
                 EPCTableValid.clear();
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
 
                 for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
@@ -230,7 +225,6 @@ public class reading extends AppCompatActivity {
         EPCTableValid.clear();
 
         EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(userSpecActivity.wareHouseID), ""), HashMap.class);
-        //EPCTableValid = new Gson().fromJson(table.getString("0", ""), HashMap.class);
 
         if(EPCTableValid == null) {
             EPCTableValid = new HashMap<String, Integer>();
@@ -334,7 +328,7 @@ public class reading extends AppCompatActivity {
                     readingInProgress = false;
                     processingInProgress = true;
                     status.setText("در حال پردازش ...");
-                    timerHandler.post(timerRunnable);
+                    timerHandler.postDelayed(timerRunnable, 500);
                 }
             }
 

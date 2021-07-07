@@ -16,6 +16,7 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
     Barcode2D barcode2D;
     String BarcodeID;
-    RFIDWithUHF RF;
+    RFIDWithUHFUART RF;
     APIAddNew DataBase = new APIAddNew();
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     String EPC;
@@ -72,7 +73,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         editOption = findViewById(R.id.checkBox2);
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -90,7 +91,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             while(!RF.setPower(RFPower)) {}
         }
 
-        while(!RF.setEPCTIDMode(true)) {}
+        while(!RF.setEPCAndTIDMode()) {}
 
         DataBase = new APIAddNew();
         DataBase.stop = false;
@@ -223,7 +224,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 } else {
                     start();
                     RFIsScanning = true;
-                    RF.startInventoryTag(0, 0);
+                    RF.startInventoryTag(0, 0, 0);
                     barcodeIsScanning = true;
                 }
 
@@ -247,7 +248,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     @SuppressLint("SetTextI18n")
     public void addNewTag() throws InterruptedException {
 
-        String[][] TIDBuffer = new String[1000][10];
+        String[] TIDBuffer = new String[1000][10];
         int TIDBufferSize = 0;
         String tempStr;
         int LoopVariable;
@@ -268,7 +269,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         if(TIDBufferSize > 980) {
             Thread.sleep(100);
-            RF.startInventoryTag(0, 0);
+            RF.startInventoryTag(0, 0, 0);
             start();
             barcodeIsScanning = true;
             RFIsScanning = true;
