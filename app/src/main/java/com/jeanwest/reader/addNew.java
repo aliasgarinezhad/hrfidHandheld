@@ -1,6 +1,7 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -9,19 +10,21 @@ import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
-import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.rscja.deviceapi.RFIDWithUHF;
+
 import com.rscja.deviceapi.RFIDWithUHFUART;
+import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
+import com.rscja.deviceapi.interfaces.IUHF;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class addNew extends AppCompatActivity implements IBarcodeResult{
+public class addNew extends AppCompatActivity implements IBarcodeResult {
 
     Barcode2D barcode2D;
     String BarcodeID;
@@ -86,12 +89,14 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         super.onResume();
         open();
 
-        if(RF.getPower() != RFPower) {
+        if (RF.getPower() != RFPower) {
 
-            while(!RF.setPower(RFPower)) {}
+            while (!RF.setPower(RFPower)) {
+            }
         }
 
-        while(!RF.setEPCAndTIDMode()) {}
+        while (!RF.setEPCAndTIDMode()) {
+        }
 
         DataBase = new APIAddNew();
         DataBase.stop = false;
@@ -101,12 +106,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         counter = databaseHelper2.getWritableDatabase();
         counterCursor = counter.rawQuery("select * from counterDatabase", null);
 
-        if(counterCursor.getCount() <= 0) {
+        if (counterCursor.getCount() <= 0) {
             warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید");
             warning.show();
             isAddNewOK = false;
-        }
-        else {
+        } else {
             counterCursor.moveToFirst();
             counterValue = counterCursor.getLong(0);
             counterMaxValue = counterCursor.getLong(1);
@@ -149,7 +153,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         DataBase.stop = true;
 
         step2 = false;
-        if(barcodeIsScanning || RFIsScanning) {
+        if (barcodeIsScanning || RFIsScanning) {
             barcodeIsScanning = false;
             RF.stopInventory();
         }
@@ -164,11 +168,10 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             BarcodeID = barcode;
             status.setText("اسکن بارکد با موفقیت انجام شد" + "\nID: " + BarcodeID + "\n");
             status.setBackgroundColor(Color.GREEN);
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-            if(oneStepActive) {
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
+            if (oneStepActive) {
                 addNewTag();
-            }
-            else {
+            } else {
                 step2 = true;
             }
 
@@ -178,24 +181,27 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             RFIsScanning = false;
             status.setText("بارکدی پیدا نشد");
             status.setBackgroundColor(Color.RED);
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP,500);
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
         }
     }
 
     public void start() {
-        if(!isAddNewOK) {
+        if (!isAddNewOK) {
             warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید");
             warning.show();
             return;
         }
         barcode2D.startScan(this);
     }
+
     public void stop() {
         barcode2D.stopScan(this);
     }
+
     public void open() {
-        barcode2D.open(this,this);
+        barcode2D.open(this, this);
     }
+
     public void close() {
         barcode2D.stopScan(this);
         barcode2D.close(this);
@@ -208,7 +214,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
             if (event.getRepeatCount() == 0) {
 
-                if(barcodeIsScanning) {
+                if (barcodeIsScanning) {
                     return true;
                 }
 
@@ -235,7 +241,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             DataBase.stop = true;
 
             step2 = false;
-            if(barcodeIsScanning || RFIsScanning) {
+            if (barcodeIsScanning || RFIsScanning) {
                 barcodeIsScanning = false;
                 RF.stopInventory();
             }
@@ -248,26 +254,29 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
     @SuppressLint("SetTextI18n")
     public void addNewTag() throws InterruptedException {
 
-        String[] TIDBuffer = new String[1000][10];
+        String[][] TIDBuffer = new String[1000][10];
         int TIDBufferSize = 0;
         String tempStr;
         int LoopVariable;
         boolean Collision;
         int tempByte;
         Map<String, Integer> EPCs = new HashMap<>();
-
         boolean isOK = false;
+        UHFTAGInfo temp = new UHFTAGInfo();
 
         for (LoopVariable = 0; LoopVariable < 1000; LoopVariable++) {
-            TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
-            if(TIDBuffer[LoopVariable] == null) {
+
+            temp = RF.readTagFromBuffer();
+            if (temp == null) {
                 break;
             }
+            TIDBuffer[LoopVariable][1] = temp.getEPC();
+            TIDBuffer[LoopVariable][0] = temp.getTid();
         }
 
         TIDBufferSize = LoopVariable;
 
-        if(TIDBufferSize > 980) {
+        if (TIDBufferSize > 980) {
             Thread.sleep(100);
             RF.startInventoryTag(0, 0, 0);
             start();
@@ -282,12 +291,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                 if (edit) {
                     EPCs.put(TIDBuffer[LoopVariable][1], 1);
                     TID = TIDBuffer[LoopVariable][0];
-                    EPC = TIDBuffer[LoopVariable][1].substring(4);
+                    EPC = TIDBuffer[LoopVariable][1];
                 } else {
-                    if (!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
+                    if (!(TIDBuffer[LoopVariable][1].startsWith("30"))) {
                         EPCs.put(TIDBuffer[LoopVariable][1], 1);
                         TID = TIDBuffer[LoopVariable][0];
-                        EPC = TIDBuffer[LoopVariable][1].substring(4);
+                        EPC = TIDBuffer[LoopVariable][1];
                     }
                 }
             }
@@ -306,22 +315,19 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
                     }
                 }
 
-                //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
             } else {
                 status.setText(status.getText() + "اسکن اول با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
                 isOK = true;
             }
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             status.setText(status.getText() + "هیچ تگی یافت نشد");
-            //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
             status.setBackgroundColor(Color.RED);
         }
 
         status.setText(status.getText() + "\n" + "تعداد دفعات اسکن:" + TIDBufferSize + "\n");
 
-        if(!isOK) {
+        if (!isOK) {
 
             TIDBuffer = new String[20][10];
             EPCs.clear();
@@ -329,65 +335,71 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
             Thread.sleep(100);
 
-            RF.startInventoryTag(0, 0);
+            RF.startInventoryTag(0, 0, 0);
 
             Thread.sleep(900);
 
-            for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
-                TIDBuffer[LoopVariable] = RF.readTagFromBuffer();
+            for (LoopVariable = 0; LoopVariable < 15; LoopVariable++) {
+
+                temp = RF.readTagFromBuffer();
+                if (temp == null) {
+                    break;
+                }
+                TIDBuffer[LoopVariable][1] = temp.getEPC();
+                TIDBuffer[LoopVariable][0] = temp.getTid();
             }
 
             RF.stopInventory();
+            TIDBufferSize = LoopVariable;
 
-            try {
-
-                for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
-                    if (edit) {
-                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                        TID = TIDBuffer[LoopVariable][0];
-                        EPC = TIDBuffer[LoopVariable][1].substring(4);
-                    } else {
-                        if (!(TIDBuffer[LoopVariable][1].startsWith("30", 4))) {
-                            EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                            TID = TIDBuffer[LoopVariable][0];
-                            EPC = TIDBuffer[LoopVariable][1].substring(4);
-                        }
-                    }
-                }
-
-                Collision = EPCs.size() != 1;
-
-                if (Collision) {
-
-                    if (edit) {
-                        status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
-                    } else {
-                        if (EPCs.size() == 0) {
-                            status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
-                        } else {
-                            status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
-                        }
-                    }
-
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    status.setBackgroundColor(Color.RED);
-                    return;
-                }
-
-                status.setText(status.getText() + "اسکن دوم با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
-            }
-            catch (NullPointerException e) {
+            if (TIDBufferSize <= 10) {
                 status.setText(status.getText() + "هیچ تگی یافت نشد");
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
                 return;
             }
+
+            for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
+                if (edit) {
+                    EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                    TID = TIDBuffer[LoopVariable][0];
+                    EPC = TIDBuffer[LoopVariable][1];
+                } else {
+                    if (!(TIDBuffer[LoopVariable][1].startsWith("30"))) {
+                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
+                        TID = TIDBuffer[LoopVariable][0];
+                        EPC = TIDBuffer[LoopVariable][1];
+                    }
+                }
+            }
+
+            Collision = EPCs.size() != 1;
+
+            if (Collision) {
+
+                if (edit) {
+                    status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+                } else {
+                    if (EPCs.size() == 0) {
+                        status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                    } else {
+                        status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                    }
+                }
+
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                status.setBackgroundColor(Color.RED);
+                return;
+            }
+
+            status.setText(status.getText() + "اسکن دوم با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
         }
 
         DataBase.Barcode = BarcodeID;
         DataBase.run = true;
 
-        while (DataBase.run) {}
+        while (DataBase.run) {
+        }
 
         if (!DataBase.status) {
 
@@ -397,7 +409,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             return;
         }
 
-        while (!RF.setPower(30)){}
+        while (!RF.setPower(30)) {
+        }
         //EPC values
         Long itemNumber = Long.parseLong(DataBase.Response); // 32 bit
         Long serialNumber = counterValue; // 38 bit
@@ -409,61 +422,61 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         String EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr; // binary string of EPC (96 bit)
 
-        tempByte = Integer.parseInt(EPCStr.substring(0,8), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(0, 8), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC0 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(8,16), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(8, 16), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC1 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(16,24), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(16, 24), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC2 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(24,32), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(24, 32), 2);
+        tempStr = Integer.toString(tempByte, 16);
 
         String EPC3 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(32,40), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(32, 40), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC4 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(40,48), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(40, 48), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC5 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(48,56), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(48, 56), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC6 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(56,64), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(56, 64), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC7 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(64,72), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(64, 72), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC8 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
         tempByte = Integer.parseInt(EPCStr.substring(72, 80));
-        tempStr = Integer.toString(tempByte , 16);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC9 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(80,88), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(80, 88), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC10 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
-        tempByte = Integer.parseInt(EPCStr.substring(88,96), 2);
-        tempStr = Integer.toString(tempByte , 16);
+        tempByte = Integer.parseInt(EPCStr.substring(88, 96), 2);
+        tempStr = Integer.toString(tempByte, 16);
         String EPC11 = String.format("%2s", tempStr).replaceAll(" ", "0");
 
         String New = EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11;
 
         int k;
-        for(k = 0; k < 15; k++) {
+        for (k = 0; k < 15; k++) {
 
-            if(RF.writeData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6, New)) {
+            if (RF.writeData("00000000", IUHF.Bank_TID, 0, 96, TID, IUHF.Bank_EPC, 2, 6, New)) {
                 break;
             }
         }
@@ -472,20 +485,19 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
 
         int o;
 
-        for(o=0; o < 15; o++) {
+        for (o = 0; o < 15; o++) {
 
             try {
-                EPCVerify = RF.readData("00000000", RFIDWithUHF.BankEnum.TID, 0, 96, TID, RFIDWithUHF.BankEnum.UII, 2, 6).toLowerCase();
+                EPCVerify = RF.readData("00000000", IUHF.Bank_TID, 0, 96, TID, IUHF.Bank_EPC, 2, 6).toLowerCase();
                 break;
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
 
             }
         }
         while (!RF.setPower(RFPower)) {
         }
 
-        if(o >= 15) {
+        if (o >= 15) {
             status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
             status.setText(status.getText() + "\n" + "EPCVerify");
             status.setText(status.getText() + "\n" + New);
@@ -495,7 +507,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
             return;
         }
 
-        if(!New.equals(EPCVerify)) {
+        if (!New.equals(EPCVerify)) {
             status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
             status.setText(status.getText() + "\n" + EPCVerify);
             status.setText(status.getText() + "\n" + New);
@@ -522,7 +534,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult{
         numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
         numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
 
-        if(counterValue >= counterMaxValue) {
+        if (counterValue >= counterMaxValue) {
             isAddNewOK = false;
         }
 
