@@ -1,7 +1,6 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -15,12 +14,10 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
 import com.rscja.deviceapi.interfaces.IUHF;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -123,7 +120,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             tagPassword = counterCursor.getString(8);
             oneStepActive = (counterCursor.getInt(9) == 1);
             counterValueModified = counterCursor.getLong(10);
-
         }
         counterCursor.close();
 
@@ -254,15 +250,14 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     @SuppressLint("SetTextI18n")
     public void addNewTag() throws InterruptedException {
 
-        String[][] TIDBuffer = new String[1000][10];
-        int TIDBufferSize = 0;
+        int numberOfScanned;
         String tempStr;
         int LoopVariable;
         boolean Collision;
         int tempByte;
         Map<String, Integer> EPCs = new HashMap<>();
         boolean isOK = false;
-        UHFTAGInfo temp = new UHFTAGInfo();
+        UHFTAGInfo temp;
 
         for (LoopVariable = 0; LoopVariable < 1000; LoopVariable++) {
 
@@ -270,36 +265,31 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             if (temp == null) {
                 break;
             }
-            TIDBuffer[LoopVariable][1] = temp.getEPC();
-            TIDBuffer[LoopVariable][0] = temp.getTid();
+
+            if (edit) {
+                EPCs.put(temp.getEPC(), 1);
+                TID = temp.getTid();
+                EPC = temp.getEPC();
+            } else if (!(temp.getEPC().startsWith("30"))) {
+                EPCs.put(temp.getEPC(), 1);
+                TID = temp.getTid();
+                EPC = temp.getEPC();
+            }
         }
 
-        TIDBufferSize = LoopVariable;
+        numberOfScanned = LoopVariable;
 
-        if (TIDBufferSize > 980) {
+        if (numberOfScanned > 980) {
             Thread.sleep(100);
             RF.startInventoryTag(0, 0, 0);
             start();
             barcodeIsScanning = true;
             RFIsScanning = true;
             return;
-        }
-
-        try {
-
-            for (LoopVariable = 0; LoopVariable < TIDBufferSize; LoopVariable++) {
-                if (edit) {
-                    EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                    TID = TIDBuffer[LoopVariable][0];
-                    EPC = TIDBuffer[LoopVariable][1];
-                } else {
-                    if (!(TIDBuffer[LoopVariable][1].startsWith("30"))) {
-                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                        TID = TIDBuffer[LoopVariable][0];
-                        EPC = TIDBuffer[LoopVariable][1];
-                    }
-                }
-            }
+        } else if (numberOfScanned < 3) {
+            status.setText(status.getText() + "هیچ تگی یافت نشد");
+            status.setBackgroundColor(Color.RED);
+        } else {
 
             Collision = EPCs.size() != 1;
 
@@ -320,16 +310,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                 status.setText(status.getText() + "اسکن اول با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
                 isOK = true;
             }
-        } catch (NullPointerException e) {
-            status.setText(status.getText() + "هیچ تگی یافت نشد");
-            status.setBackgroundColor(Color.RED);
         }
 
-        status.setText(status.getText() + "\n" + "تعداد دفعات اسکن:" + TIDBufferSize + "\n");
+        status.setText(status.getText() + "\n" + "تعداد دفعات اسکن:" + numberOfScanned + "\n");
 
         if (!isOK) {
 
-            TIDBuffer = new String[20][10];
             EPCs.clear();
             status.setText(status.getText() + "\n");
 
@@ -345,32 +331,27 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                 if (temp == null) {
                     break;
                 }
-                TIDBuffer[LoopVariable][1] = temp.getEPC();
-                TIDBuffer[LoopVariable][0] = temp.getTid();
+                if (edit) {
+                    EPCs.put(temp.getEPC(), 1);
+                    TID = temp.getTid();
+                    EPC = temp.getEPC();
+                } else {
+                    if (!(temp.getEPC().startsWith("30"))) {
+                        EPCs.put(temp.getEPC(), 1);
+                        TID = temp.getTid();
+                        EPC = temp.getEPC();
+                    }
+                }
             }
 
             RF.stopInventory();
-            TIDBufferSize = LoopVariable;
+            numberOfScanned = LoopVariable;
 
-            if (TIDBufferSize <= 10) {
+            if (numberOfScanned <= 10) {
                 status.setText(status.getText() + "هیچ تگی یافت نشد");
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                 status.setBackgroundColor(Color.RED);
                 return;
-            }
-
-            for (LoopVariable = 0; LoopVariable < 10; LoopVariable++) {
-                if (edit) {
-                    EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                    TID = TIDBuffer[LoopVariable][0];
-                    EPC = TIDBuffer[LoopVariable][1];
-                } else {
-                    if (!(TIDBuffer[LoopVariable][1].startsWith("30"))) {
-                        EPCs.put(TIDBuffer[LoopVariable][1], 1);
-                        TID = TIDBuffer[LoopVariable][0];
-                        EPC = TIDBuffer[LoopVariable][1];
-                    }
-                }
             }
 
             Collision = EPCs.size() != 1;

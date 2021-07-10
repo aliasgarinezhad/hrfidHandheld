@@ -1,8 +1,11 @@
 
 package com.jeanwest.reader;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -18,14 +21,17 @@ import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,83 +79,73 @@ public class reading extends AppCompatActivity {
         @Override
         public void run() {
 
-            if(readingInProgress) {
+            if (readingInProgress) {
 
-                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if(userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if (userSpecActivity.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
-                }
-                else {
+                } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
                 }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + (EPCTable.size() - EPCLastLength) + '\n');
 
-                if(EPCTable.size() > EPCLastLength) {
+                if (EPCTable.size() > EPCLastLength) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
                     EPCLastLength = EPCTable.size();
                 }
 
                 timerHandler.postDelayed(this, 1000);
-            }
-
-            else if(processingInProgress) {
+            } else if (processingInProgress) {
 
                 EPCTableValid.clear();
 
-                for(Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
+                for (Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
                     Log.e("errorm", EPC.getKey());
-                    header = EPC.getKey().substring(0,2);
+                    header = EPC.getKey().substring(0, 2);
 
-                    if(header.equals("30")) {
+                    if (header.equals("30")) {
                         EPCTableValid.put(EPC.getKey(), 1);
                     }
                 }
 
-                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if(userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if (userSpecActivity.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
-                }
-                else {
+                } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
                 }
 
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
-                circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
-                percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
+                circularProgressBar.setProgress((float) ((EPCTableValid.size() * 100) / allStuffs));
+                percentage.setText(String.valueOf((float) ((EPCTableValid.size() * 100) / allStuffs)) + '%');
                 //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
                 readingInProgress = false;
                 databaseInProgress = false;
                 processingInProgress = false;
                 button.setBackgroundColor(getColor(R.color.Primary));
-            }
+            } else if (databaseInProgress) {
 
-            else if (databaseInProgress) {
-
-                if(!API.status) {
+                if (!API.status) {
                     status.setText("در حال ارسال به سرور ");
                     timerHandler.postDelayed(this, 1000);
-                }
-                else if(!API2.status) {
+                } else if (!API2.status) {
                     status.setText("در حال دریافت اطلاعات از سرور ");
                     timerHandler.postDelayed(this, 1000);
-                }
-                else {
+                } else {
                     startActivity(intent);
                 }
-            }
-            else {
+            } else {
 
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if(userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if (userSpecActivity.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
-                }
-                else {
+                } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
                 }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
@@ -177,11 +173,10 @@ public class reading extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 
-                if(!readingInProgress) {
+                if (!readingInProgress) {
                     readingPower = progress + 5;
                     powerText.setText("اندازه توان(" + readingPower + ")");
-                }
-                else {
+                } else {
                     powerSeekBar.setProgress(readingPower - 5);
                 }
             }
@@ -226,19 +221,20 @@ public class reading extends AppCompatActivity {
 
         EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(userSpecActivity.wareHouseID), ""), HashMap.class);
 
-        if(EPCTableValid == null) {
+        if (EPCTableValid == null) {
             EPCTableValid = new HashMap<String, Integer>();
-        }
-        else {
+        } else {
             EPCTable.putAll(EPCTableValid);
             EPCLastLength = EPCTable.size();
         }
 
-        while(!RF.setEPCMode()) {}
+        while (!RF.setEPCMode()) {
+        }
 
-        if(RF.getPower() != readingPower) {
+        if (RF.getPower() != readingPower) {
 
-            while(!RF.setPower(readingPower)) {}
+            while (!RF.setPower(readingPower)) {
+            }
         }
 
         API = new APIReadingEPC();
@@ -261,14 +257,15 @@ public class reading extends AppCompatActivity {
         readTask.stop = false;
         readTask.start();
 
-        if(fromLogin) {
+        if (fromLogin) {
 
             API2.status = false;
             API2.run = true;
-            while(API2.run){}
+            while (API2.run) {
+            }
 
             allStuffs = 0;
-            for (int i = 0; i<API2.stuffs.length(); i++) {
+            for (int i = 0; i < API2.stuffs.length(); i++) {
 
                 try {
                     temp = API2.stuffs.getString(i);
@@ -285,17 +282,16 @@ public class reading extends AppCompatActivity {
             fromLogin = false;
         }
 
-        status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-        if(userSpecActivity.wareHouseID == 1) {
+        status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+        if (userSpecActivity.wareHouseID == 1) {
             status.setText(status.getText() + "در سطح فروش" + '\n');
-        }
-        else {
+        } else {
             status.setText(status.getText() + "در سطح انبار" + '\n');
         }
         status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
         status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
-        circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
-        percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
+        circularProgressBar.setProgress((float) ((EPCTableValid.size() * 100) / allStuffs));
+        percentage.setText(String.valueOf((float) ((EPCTableValid.size() * 100) / allStuffs)) + '%');
 
         powerText.setText("اندازه توان(" + readingPower + ")");
         powerSeekBar.setProgress(readingPower - 5);
@@ -308,22 +304,23 @@ public class reading extends AppCompatActivity {
 
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
-            if(event.getRepeatCount() == 0) {
+            if (event.getRepeatCount() == 0) {
 
-                if(!readingInProgress) {
+                if (!readingInProgress) {
 
-                    while(!RF.setPower(readingPower)) {}
+                    while (!RF.setPower(readingPower)) {
+                    }
                     databaseInProgress = false;
                     processingInProgress = false;
                     readingInProgress = true;
                     button.setBackgroundColor(Color.GRAY);
                     readTask.readEnable = true;
                     timerHandler.post(timerRunnable);
-                }
-                else {
+                } else {
                     timerHandler.removeCallbacks(timerRunnable);
                     readTask.readEnable = false;
-                    while(!readTask.finished){}
+                    while (!readTask.finished) {
+                    }
                     databaseInProgress = false;
                     readingInProgress = false;
                     processingInProgress = true;
@@ -334,7 +331,7 @@ public class reading extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            if(readingInProgress) {
+            if (readingInProgress) {
                 RF.stopInventory();
                 readingInProgress = false;
             }
@@ -352,7 +349,7 @@ public class reading extends AppCompatActivity {
 
         JSONObject tableJson;
 
-        if(readingInProgress) {
+        if (readingInProgress) {
             RF.stopInventory();
             readingInProgress = false;
         }
@@ -369,7 +366,7 @@ public class reading extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     public void sendFile(View view) {
 
-        if(readingInProgress || processingInProgress) {
+        if (readingInProgress || processingInProgress) {
             return;
         }
         readingResultActivity.indexNumber = 0;
@@ -383,25 +380,48 @@ public class reading extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     public void clearAll(View view) {
-        EPCTable.clear();
-        EPCTableValid.clear();
-        tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), "");
-        tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.departmentInfoID, ID);
-        tableEditor.commit();
-        //EPCTableInvalid.clear();
-        EPCLastLength = 0;
 
-        status.setText( "کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-        if(userSpecActivity.wareHouseID == 1) {
-            status.setText(status.getText() + "در سطح فروش" + '\n');
-        }
-        else {
-            status.setText(status.getText() + "در سطح انبار" + '\n');
-        }
+        AlertDialog alertDialog;
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+        alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود");
+        alertBuilder.setMessage("آیا ادامه می دهید؟");
+        alertBuilder.setPositiveButton("بله", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                EPCTable.clear();
+                EPCTableValid.clear();
+                tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), "");
+                tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.departmentInfoID, ID);
+                tableEditor.commit();
+                EPCLastLength = 0;
 
-        status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
-        status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
-        circularProgressBar.setProgress((float)((EPCTableValid.size() * 100)/allStuffs));
-        percentage.setText(String.valueOf((float)((EPCTableValid.size() * 100)/allStuffs)) + '%');
+                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
+                if (userSpecActivity.wareHouseID == 1) {
+                    status.setText(status.getText() + "در سطح فروش" + '\n');
+                } else {
+                    status.setText(status.getText() + "در سطح انبار" + '\n');
+                }
+
+                status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
+                status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
+                circularProgressBar.setProgress((float) ((EPCTableValid.size() * 100) / allStuffs));
+                percentage.setText(String.valueOf((float) ((EPCTableValid.size() * 100) / allStuffs)) + '%');
+            }
+        });
+        alertBuilder.setNegativeButton("خیر", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+        alertDialog = alertBuilder.create();
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dlg) {
+                alertDialog.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
+            }
+        });
+        alertDialog.show();
+
     }
 }
