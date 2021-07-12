@@ -2,13 +2,12 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
@@ -36,11 +35,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     public static long counterMaxValue = 5;
     public static long counterMinValue = 0;
     public static String tagPassword = "00000000";
-    databaseHelperClass databaseHelper2;
-    SQLiteDatabase counter;
     public static long counterValue = 0;
     long counterValueModified = 0;
-    Cursor counterCursor;
     public static boolean isAddNewOK = true;
     Toast warning;
     TextView status;
@@ -59,7 +55,10 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     boolean edit = false;
     private boolean barcodeIsScanning = false;
     private boolean RFIsScanning = false;
+    SharedPreferences memory;
+    SharedPreferences.Editor memoryEditor;
 
+    @SuppressLint("CommitPrefEdits")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,7 +68,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
         numberOfWritten = findViewById(R.id.numberOfWrittenView);
         numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
-        databaseHelper2 = new databaseHelperClass(this);
         editOption = findViewById(R.id.checkBox2);
 
         try {
@@ -77,6 +75,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
+
+        memory = PreferenceManager.getDefaultSharedPreferences(this);
+        memoryEditor = memory.edit();
     }
 
     @SuppressLint("SetTextI18n")
@@ -99,29 +100,26 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
         DataBase.stop = false;
 
         DataBase.start();
-
-        counter = databaseHelper2.getWritableDatabase();
-        counterCursor = counter.rawQuery("select * from counterDatabase", null);
-
-        if (counterCursor.getCount() <= 0) {
+        
+        if(memory.getLong("value", -1L) == -1L) {
             warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید");
             warning.show();
             isAddNewOK = false;
-        } else {
-            counterCursor.moveToFirst();
-            counterValue = counterCursor.getLong(0);
-            counterMaxValue = counterCursor.getLong(1);
-            counterMinValue = counterCursor.getLong(2);
-            headerNumber = counterCursor.getInt(3);
-            filterNumber = counterCursor.getInt(4);
-            partitionNumber = counterCursor.getInt(5);
-            companyNumber = counterCursor.getInt(6);
-            RFPower = counterCursor.getInt(7);
-            tagPassword = counterCursor.getString(8);
-            oneStepActive = (counterCursor.getInt(9) == 1);
-            counterValueModified = counterCursor.getLong(10);
         }
-        counterCursor.close();
+        else {
+            counterValue = memory.getLong("value", -1L);
+            counterMaxValue = memory.getLong("max", -1L);
+            counterMinValue = memory.getLong("min", -1L);
+            headerNumber = memory.getInt("header", -1);
+            filterNumber = memory.getInt("filter", -1);
+            partitionNumber = memory.getInt("partition", -1);
+            companyNumber = memory.getInt("company", -1);
+            RFPower = memory.getInt("power", -1);
+            tagPassword = memory.getString("password", "");
+            oneStepActive = (memory.getInt("step", -1) == 1);
+            counterValueModified = memory.getLong("counterModified", -1L);
+            isAddNewOK = true;
+        }
 
         String tempStr;
 
@@ -144,7 +142,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     @Override
     protected void onPause() {
         super.onPause();
-        counter.close();
         close();
         DataBase.stop = true;
 
@@ -224,15 +221,18 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                     }
                     step2 = false;
                 } else {
+
                     start();
-                    RFIsScanning = true;
-                    RF.startInventoryTag(0, 0, 0);
-                    barcodeIsScanning = true;
+                    if(isAddNewOK) {
+                        RFIsScanning = true;
+                        RF.startInventoryTag(0, 0, 0);
+                        barcodeIsScanning = true;
+                    }
+
                 }
 
             }
         } else if (keyCode == 4) {
-            counter.close();
             close();
             DataBase.stop = true;
 
@@ -519,10 +519,9 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             isAddNewOK = false;
         }
 
-        ContentValues val = new ContentValues();
-        val.put("value", counterValue);
-        val.put("counterModified", counterValueModified);
-        counter.update("counterDatabase", val, null, null);
+        memoryEditor.putLong("value", counterValue);
+        memoryEditor.putLong("counterModified", counterValueModified);
+        memoryEditor.commit();
 
     }
 
@@ -530,10 +529,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     public void CounterClearButton(View view) {
         counterValueModified = 0;
         numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
-
-        ContentValues val = new ContentValues();
-        val.put("counterModified", counterValueModified);
-        counter.update("counterDatabase", val, null, null);
+        memoryEditor.putLong("counterModified", counterValueModified);
+        memoryEditor.commit();
     }
 
     public void changeOption(View view) {

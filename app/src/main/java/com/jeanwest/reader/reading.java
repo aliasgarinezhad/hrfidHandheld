@@ -102,10 +102,17 @@ public class reading extends AppCompatActivity {
                 for (Map.Entry<String, Integer> EPC : EPCTable.entrySet()) {
 
                     Log.e("errorm", EPC.getKey());
-                    header = EPC.getKey().substring(0, 2);
 
-                    if (header.equals("30")) {
-                        EPCTableValid.put(EPC.getKey(), 1);
+                    if(EPC.getKey().length() > 0) {
+
+                        header = EPC.getKey().substring(0, 2);
+
+                        if (header.equals("30")) {
+                            EPCTableValid.put(EPC.getKey(), 1);
+                        }
+                    }
+                    else {
+                        Log.e("errorx", EPC.getKey());
                     }
                 }
 
