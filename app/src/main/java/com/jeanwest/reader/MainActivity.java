@@ -31,12 +31,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if(Build.MODEL.equals("EXARKXK650")) {
-            //Toast.makeText(this, "4", Toast.LENGTH_LONG).show();
-            while(!RF.setFrequencyMode((byte) 4)) {
+
+            while(!RF.setFrequencyMode((byte) 0x08)) {
                 RF.free();
             }
         } else if(Build.MODEL.equals("c72")) {
-            //Toast.makeText(this, "0x04", Toast.LENGTH_LONG).show();
+
             while(!RF.setFrequencyMode((byte) 0x04)) {
                 RF.free();
             }

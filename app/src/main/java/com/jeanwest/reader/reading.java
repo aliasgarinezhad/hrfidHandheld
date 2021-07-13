@@ -26,6 +26,7 @@ import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.RFIDWithUHFUART;
+import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
 
 import org.json.JSONArray;
@@ -80,6 +81,20 @@ public class reading extends AppCompatActivity {
         public void run() {
 
             if (readingInProgress) {
+
+                /*UHFTAGInfo uhftagInfo;
+
+                while(true) {
+
+                    uhftagInfo = reading.RF.readTagFromBuffer();
+
+                    if(uhftagInfo != null) {
+                        reading.EPCTable.put(uhftagInfo.getEPC(), 1);
+                    }
+                    else {
+                        break;
+                    }
+                }*/
 
                 status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
                 if (userSpecActivity.wareHouseID == 1) {
@@ -157,7 +172,6 @@ public class reading extends AppCompatActivity {
                 }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + '0' + '\n');
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
-                //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
             }
         }
     };

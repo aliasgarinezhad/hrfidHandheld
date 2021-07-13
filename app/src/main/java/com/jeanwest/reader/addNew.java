@@ -11,6 +11,7 @@ import android.preference.PreferenceManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.rscja.deviceapi.RFIDWithUHFUART;
@@ -42,6 +43,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     TextView status;
     TextView numberOfWritten;
     TextView numberOfWrittenModified;
+    TextView powerText;
+    SeekBar powerSet;
     CheckBox editOption;
     public static int filterNumber = 0;  // 3bit
     public static int partitionNumber = 6; // 3bit
@@ -69,6 +72,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
         numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView);
         barcode2D = new Barcode2D(this);
         editOption = findViewById(R.id.checkBox2);
+        powerText = findViewById(R.id.powerIndicatorText);
+        powerSet = findViewById(R.id.poweSeekBar);
 
         try {
             RF = RFIDWithUHFUART.getInstance();
@@ -114,7 +119,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             filterNumber = memory.getInt("filter", -1);
             partitionNumber = memory.getInt("partition", -1);
             companyNumber = memory.getInt("company", -1);
-            RFPower = memory.getInt("power", -1);
             tagPassword = memory.getString("password", "");
             oneStepActive = (memory.getInt("step", -1) == 1);
             counterValueModified = memory.getLong("counterModified", -1L);
@@ -137,6 +141,27 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
         numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
         numberOfWrittenModified.setText(String.valueOf(counterValueModified));
         numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
+
+        powerSet.setProgress(RFPower - 5);
+        powerText.setText("اندازه توان " + RFPower + "dB");
+
+        powerSet.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                RFPower= powerSet.getProgress() + 5;
+                powerText.setText("اندازه توان " + RFPower + "dB");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     @Override
@@ -160,7 +185,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             barcodeIsScanning = false;
             BarcodeID = barcode;
             status.setText("اسکن بارکد با موفقیت انجام شد" + "\nID: " + BarcodeID + "\n");
-            status.setBackgroundColor(Color.GREEN);
+            status.setBackgroundColor(getColor(R.color.DarkGreen));
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
             if (oneStepActive) {
                 addNewTag();
@@ -173,7 +198,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             RF.stopInventory();
             RFIsScanning = false;
             status.setText("بارکدی پیدا نشد");
-            status.setBackgroundColor(Color.RED);
+            status.setBackgroundColor(getColor(R.color.Brown));
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
         }
     }
@@ -225,6 +250,11 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                     start();
                     if(isAddNewOK) {
                         RFIsScanning = true;
+                        if (RF.getPower() != RFPower) {
+
+                            while (!RF.setPower(RFPower)) {
+                            }
+                        }
                         RF.startInventoryTag(0, 0, 0);
                         barcodeIsScanning = true;
                     }
@@ -288,7 +318,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             return;
         } else if (numberOfScanned < 3) {
             status.setText(status.getText() + "هیچ تگی یافت نشد");
-            status.setBackgroundColor(Color.RED);
         } else {
 
             Collision = EPCs.size() != 1;
@@ -305,7 +334,6 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                     }
                 }
 
-                status.setBackgroundColor(Color.RED);
             } else {
                 status.setText(status.getText() + "اسکن اول با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
                 isOK = true;
@@ -350,7 +378,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             if (numberOfScanned <= 10) {
                 status.setText(status.getText() + "هیچ تگی یافت نشد");
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(Color.RED);
+                status.setBackgroundColor(getColor(R.color.Brown));
                 return;
             }
 
@@ -369,7 +397,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
                 }
 
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(Color.RED);
+                status.setBackgroundColor(getColor(R.color.Brown));
                 return;
             }
 
@@ -386,13 +414,13 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
 
             status.setText(status.getText() + "\nخطا در دیتابیس\n" + DataBase.Response + "\n");
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(Color.RED);
+            status.setBackgroundColor(getColor(R.color.Brown));
             return;
         }
 
         while (!RF.setPower(30)) {
         }
-        //EPC values
+
         Long itemNumber = Long.parseLong(DataBase.Response); // 32 bit
         Long serialNumber = counterValue; // 38 bit
 
@@ -484,7 +512,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             status.setText(status.getText() + "\n" + New);
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(Color.RED);
+            status.setBackgroundColor(getColor(R.color.Brown));
             return;
         }
 
@@ -494,12 +522,12 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
             status.setText(status.getText() + "\n" + New);
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(Color.RED);
+            status.setBackgroundColor(getColor(R.color.Brown));
             return;
         }
 
         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
-        status.setBackgroundColor(Color.GREEN);
+        status.setBackgroundColor(getColor(R.color.DarkGreen));
         status.setText(status.getText() + "\nبا موفقیت اضافه شد");
         status.setText(status.getText() + "\nnumber of try in writing: " + k);
         status.setText(status.getText() + "\nnumber of try in confirming: " + o);

@@ -22,11 +22,9 @@ public class addNewSetting extends AppCompatActivity {
     Spinner partitionSpinner;
     EditText headerEditText;
     EditText companyEditText;
-    SeekBar powerSet;
     RadioButton oneStep;
     RadioButton twoStep;
     RadioGroup steps;
-    TextView powerText;
     Toast response;
     TextView serialNumberCounterValue;
     EditText counterMin;
@@ -44,10 +42,8 @@ public class addNewSetting extends AppCompatActivity {
         partitionSpinner = findViewById(R.id.partitionSpinner);
         headerEditText = findViewById(R.id.header);
         companyEditText = findViewById(R.id.company);
-        powerSet = findViewById(R.id.poweSeekBar);
         oneStep = findViewById(R.id.oneStepRadioButton);
         twoStep = findViewById(R.id.twoStepRadioButton);
-        powerText = findViewById(R.id.powerIndicatorText);
         serialNumberCounterValue = findViewById(R.id.serialNumberText);
         counterMin = findViewById(R.id.counterMinText);
         counterMax = findViewById(R.id.counterMaxText);
@@ -70,15 +66,12 @@ public class addNewSetting extends AppCompatActivity {
             addNew.filterNumber = memory.getInt("filter", -1);
             addNew.partitionNumber = memory.getInt("partition", -1);
             addNew.companyNumber = memory.getInt("company", -1);
-            addNew.RFPower = memory.getInt("power", -1);
             addNew.tagPassword = memory.getString("password", "");
             addNew.oneStepActive = (memory.getInt("step", -1) == 1);
         }
 
         headerEditText.setText(String.valueOf(addNew.headerNumber));
         companyEditText.setText(String.valueOf(addNew.companyNumber));
-        powerSet.setProgress(addNew.RFPower - 5);
-        powerText.setText("اندازه توان " + addNew.RFPower + "dB");
         serialNumberCounterValue.setText("مقدار کنونی شماره سریال: " + addNew.counterValue);
         counterMin.setText(String.valueOf(addNew.counterMinValue));
         counterMax.setText(String.valueOf(addNew.counterMaxValue));
@@ -87,25 +80,6 @@ public class addNewSetting extends AppCompatActivity {
         if(addNew.oneStepActive) {
             steps.check(R.id.oneStepRadioButton);
         }
-
-        powerSet.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                addNew.RFPower= powerSet.getProgress() + 5;
-                powerText.setText("اندازه توان " + addNew.RFPower + "dB");
-                saveSetting();
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
 
         String[] items = {"0", "1", "2", "3", "4", "5", "6", "7"};
 
@@ -193,7 +167,6 @@ public class addNewSetting extends AppCompatActivity {
         memoryEditor.putInt("filter", addNew.filterNumber);
         memoryEditor.putInt("partition", addNew.partitionNumber);
         memoryEditor.putInt("company", addNew.companyNumber);
-        memoryEditor.putInt("power", addNew.RFPower);
         memoryEditor.putString("password", addNew.tagPassword);
 
         if(addNew.oneStepActive) {
