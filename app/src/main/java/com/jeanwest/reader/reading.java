@@ -39,13 +39,11 @@ import java.util.Map;
 public class reading extends AppCompatActivity {
 
     public static RFIDWithUHFUART RF;
-
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     public TextView status;
     TextView percentage;
     TextView powerText;
     SeekBar powerSeekBar;
-    readingThread readTask;
     Toast response;
     public static Map<String, Integer> EPCTable = new HashMap<String, Integer>();
     public static Map<String, Integer> EPCTableValid = new HashMap<String, Integer>();
@@ -82,19 +80,19 @@ public class reading extends AppCompatActivity {
 
             if (readingInProgress) {
 
-                /*UHFTAGInfo uhftagInfo;
+                UHFTAGInfo uhftagInfo;
 
                 while(true) {
 
-                    uhftagInfo = reading.RF.readTagFromBuffer();
+                    uhftagInfo = RF.readTagFromBuffer();
 
                     if(uhftagInfo != null) {
-                        reading.EPCTable.put(uhftagInfo.getEPC(), 1);
+                        EPCTable.put(uhftagInfo.getEPC(), 1);
                     }
                     else {
                         break;
                     }
-                }*/
+                }
 
                 status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
                 if (userSpecActivity.wareHouseID == 1) {
@@ -110,6 +108,7 @@ public class reading extends AppCompatActivity {
                 }
 
                 timerHandler.postDelayed(this, 1000);
+
             } else if (processingInProgress) {
 
                 EPCTableValid.clear();
@@ -260,7 +259,7 @@ public class reading extends AppCompatActivity {
 
         API = new APIReadingEPC();
         API2 = new APIReadingConflicts();
-        readTask = new readingThread();
+        //readTask = new readingThread();
 
         databaseInProgress = false;
         readingInProgress = false;
@@ -274,9 +273,6 @@ public class reading extends AppCompatActivity {
 
         API2.stop = false;
         API2.start();
-
-        readTask.stop = false;
-        readTask.start();
 
         if (fromLogin) {
 
@@ -335,13 +331,14 @@ public class reading extends AppCompatActivity {
                     processingInProgress = false;
                     readingInProgress = true;
                     button.setBackgroundColor(Color.GRAY);
-                    readTask.readEnable = true;
+                    //readTask.readEnable = true;
+                    RF.startInventoryTag(0, 0, 0);
+
                     timerHandler.post(timerRunnable);
                 } else {
                     timerHandler.removeCallbacks(timerRunnable);
-                    readTask.readEnable = false;
-                    while (!readTask.finished) {
-                    }
+                    RF.stopInventory();
+
                     databaseInProgress = false;
                     readingInProgress = false;
                     processingInProgress = true;
@@ -358,7 +355,6 @@ public class reading extends AppCompatActivity {
             }
             API.stop = true;
             API2.stop = true;
-            readTask.stop = true;
             finish();
         }
         return true;
@@ -376,7 +372,6 @@ public class reading extends AppCompatActivity {
         }
         API.stop = true;
         API2.stop = true;
-        readTask.stop = true;
 
         tableJson = new JSONObject(EPCTableValid);
         tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), tableJson.toString());

@@ -1,6 +1,7 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -17,12 +18,16 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
 import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.RFIDWithUHFUART;
+import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +43,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     SeekBar powerSeekBar;
     TextView numberOfFoundText;
     TextView stuffSpec;
-    findingThread findTask;
     private long stuffCode;
     WebView picture;
     CheckBox option;
@@ -59,7 +63,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     boolean isChecked = true;
     boolean findingInProgress = false;
     private boolean updateDatabaseInProgress;
-    public static boolean isProcessing = false;
+    boolean readEnable = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
 
@@ -68,11 +72,22 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         @Override
         public void run() {
 
-            if(findingInProgress) {
+            if (findingInProgress) {
 
-                isProcessing = true;
+                UHFTAGInfo uhftagInfo;
 
-                if(EPCTableFinding.size() > 0) {
+                while (true) {
+
+                    uhftagInfo = RF.readTagFromBuffer();
+
+                    if (uhftagInfo != null) {
+                        EPCTableFinding.put(uhftagInfo.getEPC(), 1);
+                    } else {
+                        break;
+                    }
+                }
+
+                if (EPCTableFinding.size() > 0) {
 
                     flag = false;
 
@@ -107,54 +122,45 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                             flag = true;
                         }
                     }
-                    isProcessing = false;
 
                     numberOfFoundText.setText(String.valueOf(EPCTableFindingMatched.size()));
                     status.setText("");
                     status.setText("در حال جست و جو ...");
 
-                    for(Map.Entry<String, Integer> valid : EPCTableFindingMatched.entrySet()) {
+                    for (Map.Entry<String, Integer> valid : EPCTableFindingMatched.entrySet()) {
                         status.setText(status.getText() + "\n" + valid.getKey());
                     }
 
-                    if (!flag) {
-                        //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    } else {
+                    if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                     }
 
                     EPCTableFinding.clear();
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
-                }
-                else {
-                    isProcessing = false;
-                    //numberOfFoundText.setText(String.valueOf(EPCTableFindingMatched.size()));
-                    //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                } else {
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
                 }
             }
 
             if (reading.databaseInProgress) {
 
-                if(!reading.API.status) {
+                if (!reading.API.status) {
                     status.setText("در حال ارسال به سرور ");
                     databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                }
-                else if(!reading.API2.status) {
+                } else if (!reading.API2.status) {
                     status.setText("در حال دریافت اطلاعات از سرور ");
                     databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                }
-                else {
+                } else {
                     try {
 
-                        for(int i = 0; i < reading.API2.stuffs.length(); i++) {
+                        for (int i = 0; i < reading.API2.stuffs.length(); i++) {
                             temp = reading.API2.stuffs.getString(i);
                             subStuffs = reading.API2.conflicts.getJSONArray(temp);
 
                             for (int j = 0; j < subStuffs.length(); j++) {
 
                                 temp2 = subStuffs.getJSONObject(j);
-                                if(temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)){
+                                if (temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)) {
                                     readingResultActivity.index = reading.API2.stuffs.getString(i);
                                     readingResultSubActivity.subIndex = j;
                                     i = reading.API2.stuffs.length() + 10;
@@ -171,11 +177,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     EPCTableFindingMatched.clear();
                     status.setText("");
                     database.stop = true;
-                    findTask.stop = true;
                     reading.API.stop = true;
                     reading.API2.stop = true;
 
-                    while(database.isAlive() || findTask.isAlive() || reading.API.isAlive() || reading.API2.isAlive()){}
+                    while (database.isAlive() || reading.API.isAlive() || reading.API2.isAlive()) {
+                    }
 
                     onResume();
                 }
@@ -201,8 +207,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 
-                if (!findTask.readEnable) {
-                    switch(progress) {
+                if (!readEnable) {
+                    switch (progress) {
                         case 0:
                             findingPower = 5;
                             break;
@@ -222,7 +228,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                 } else {
                     RF.stopInventory();
-                    switch(progress) {
+                    switch (progress) {
                         case 0:
                             findingPower = 5;
                             break;
@@ -240,8 +246,9 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                             break;
                     }
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
-                    //powerSeekBar.setProgress(findingPower - 5);
-                    while (!RF.setPower(findingPower)) {}
+
+                    while (!RF.setPower(findingPower)) {
+                    }
                     RF.startInventoryTag(0, 0, 0);
                 }
             }
@@ -273,9 +280,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         super.onResume();
 
         updateDatabaseInProgress = false;
-        findTask = new findingThread();
-        findTask.stop = false;
-        findTask.start();
 
         while (!RF.setPower(findingPower)) {
         }
@@ -297,8 +301,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                         "تعداد اسکن شده: " + stuff.getString("handheldCount") + "\n" +
                         "تعداد کل: " + stuff.getString("dbCount"));
 
-            }
-            else {
+            } else {
                 stuffSpec.setText(stuff.getString("productName") + "\n" +
                         "کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
                         "بارکد: " + stuff.getString("KBarCode") + "\n" +
@@ -330,7 +333,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         }
 
         reading.databaseInProgress = false;
-        switch(findingPower) {
+        switch (findingPower) {
             case 5:
                 powerSeekBar.setProgress(0);
                 break;
@@ -346,7 +349,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             case 30:
                 powerSeekBar.setProgress(4);
                 break;
-        }        powerText.setText("قدرت سیگنال(" + findingPower + ")");
+        }
+        powerText.setText("قدرت سیگنال(" + findingPower + ")");
 
     }
 
@@ -367,7 +371,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if(updateDatabaseInProgress) {
+        if (updateDatabaseInProgress) {
             return true;
         }
 
@@ -377,32 +381,31 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
                 status.setText("");
 
-                if (!findTask.readEnable) {
+                if (!readEnable) {
 
                     update.setBackgroundColor(Color.GRAY);
 
                     EPCTableFinding.clear();
-                    if(!isChecked) {
+                    if (!isChecked) {
                         EPCTableFindingMatched.clear();
                     }
 
                     while (!RF.setPower(findingPower)) {
                     }
-                    findTask.readEnable = true;
+                    readEnable = true;
+                    RF.startInventoryTag(0, 0, 0);
 
                     status.setText("در حال جست و جو ...");
                     findingInProgress = true;
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
-                }
-                else {
+                } else {
 
                     update.setBackgroundColor(getColor(R.color.Primary));
 
                     databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
-                    findTask.readEnable = false;
-                    while (!findTask.finished) {
-                    }
+                    readEnable = false;
+                    RF.stopInventory();
 
                     findingInProgress = false;
 
@@ -442,13 +445,11 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     numberOfFoundText.setText(String.valueOf(EPCTableFindingMatched.size()));
 
                     status.setText("");
-                    for(Map.Entry<String, Integer> valid : EPCTableFindingMatched.entrySet()) {
+                    for (Map.Entry<String, Integer> valid : EPCTableFindingMatched.entrySet()) {
                         status.setText(status.getText() + "\n" + valid.getKey());
                     }
 
-                    if (!flag) {
-                        //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    } else {
+                    if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                     }
 
@@ -458,16 +459,15 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            if(findTask.readEnable) {
+            if (readEnable) {
                 RF.stopInventory();
-                findTask.readEnable = false;
+                readEnable = false;
             }
 
             findingInProgress = false;
             databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
             database.stop = true;
-            findTask.stop = true;
             reading.API.stop = true;
             reading.API2.stop = true;
             finish();
@@ -478,9 +478,9 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(findTask.readEnable) {
+        if (readEnable) {
             RF.stopInventory();
-            findTask.readEnable = false;
+            readEnable = false;
         }
         reading.API.stop = true;
         reading.API2.stop = true;
@@ -497,7 +497,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     public void updateDatabase(View view) {
 
-        if(findingInProgress) {
+        if (findingInProgress) {
             return;
         }
 
