@@ -18,32 +18,28 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
-
-import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public class readingResultSubSubActivity extends AppCompatActivity {
 
     APIFindingEPC database;
-    public static RFIDWithUHFUART RF;
+    public RFIDWithUHFUART RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<>();
     public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-    private int findingPower = 30;
+    int findingPower = 30;
     TextView status;
     TextView powerText;
     SeekBar powerSeekBar;
     TextView numberOfFoundText;
     TextView stuffSpec;
-    private long stuffCode;
+    long stuffCode;
     WebView picture;
     CheckBox option;
 
@@ -62,7 +58,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
     boolean isChecked = true;
     boolean findingInProgress = false;
-    private boolean updateDatabaseInProgress;
+    boolean updateDatabaseInProgress;
     boolean readEnable = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
