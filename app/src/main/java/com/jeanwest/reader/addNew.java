@@ -26,7 +26,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     Barcode2D barcode2D;
     String BarcodeID;
     RFIDWithUHFUART RF;
-    APIAddNew DataBase = new APIAddNew();
+    APIAddNew DataBase;
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     String EPC;
     String TID;
@@ -38,7 +38,7 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     public static String tagPassword = "00000000";
     public static long counterValue = 0;
     long counterValueModified = 0;
-    public static boolean isAddNewOK = true;
+    boolean isAddNewOK = true;
     Toast warning;
     TextView status;
     TextView numberOfWritten;
@@ -56,8 +56,8 @@ public class addNew extends AppCompatActivity implements IBarcodeResult {
     String companynumberStr;
     String CONumber;
     boolean edit = false;
-    private boolean barcodeIsScanning = false;
-    private boolean RFIsScanning = false;
+    boolean barcodeIsScanning = false;
+    boolean RFIsScanning = false;
     SharedPreferences memory;
     SharedPreferences.Editor memoryEditor;
 

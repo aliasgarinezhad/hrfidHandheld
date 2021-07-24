@@ -31,7 +31,6 @@ public class APIAddNew extends Thread {
                 try {
 
                     String getCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
-                    //getCommand = URLEncoder.encode(getCommand, "UTF-8");
                     getCommand = getCommand.replace(" ", "%20");
                     URL server = new URL(getCommand);
                     HttpURLConnection connection = (HttpURLConnection) server.openConnection();
