@@ -90,12 +90,19 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 
             listString.clear();
+            pictureURLList.clear();
+
+            try {
+                K_Bar_Code.setText(API.similar.getJSONObject(1).getString("K_Bar_Code"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
             for(int i=0; i< API.similar.length(); i++) {
                 try {
                     json = API.similar.getJSONObject(i);
 
-                    listString.add(json.getString("KBarCode"));
+                    listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
                     pictureURLList.add(json.getString("ImgUrl"));
 
                 } catch (JSONException e) {
@@ -103,7 +110,6 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
                 }
             }
 
-            //ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
             MyListAdapterFind findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
 
             list.setAdapter(findingListAdapter);
@@ -145,6 +151,8 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     public void receive(View view) {
 
         JSONObject json;
+        MyListAdapterFind findingListAdapter;
+
         API.barcode = "K_Bar_Code=" + K_Bar_Code.getEditableText().toString();
         API.run = true;
         while (API.run) {}
@@ -157,13 +165,48 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
 
         InputMethodManager imm =(InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+
+        if(API.similar.length() > 0) {
+
+            listString.clear();
+            pictureURLList.clear();
+
+            for(int i=0; i< API.similar.length(); i++) {
+
+                try {
+                    json = API.similar.getJSONObject(i);
+                    listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
+                    pictureURLList.add(json.getString("ImgUrl"));
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
+
+            list.setAdapter(findingListAdapter);
+            return;
+        }
+
+        API.barcode = "kbarcode=" + K_Bar_Code.getEditableText().toString();
+        API.run = true;
+        while (API.run) {}
+
+        if(!API.status) {
+            result.setText(API.response);
+            result.show();
+            return;
+        }
+
         listString.clear();
+        pictureURLList.clear();
 
         for(int i=0; i< API.similar.length(); i++) {
 
             try {
                 json = API.similar.getJSONObject(i);
-                listString.add(json.getString("KBarCode"));
+                listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
                 pictureURLList.add(json.getString("ImgUrl"));
 
             } catch (JSONException e) {
@@ -171,8 +214,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
             }
         }
 
-        //ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
-        MyListAdapterFind findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
+        findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
 
         list.setAdapter(findingListAdapter);
     }

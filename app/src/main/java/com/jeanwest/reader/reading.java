@@ -3,7 +3,6 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -24,7 +23,6 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
-import com.rscja.deviceapi.RFIDWithUHF;
 import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
@@ -102,6 +100,18 @@ public class reading extends AppCompatActivity {
                 }
                 status.setText(status.getText() + "سرعت اسکن (تگ بر ثانیه): " + (EPCTable.size() - EPCLastLength) + '\n');
 
+                if (EPCTable.size() > EPCLastLength + 100) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700);
+                    EPCLastLength = EPCTable.size();
+                }
+                if (EPCTable.size() > EPCLastLength + 30) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+                    EPCLastLength = EPCTable.size();
+                }
+                if (EPCTable.size() > EPCLastLength + 10) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300);
+                    EPCLastLength = EPCTable.size();
+                }
                 if (EPCTable.size() > EPCLastLength) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
                     EPCLastLength = EPCTable.size();
