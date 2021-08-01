@@ -26,7 +26,6 @@ public class MyListAdapterSub extends ArrayAdapter<String> {
 
     public MyListAdapterSub(Activity context, ArrayList<String> title, ArrayList<String> spec, ArrayList<String> scanned, ArrayList<String> all, ArrayList<String> notScanned, ArrayList<String> pictureURL) {
         super(context, R.layout.list, title);
-        // TODO Auto-generated constructor stub
 
         this.context=context;
         this.title = title;

@@ -21,7 +21,6 @@ public class MyListAdapterFind extends ArrayAdapter<String> {
 
     public MyListAdapterFind(Activity context, ArrayList<String> title, ArrayList<String> pictureURL) {
         super(context, R.layout.list, title);
-        // TODO Auto-generated constructor stub
 
         this.context=context;
         this.title = title;
