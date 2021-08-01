@@ -13,7 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.ArrayList;
 
-public class readingResultActivity extends AppCompatActivity {
+public class ReadingResultActivity extends AppCompatActivity {
 
     ListView result;
     ArrayList<String> titles = new ArrayList<>();
