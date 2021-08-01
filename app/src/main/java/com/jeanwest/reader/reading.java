@@ -1,4 +1,3 @@
-
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AlertDialog;
@@ -16,6 +15,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -151,7 +151,6 @@ public class reading extends AppCompatActivity {
                 status.setText(status.getText() + "تعداد کالا های پیدا شده: " + EPCTableValid.size() + '/' + allStuffs + '\n');
                 circularProgressBar.setProgress((float) ((EPCTableValid.size() * 100) / allStuffs));
                 percentage.setText(String.valueOf((float) ((EPCTableValid.size() * 100) / allStuffs)) + '%');
-                //status.setText(status.getText() + "تعداد تگ های خام: " + EPCTableInvalid.size() + "\n");
 
                 readingInProgress = false;
                 databaseInProgress = false;
@@ -193,7 +192,7 @@ public class reading extends AppCompatActivity {
         status = findViewById(R.id.section_label);
         response = Toast.makeText(this, "", Toast.LENGTH_LONG);
         button = findViewById(R.id.buttonReading);
-        intent = new Intent(this, readingResultActivity.class);
+        intent = new Intent(this,ReadingResultActivity.class);
         circularProgressBar = findViewById(R.id.circularProgressBar);
         percentage = findViewById(R.id.progressText);
         powerText = findViewById(R.id.readingPowerTextView);
@@ -269,7 +268,6 @@ public class reading extends AppCompatActivity {
 
         API = new APIReadingEPC();
         API2 = new APIReadingConflicts();
-        //readTask = new readingThread();
 
         databaseInProgress = false;
         readingInProgress = false;
@@ -341,13 +339,20 @@ public class reading extends AppCompatActivity {
                     processingInProgress = false;
                     readingInProgress = true;
                     button.setBackgroundColor(Color.GRAY);
-                    //readTask.readEnable = true;
                     RF.startInventoryTag(0, 0, 0);
+
+                    WindowManager.LayoutParams params = getWindow().getAttributes();
+                    params.screenBrightness = 0;
+                    getWindow().setAttributes(params);
 
                     timerHandler.post(timerRunnable);
                 } else {
                     timerHandler.removeCallbacks(timerRunnable);
                     RF.stopInventory();
+
+                    WindowManager.LayoutParams params = getWindow().getAttributes();
+                    params.screenBrightness = -10;
+                    getWindow().setAttributes(params);
 
                     databaseInProgress = false;
                     readingInProgress = false;
@@ -395,7 +400,7 @@ public class reading extends AppCompatActivity {
         if (readingInProgress || processingInProgress) {
             return;
         }
-        readingResultActivity.indexNumber = 0;
+        ReadingResultActivity.indexNumber = 0;
         API.status = false;
         API2.status = false;
         API.run = true;

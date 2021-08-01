@@ -7,7 +7,7 @@
     android:layout_gravity="right"
     android:background="@color/pagesBackground"
     android:foregroundGravity="right"
-    tools:context=".readingResultActivity">
+    tools:context=".ReadingResultActivity">
 
     <ListView
         android:id="@+id/readingResult"
