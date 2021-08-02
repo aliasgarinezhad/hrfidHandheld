@@ -38,7 +38,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             startActivity(nextActivityIntent)
         }
 
-        API = APIFindingSimilar()
+        API = FindingProductAPI()
         API.start()
     }
 
@@ -193,7 +193,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
     companion object {
 
-        lateinit var API: APIFindingSimilar
+        lateinit var API: FindingProductAPI
         var index = 0
     }
 }

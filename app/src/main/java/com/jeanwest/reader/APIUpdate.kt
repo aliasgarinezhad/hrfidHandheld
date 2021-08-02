@@ -34,7 +34,7 @@ class APIUpdate : Thread() {
             } else {
                 response =
                     connection.responseCode.toString() + " error: " + connection.responseMessage
-                reading.databaseInProgress = false
+                WarehouseScanning.databaseInProgress = false
             }
             connection.disconnect()
             sleep(1000)

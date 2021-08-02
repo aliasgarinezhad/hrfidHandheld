@@ -47,23 +47,23 @@ class SettingActivity : AppCompatActivity() {
             response.setText("دیتای برنامه پاک شده است. جهت استفاده از دستگاه، پارامتر های این صفحه را تنظیم کنید")
             response.show()
         } else {
-            addNew.counterValue = memory.getLong("value", -1L)
-            addNew.counterMaxValue = memory.getLong("max", -1L)
-            addNew.counterMinValue = memory.getLong("min", -1L)
-            addNew.headerNumber = memory.getInt("header", -1)
-            addNew.filterNumber = memory.getInt("filter", -1)
-            addNew.partitionNumber = memory.getInt("partition", -1)
-            addNew.companyNumber = memory.getInt("company", -1)
-            addNew.tagPassword = memory.getString("password", "")
-            addNew.oneStepActive = memory.getInt("step", -1) == 1
+            AddProductActivity.counterValue = memory.getLong("value", -1L)
+            AddProductActivity.counterMaxValue = memory.getLong("max", -1L)
+            AddProductActivity.counterMinValue = memory.getLong("min", -1L)
+            AddProductActivity.headerNumber = memory.getInt("header", -1)
+            AddProductActivity.filterNumber = memory.getInt("filter", -1)
+            AddProductActivity.partitionNumber = memory.getInt("partition", -1)
+            AddProductActivity.companyNumber = memory.getInt("company", -1)
+            AddProductActivity.tagPassword = memory.getString("password", "")
+            AddProductActivity.oneStepActive = memory.getInt("step", -1) == 1
         }
-        headerEditText.setText(addNew.headerNumber.toString())
-        companyEditText.setText(addNew.companyNumber.toString())
-        serialNumberCounterValue.text = "مقدار کنونی شماره سریال: " + addNew.counterValue
-        counterMin.setText(addNew.counterMinValue.toString())
-        counterMax.setText(addNew.counterMaxValue.toString())
-        passwordText.setText(addNew.tagPassword)
-        if (addNew.oneStepActive) {
+        headerEditText.setText(AddProductActivity.headerNumber.toString())
+        companyEditText.setText(AddProductActivity.companyNumber.toString())
+        serialNumberCounterValue.text = "مقدار کنونی شماره سریال: " + AddProductActivity.counterValue
+        counterMin.setText(AddProductActivity.counterMinValue.toString())
+        counterMax.setText(AddProductActivity.counterMaxValue.toString())
+        passwordText.setText(AddProductActivity.tagPassword)
+        if (AddProductActivity.oneStepActive) {
             steps.check(R.id.oneStepRadioButton)
         }
         val items = arrayOf("0", "1", "2", "3", "4", "5", "6", "7")
@@ -76,13 +76,13 @@ class SettingActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                addNew.filterNumber = 0
+                AddProductActivity.filterNumber = 0
                 saveSetting()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-        filterSpinner.setSelection(addNew.filterNumber)
+        filterSpinner.setSelection(AddProductActivity.filterNumber)
         val items2 = arrayOf("0", "1", "2", "3", "4", "5", "6", "7")
         val partitionSpinnerAdaptor =
             ArrayAdapter(this, android.R.layout.simple_spinner_item, items2)
@@ -94,59 +94,59 @@ class SettingActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                addNew.partitionNumber = position
+                AddProductActivity.partitionNumber = position
                 saveSetting()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-        partitionSpinner.setSelection(addNew.partitionNumber)
+        partitionSpinner.setSelection(AddProductActivity.partitionNumber)
     }
 
     fun headerSet(view: View?) {
-        addNew.headerNumber = headerEditText.editableText.toString().toInt()
+        AddProductActivity.headerNumber = headerEditText.editableText.toString().toInt()
         saveSetting()
     }
 
     fun companySet(view: View?) {
-        addNew.companyNumber = companyEditText.editableText.toString().toInt()
+        AddProductActivity.companyNumber = companyEditText.editableText.toString().toInt()
         saveSetting()
     }
 
     fun stepOptionChange(view: View?) {
-        addNew.oneStepActive = oneStep.isChecked
+        AddProductActivity.oneStepActive = oneStep.isChecked
         saveSetting()
     }
 
     fun stepOptionChange2(view: View?) {
-        addNew.oneStepActive = oneStep.isChecked
+        AddProductActivity.oneStepActive = oneStep.isChecked
         saveSetting()
     }
 
     @SuppressLint("SetTextI18n")
     fun serialNumberRangeButton(view: View?) {
-        addNew.counterValue = counterMin.editableText.toString().toLong()
-        addNew.counterMinValue = counterMin.editableText.toString().toLong()
-        addNew.counterMaxValue = counterMax.editableText.toString().toLong()
-        serialNumberCounterValue.text = "مقدار کنونی شماره سریال: " + addNew.counterValue
+        AddProductActivity.counterValue = counterMin.editableText.toString().toLong()
+        AddProductActivity.counterMinValue = counterMin.editableText.toString().toLong()
+        AddProductActivity.counterMaxValue = counterMax.editableText.toString().toLong()
+        serialNumberCounterValue.text = "مقدار کنونی شماره سریال: " + AddProductActivity.counterValue
         saveSetting()
     }
 
     fun setPassword(view: View?) {
-        addNew.tagPassword = passwordText.editableText.toString()
+        AddProductActivity.tagPassword = passwordText.editableText.toString()
         saveSetting()
     }
 
     fun saveSetting() {
-        memoryEditor.putLong("value", addNew.counterValue)
-        memoryEditor.putLong("max", addNew.counterMaxValue)
-        memoryEditor.putLong("min", addNew.counterMinValue)
-        memoryEditor.putInt("header", addNew.headerNumber)
-        memoryEditor.putInt("filter", addNew.filterNumber)
-        memoryEditor.putInt("partition", addNew.partitionNumber)
-        memoryEditor.putInt("company", addNew.companyNumber)
-        memoryEditor.putString("password", addNew.tagPassword)
-        if (addNew.oneStepActive) {
+        memoryEditor.putLong("value", AddProductActivity.counterValue)
+        memoryEditor.putLong("max", AddProductActivity.counterMaxValue)
+        memoryEditor.putLong("min", AddProductActivity.counterMinValue)
+        memoryEditor.putInt("header", AddProductActivity.headerNumber)
+        memoryEditor.putInt("filter", AddProductActivity.filterNumber)
+        memoryEditor.putInt("partition", AddProductActivity.partitionNumber)
+        memoryEditor.putInt("company", AddProductActivity.companyNumber)
+        memoryEditor.putString("password", AddProductActivity.tagPassword)
+        if (AddProductActivity.oneStepActive) {
             memoryEditor.putInt("step", 1)
         } else {
             memoryEditor.putInt("step", 0)

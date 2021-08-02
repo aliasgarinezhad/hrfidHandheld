@@ -24,7 +24,7 @@ public class APIReadingEPC extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs/v2";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanning.ID + "/epcs/v2";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
                     Connection.setDoOutput(true);
@@ -36,7 +36,7 @@ public class APIReadingEPC extends Thread {
                     OutputStreamWriter out = new OutputStreamWriter(Connection.getOutputStream());
                     ArrayList<String> temp = new ArrayList<>();
 
-                    for(Map.Entry<String, Integer> valid: reading.EPCTableValid.entrySet()) {
+                    for(Map.Entry<String, Integer> valid: WarehouseScanning.EPCTableValid.entrySet()) {
                         temp.add('"' + valid.getKey() + '"');
                     }
 
@@ -55,7 +55,7 @@ public class APIReadingEPC extends Thread {
 
                     else {
                         Response = Connection.getResponseCode() + " error: " + Connection.getResponseMessage();
-                        reading.databaseInProgress = false;
+                        WarehouseScanning.databaseInProgress = false;
                     }
 
                 } catch (IOException e) {
@@ -63,7 +63,7 @@ public class APIReadingEPC extends Thread {
                 }
                 run = false;
                 if(status) {
-                    reading.API2.run = true;
+                    WarehouseScanning.API2.run = true;
                 }
             }
         }

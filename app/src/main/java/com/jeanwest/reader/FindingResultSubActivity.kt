@@ -193,7 +193,7 @@ class FindingResultSubActivity : AppCompatActivity() {
         setting.useWideViewPort = true
         setting.loadWithOverviewMode = true
         picture.isFocusable = false
-        reading.databaseInProgress = false
+        WarehouseScanning.databaseInProgress = false
         when (findingPower) {
             5 -> powerSeekBar.progress = 0
             10 -> powerSeekBar.progress = 1

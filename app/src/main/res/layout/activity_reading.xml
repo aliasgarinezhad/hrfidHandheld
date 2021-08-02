@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".reading">
+    tools:context=".WarehouseScanning">
 
     <TextView
         android:id="@+id/section_label"

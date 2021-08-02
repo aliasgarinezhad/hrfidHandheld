@@ -1,567 +1,559 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader
 
-import androidx.appcompat.app.AppCompatActivity;
-import android.annotation.SuppressLint;
-import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.media.AudioManager;
-import android.media.ToneGenerator;
-import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.view.KeyEvent;
-import android.view.View;
-import android.widget.CheckBox;
-import android.widget.SeekBar;
-import android.widget.TextView;
-import android.widget.Toast;
-import com.rscja.deviceapi.RFIDWithUHFUART;
-import com.rscja.deviceapi.entity.UHFTAGInfo;
-import com.rscja.deviceapi.exception.ConfigurationException;
-import com.rscja.deviceapi.interfaces.IUHF;
-import java.util.HashMap;
-import java.util.Map;
+import android.annotation.SuppressLint
+import android.content.SharedPreferences
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Bundle
+import android.preference.PreferenceManager
+import android.view.KeyEvent
+import android.view.View
+import android.widget.CheckBox
+import android.widget.SeekBar
+import android.widget.SeekBar.OnSeekBarChangeListener
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.rscja.deviceapi.RFIDWithUHFUART
+import com.rscja.deviceapi.entity.UHFTAGInfo
+import com.rscja.deviceapi.exception.ConfigurationException
+import com.rscja.deviceapi.interfaces.IUHF
+import java.util.*
 
-public class addNew extends AppCompatActivity implements IBarcodeResult {
-
-    Barcode2D barcode2D;
-    String BarcodeID;
-    RFIDWithUHFUART RF;
-    APIAddNew DataBase;
-    ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-    String EPC;
-    String TID;
-    public static boolean step2 = false;
-    public static int RFPower = 5;
-    public static boolean oneStepActive = false;
-    public static long counterMaxValue = 5;
-    public static long counterMinValue = 0;
-    public static String tagPassword = "00000000";
-    public static long counterValue = 0;
-    long counterValueModified = 0;
-    boolean isAddNewOK = true;
-    Toast warning;
-    TextView status;
-    TextView numberOfWritten;
-    TextView numberOfWrittenModified;
-    TextView powerText;
-    SeekBar powerSet;
-    CheckBox editOption;
-    public static int filterNumber = 0;  // 3bit
-    public static int partitionNumber = 6; // 3bit
-    public static int headerNumber = 48; // 8bit
-    public static int companyNumber = 101; // 12bit
-    String headerStr;
-    String filterStr;
-    String positionStr;
-    String companynumberStr;
-    String CONumber;
-    boolean edit = false;
-    boolean barcodeIsScanning = false;
-    boolean RFIsScanning = false;
-    SharedPreferences memory;
-    SharedPreferences.Editor memoryEditor;
+class AddProductActivity : AppCompatActivity(), IBarcodeResult {
+    
+    private lateinit var barcode2D: Barcode2D
+    private lateinit var barcodeID: String
+    private lateinit var rf: RFIDWithUHFUART
+    private lateinit var api: AddProductAPI
+    private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+    private lateinit var epc: String
+    private lateinit var tid: String
+    private var counterValueModified: Long = 0
+    private var isAddNewOK = true
+    private lateinit var warning: Toast
+    lateinit var status: TextView
+    private lateinit var numberOfWritten: TextView
+    private lateinit var numberOfWrittenModified: TextView
+    private lateinit var powerText: TextView
+    private lateinit var powerSet: SeekBar
+    private lateinit var editOption: CheckBox
+    private lateinit var headerStr: String
+    private lateinit var filterStr: String
+    private lateinit var positionStr: String
+    private lateinit var companynumberStr: String
+    private var edit = false
+    private var barcodeIsScanning = false
+    private var rfIsScanning = false
+    private lateinit var memory: SharedPreferences
+    private lateinit var memoryEditor: SharedPreferences.Editor
 
     @SuppressLint("CommitPrefEdits")
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_new);
-        status = findViewById(R.id.section_label);
-        warning = Toast.makeText(this, "", Toast.LENGTH_LONG);
-        numberOfWritten = findViewById(R.id.numberOfWrittenView);
-        numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView);
-        barcode2D = new Barcode2D(this);
-        editOption = findViewById(R.id.checkBox2);
-        powerText = findViewById(R.id.powerIndicatorText);
-        powerSet = findViewById(R.id.poweSeekBar);
+    override fun onCreate(savedInstanceState: Bundle?) {
 
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_add_new)
+        status = findViewById(R.id.section_label)
+        warning = Toast.makeText(this, "", Toast.LENGTH_LONG)
+        numberOfWritten = findViewById(R.id.numberOfWrittenView)
+        numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView)
+        barcode2D = Barcode2D(this)
+        editOption = findViewById(R.id.checkBox2)
+        powerText = findViewById(R.id.powerIndicatorText)
+        powerSet = findViewById(R.id.poweSeekBar)
         try {
-            RF = RFIDWithUHFUART.getInstance();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
         }
-
-        memory = PreferenceManager.getDefaultSharedPreferences(this);
-        memoryEditor = memory.edit();
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+        memoryEditor = memory.edit()
     }
 
     @SuppressLint("SetTextI18n")
-    @Override
-    protected void onResume() {
+    override fun onResume() {
 
-        super.onResume();
-        open();
-
-        if (RF.getPower() != RFPower) {
-
-            while (!RF.setPower(RFPower)) {
+        super.onResume()
+        open()
+        if (rf.power != RFPower) {
+            while (!rf.setPower(RFPower)) {
             }
         }
-
-        while (!RF.setEPCAndTIDMode()) {
+        while (!rf.setEPCAndTIDMode()) {
         }
+        api = AddProductAPI()
+        api.stop = false
+        api.start()
 
-        DataBase = new APIAddNew();
-        DataBase.stop = false;
-
-        DataBase.start();
-        
-        if(memory.getLong("value", -1L) == -1L) {
-            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید");
-            warning.show();
-            isAddNewOK = false;
-        }
-        else {
-            counterValue = memory.getLong("value", -1L);
-            counterMaxValue = memory.getLong("max", -1L);
-            counterMinValue = memory.getLong("min", -1L);
-            headerNumber = memory.getInt("header", -1);
-            filterNumber = memory.getInt("filter", -1);
-            partitionNumber = memory.getInt("partition", -1);
-            companyNumber = memory.getInt("company", -1);
-            tagPassword = memory.getString("password", "");
-            oneStepActive = (memory.getInt("step", -1) == 1);
-            counterValueModified = memory.getLong("counterModified", -1L);
-            isAddNewOK = true;
-        }
-
-        String tempStr;
-
-        tempStr = Long.toBinaryString(headerNumber);
-        headerStr = String.format("%8s", tempStr).replaceAll(" ", "0");
-        tempStr = Long.toBinaryString(filterNumber);
-        filterStr = String.format("%3s", tempStr).replaceAll(" ", "0");
-        tempStr = Long.toBinaryString(partitionNumber);
-        positionStr = String.format("%3s", tempStr).replaceAll(" ", "0");
-        tempStr = Long.toBinaryString(companyNumber);
-        companynumberStr = String.format("%12s", tempStr).replaceAll(" ", "0");
-        String temp = Integer.toHexString(headerNumber);
-        CONumber = String.format("%2s", temp).replaceAll(" ", "0");
-
-        numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
-        numberOfWrittenModified.setText(String.valueOf(counterValueModified));
-        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
-
-        powerSet.setProgress(RFPower - 5);
-        powerText.setText("اندازه توان " + RFPower + "dB");
-
-        powerSet.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                RFPower= powerSet.getProgress() + 5;
-                powerText.setText("اندازه توان " + RFPower + "dB");
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        close();
-        DataBase.stop = true;
-
-        step2 = false;
-        if (barcodeIsScanning || RFIsScanning) {
-            barcodeIsScanning = false;
-            RF.stopInventory();
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    @Override
-    public void getBarcode(String barcode) throws InterruptedException {
-
-        if (barcode.length() > 2) {
-            barcodeIsScanning = false;
-            BarcodeID = barcode;
-            status.setText("اسکن بارکد با موفقیت انجام شد" + "\nID: " + BarcodeID + "\n");
-            status.setBackgroundColor(getColor(R.color.DarkGreen));
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
-            if (oneStepActive) {
-                addNewTag();
-            } else {
-                step2 = true;
-            }
-
+        if (memory.getLong("value", -1L) == -1L) {
+            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید")
+            warning.show()
+            isAddNewOK = false
         } else {
-            barcodeIsScanning = false;
-            RF.stopInventory();
-            RFIsScanning = false;
-            status.setText("بارکدی پیدا نشد");
-            status.setBackgroundColor(getColor(R.color.Brown));
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
+            counterValue = memory.getLong("value", -1L)
+            counterMaxValue = memory.getLong("max", -1L)
+            counterMinValue = memory.getLong("min", -1L)
+            headerNumber = memory.getInt("header", -1)
+            filterNumber = memory.getInt("filter", -1)
+            partitionNumber = memory.getInt("partition", -1)
+            companyNumber = memory.getInt("company", -1)
+            tagPassword = memory.getString("password", "")
+            oneStepActive = memory.getInt("step", -1) == 1
+            counterValueModified = memory.getLong("counterModified", -1L)
+            isAddNewOK = true
+        }
+
+        var tempStr: String = java.lang.Long.toBinaryString(headerNumber.toLong())
+        headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(filterNumber.toLong())
+        filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(partitionNumber.toLong())
+        positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(companyNumber.toLong())
+        companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
+        numberOfWritten.text = "تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue)
+        numberOfWrittenModified.text = counterValueModified.toString()
+        numberOfWrittenModified.text = "مقدار شمارنده: $counterValueModified"
+
+        powerSet.progress = RFPower - 5
+        powerText.text = "اندازه توان " + RFPower + "dB"
+        powerSet.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                RFPower = powerSet.progress + 5
+                powerText.text = "اندازه توان " + RFPower + "dB"
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
+    }
+
+    override fun onPause() {
+        super.onPause()
+        close()
+        api.stop = true
+        step2 = false
+        if (barcodeIsScanning || rfIsScanning) {
+            barcodeIsScanning = false
+            rf.stopInventory()
         }
     }
 
-    public void start() {
+    @SuppressLint("SetTextI18n")
+    @Throws(InterruptedException::class)
+    override fun getBarcode(barcode: String) {
+
+        if (barcode.length > 2) {
+            barcodeIsScanning = false
+            barcodeID = barcode
+            status.text = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID\n"
+            status.setBackgroundColor(getColor(R.color.DarkGreen))
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            if (oneStepActive) {
+                addNewTag()
+            } else {
+                step2 = true
+            }
+        } else {
+            barcodeIsScanning = false
+            rf.stopInventory()
+            rfIsScanning = false
+            status.text = "بارکدی پیدا نشد"
+            status.setBackgroundColor(getColor(R.color.Brown))
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+        }
+    }
+
+    fun start() {
         if (!isAddNewOK) {
-            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید");
-            warning.show();
-            return;
+            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید")
+            warning.show()
+            return
         }
-        barcode2D.startScan(this);
+        barcode2D.startScan(this)
     }
 
-    public void stop() {
-        barcode2D.stopScan(this);
+    fun stop() {
+        barcode2D.stopScan(this)
     }
 
-    public void open() {
-        barcode2D.open(this, this);
+    fun open() {
+        barcode2D.open(this, this)
     }
 
-    public void close() {
-        barcode2D.stopScan(this);
-        barcode2D.close(this);
+    fun close() {
+        barcode2D.stopScan(this)
+        barcode2D.close(this)
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
-            if (event.getRepeatCount() == 0) {
+            if (event.repeatCount == 0) {
 
                 if (barcodeIsScanning) {
-                    return true;
+                    return true
                 }
-
                 if (step2) {
                     try {
-                        RF.stopInventory();
-                        RFIsScanning = false;
-                        addNewTag();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        rf.stopInventory()
+                        rfIsScanning = false
+                        addNewTag()
+                    } catch (e: InterruptedException) {
+                        e.printStackTrace()
                     }
-                    step2 = false;
+                    step2 = false
                 } else {
-
-                    start();
-                    if(isAddNewOK) {
-                        RFIsScanning = true;
-                        if (RF.getPower() != RFPower) {
-
-                            while (!RF.setPower(RFPower)) {
+                    start()
+                    if (isAddNewOK) {
+                        rfIsScanning = true
+                        if (rf.power != RFPower) {
+                            while (!rf.setPower(RFPower)) {
                             }
                         }
-                        RF.startInventoryTag(0, 0, 0);
-                        barcodeIsScanning = true;
+                        rf.startInventoryTag(0, 0, 0)
+                        barcodeIsScanning = true
                     }
-
                 }
-
             }
         } else if (keyCode == 4) {
-            close();
-            DataBase.stop = true;
 
-            step2 = false;
-            if (barcodeIsScanning || RFIsScanning) {
-                barcodeIsScanning = false;
-                RF.stopInventory();
+            close()
+            api.stop = true
+            step2 = false
+            if (barcodeIsScanning || rfIsScanning) {
+                barcodeIsScanning = false
+                rf.stopInventory()
             }
-
-            finish();
+            finish()
         }
-        return true;
+        return true
     }
 
     @SuppressLint("SetTextI18n")
-    public void addNewTag() throws InterruptedException {
+    @Throws(InterruptedException::class)
+    fun addNewTag() {
 
-        int numberOfScanned;
-        String tempStr;
-        int LoopVariable;
-        boolean Collision;
-        int tempByte;
-        Map<String, Integer> EPCs = new HashMap<>();
-        boolean isOK = false;
-        UHFTAGInfo temp;
+        var numberOfScanned: Int
+        var tempStr: String?
+        var loopVariable: Int
+        var collision: Boolean
+        var tempByte: Int
+        val epcs: MutableMap<String, Int> = HashMap()
+        var isOK = false
+        var temp: UHFTAGInfo?
+        loopVariable = 0
 
-        for (LoopVariable = 0; LoopVariable < 1000; LoopVariable++) {
-
-            temp = RF.readTagFromBuffer();
+        while (loopVariable < 1000) {
+            temp = rf.readTagFromBuffer()
             if (temp == null) {
-                break;
+                break
             }
-
             if (edit) {
-                EPCs.put(temp.getEPC(), 1);
-                TID = temp.getTid();
-                EPC = temp.getEPC();
-            } else if (!(temp.getEPC().startsWith("30"))) {
-                EPCs.put(temp.getEPC(), 1);
-                TID = temp.getTid();
-                EPC = temp.getEPC();
+                epcs[temp.epc] = 1
+                tid = temp.tid
+                epc = temp.epc
+            } else if (!temp.epc.startsWith("30")) {
+                epcs[temp.epc] = 1
+                tid = temp.tid
+                epc = temp.epc
             }
+            loopVariable++
         }
-
-        numberOfScanned = LoopVariable;
-
+        numberOfScanned = loopVariable
         if (numberOfScanned > 980) {
-            Thread.sleep(100);
-            RF.startInventoryTag(0, 0, 0);
-            start();
-            barcodeIsScanning = true;
-            RFIsScanning = true;
-            return;
+            Thread.sleep(100)
+            rf.startInventoryTag(0, 0, 0)
+            start()
+            barcodeIsScanning = true
+            rfIsScanning = true
+            return
         } else if (numberOfScanned < 3) {
-            status.setText(status.getText() + "هیچ تگی یافت نشد");
+            status.text = status.text.toString() + "هیچ تگی یافت نشد"
         } else {
-
-            Collision = EPCs.size() != 1;
-
-            if (Collision) {
-
+            collision = epcs.size != 1
+            if (collision) {
                 if (edit) {
-                    status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+                    status.text =
+                        status.text.toString() + "تعداد تگ های یافت شده بیشتر از یک عدد است"
                 } else {
-                    if (EPCs.size() == 0) {
-                        status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                    if (epcs.isEmpty()) {
+                        status.text = status.text.toString() + "هیچ تگ جدیدی یافت نشد"
                     } else {
-                        status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                        status.text =
+                            status.text.toString() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
                     }
                 }
-
             } else {
-                status.setText(status.getText() + "اسکن اول با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
-                isOK = true;
+                status.text = """
+                    ${status.text}اسکن اول با موفقیت انجام شد
+                    TID: $tid
+                    EPC: $epc
+                    """.trimIndent()
+                isOK = true
             }
         }
-
-        status.setText(status.getText() + "\n" + "تعداد دفعات اسکن:" + numberOfScanned + "\n");
-
+        status.text = """
+            ${status.text}
+            تعداد دفعات اسکن:$numberOfScanned
+            
+            """.trimIndent()
         if (!isOK) {
-
-            EPCs.clear();
-            status.setText(status.getText() + "\n");
-
-            Thread.sleep(100);
-
-            RF.startInventoryTag(0, 0, 0);
-
-            Thread.sleep(900);
-
-            for (LoopVariable = 0; LoopVariable < 15; LoopVariable++) {
-
-                temp = RF.readTagFromBuffer();
+            epcs.clear()
+            status.text = """
+                ${status.text}
+                
+                """.trimIndent()
+            Thread.sleep(100)
+            rf.startInventoryTag(0, 0, 0)
+            Thread.sleep(900)
+            loopVariable = 0
+            while (loopVariable < 15) {
+                temp = rf.readTagFromBuffer()
                 if (temp == null) {
-                    break;
+                    break
                 }
                 if (edit) {
-                    EPCs.put(temp.getEPC(), 1);
-                    TID = temp.getTid();
-                    EPC = temp.getEPC();
+                    epcs[temp.epc] = 1
+                    tid = temp.tid
+                    epc = temp.epc
                 } else {
-                    if (!(temp.getEPC().startsWith("30"))) {
-                        EPCs.put(temp.getEPC(), 1);
-                        TID = temp.getTid();
-                        EPC = temp.getEPC();
+                    if (!temp.epc.startsWith("30")) {
+                        epcs[temp.epc] = 1
+                        tid = temp.tid
+                        epc = temp.epc
                     }
                 }
+                loopVariable++
             }
-
-            RF.stopInventory();
-            numberOfScanned = LoopVariable;
-
+            rf.stopInventory()
+            numberOfScanned = loopVariable
             if (numberOfScanned <= 10) {
-                status.setText(status.getText() + "هیچ تگی یافت نشد");
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(getColor(R.color.Brown));
-                return;
+                status.text = status.text.toString() + "هیچ تگی یافت نشد"
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                status.setBackgroundColor(getColor(R.color.Brown))
+                return
             }
-
-            Collision = EPCs.size() != 1;
-
-            if (Collision) {
-
+            collision = epcs.size != 1
+            if (collision) {
                 if (edit) {
-                    status.setText(status.getText() + "تعداد تگ های یافت شده بیشتر از یک عدد است");
+                    status.text =
+                        status.text.toString() + "تعداد تگ های یافت شده بیشتر از یک عدد است"
                 } else {
-                    if (EPCs.size() == 0) {
-                        status.setText(status.getText() + "هیچ تگ جدیدی یافت نشد");
+                    if (epcs.size == 0) {
+                        status.text = status.text.toString() + "هیچ تگ جدیدی یافت نشد"
                     } else {
-                        status.setText(status.getText() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است");
+                        status.text =
+                            status.text.toString() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
                     }
                 }
-
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                status.setBackgroundColor(getColor(R.color.Brown));
-                return;
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                status.setBackgroundColor(getColor(R.color.Brown))
+                return
             }
-
-            status.setText(status.getText() + "اسکن دوم با موفقیت انجام شد" + "\nTID: " + TID + "\nEPC: " + EPC);
+            status.text = """
+                ${status.text}اسکن دوم با موفقیت انجام شد
+                TID: $tid
+                EPC: $epc
+                """.trimIndent()
         }
-
-        DataBase.Barcode = BarcodeID;
-        DataBase.run = true;
-
-        while (DataBase.run) {
+        api.Barcode = barcodeID
+        api.run = true
+        while (api.run) {
         }
-
-        if (!DataBase.status) {
-
-            status.setText(status.getText() + "\nخطا در دیتابیس\n" + DataBase.Response + "\n");
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(getColor(R.color.Brown));
-            return;
+        if (!api.status) {
+            status.text = """
+                ${status.text}
+                خطا در دیتابیس
+                ${api.Response}
+                
+                """.trimIndent()
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+            status.setBackgroundColor(getColor(R.color.Brown))
+            return
         }
-
-        while (!RF.setPower(30)) {
+        while (!rf.setPower(30)) {
         }
-
-        Long itemNumber = Long.parseLong(DataBase.Response); // 32 bit
-        Long serialNumber = counterValue; // 38 bit
-
-        tempStr = Long.toBinaryString(itemNumber);
-        String itemNumberStr = String.format("%32s", tempStr).replaceAll(" ", "0");
-        tempStr = Long.toBinaryString(serialNumber);
-        String serialNumberStr = String.format("%38s", tempStr).replaceAll(" ", "0");
-
-        String EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr; // binary string of EPC (96 bit)
-
-        tempByte = Integer.parseInt(EPCStr.substring(0, 8), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC0 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(8, 16), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC1 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(16, 24), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC2 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(24, 32), 2);
-        tempStr = Integer.toString(tempByte, 16);
-
-        String EPC3 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(32, 40), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC4 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(40, 48), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC5 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(48, 56), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC6 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(56, 64), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC7 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(64, 72), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC8 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(72, 80));
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC9 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(80, 88), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC10 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        tempByte = Integer.parseInt(EPCStr.substring(88, 96), 2);
-        tempStr = Integer.toString(tempByte, 16);
-        String EPC11 = String.format("%2s", tempStr).replaceAll(" ", "0");
-
-        String New = EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11;
-
-        int k;
-        for (k = 0; k < 15; k++) {
-
-            if (RF.writeData("00000000", IUHF.Bank_TID, 0, 96, TID, IUHF.Bank_EPC, 2, 6, New)) {
-                break;
+        val itemNumber = api.Response.toLong() // 32 bit
+        val serialNumber = counterValue // 38 bit
+        tempStr = java.lang.Long.toBinaryString(itemNumber)
+        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(serialNumber)
+        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
+        val EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
+        tempByte = EPCStr.substring(0, 8).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC0 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(8, 16).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC1 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(16, 24).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC2 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(24, 32).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC3 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(32, 40).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC4 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(40, 48).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC5 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(48, 56).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC6 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(56, 64).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC7 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(64, 72).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC8 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(72, 80).toInt()
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC9 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(80, 88).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC10 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        tempByte = EPCStr.substring(88, 96).toInt(2)
+        tempStr = Integer.toString(tempByte, 16)
+        val EPC11 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
+        val New =
+            EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11
+        var k: Int
+        k = 0
+        while (k < 15) {
+            if (rf.writeData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6, New)) {
+                break
             }
+            k++
         }
-
-        String EPCVerify = null;
-
-        int o;
-
-        for (o = 0; o < 15; o++) {
-
+        lateinit var EPCVerify: String
+        var o: Int
+        o = 0
+        while (o < 15) {
             try {
-                EPCVerify = RF.readData("00000000", IUHF.Bank_TID, 0, 96, TID, IUHF.Bank_EPC, 2, 6).toLowerCase();
-                break;
-            } catch (NullPointerException e) {
-
+                EPCVerify =
+                    rf.readData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6)
+                        .toLowerCase()
+                break
+            } catch (e: NullPointerException) {
             }
+            o++
         }
-        while (!RF.setPower(RFPower)) {
+        while (!rf.setPower(RFPower)) {
         }
-
         if (o >= 15) {
-            status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-            status.setText(status.getText() + "\n" + "EPCVerify");
-            status.setText(status.getText() + "\n" + New);
-
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(getColor(R.color.Brown));
-            return;
+            status.text = """
+                ${status.text}
+                سریال نوشته شده با سریال واقعی تطابق ندارد
+                """.trimIndent()
+            status.text = """
+                ${status.text}
+                EPCVerify
+                """.trimIndent()
+            status.text = """
+                ${status.text}
+                $New
+                """.trimIndent()
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+            status.setBackgroundColor(getColor(R.color.Brown))
+            return
         }
-
-        if (!New.equals(EPCVerify)) {
-            status.setText(status.getText() + "\n" + "سریال نوشته شده با سریال واقعی تطابق ندارد");
-            status.setText(status.getText() + "\n" + EPCVerify);
-            status.setText(status.getText() + "\n" + New);
-
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-            status.setBackgroundColor(getColor(R.color.Brown));
-            return;
+        if (New != EPCVerify) {
+            status.text = """
+                ${status.text}
+                سریال نوشته شده با سریال واقعی تطابق ندارد
+                """.trimIndent()
+            status.text = """
+                ${status.text}
+                $EPCVerify
+                """.trimIndent()
+            status.text = """
+                ${status.text}
+                $New
+                """.trimIndent()
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+            status.setBackgroundColor(getColor(R.color.Brown))
+            return
         }
-
-        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
-        status.setBackgroundColor(getColor(R.color.DarkGreen));
-        status.setText(status.getText() + "\nبا موفقیت اضافه شد");
-        status.setText(status.getText() + "\nnumber of try in writing: " + k);
-        status.setText(status.getText() + "\nnumber of try in confirming: " + o);
-        status.setText(status.getText() + "\nHeader: " + headerNumber);
-        status.setText(status.getText() + "\nFilter: " + filterNumber);
-        status.setText(status.getText() + "\nPartition: " + partitionNumber);
-        status.setText(status.getText() + "\nCompany number: " + companyNumber);
-        status.setText(status.getText() + "\nItem number: " + itemNumber);
-        status.setText(status.getText() + "\nSerial number: " + serialNumber);
-        status.setText(status.getText() + "\nNew EPC: " + New);
-        counterValue++;
-        counterValueModified++;
-        numberOfWritten.setText("تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue));
-        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
-
+        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+        status.setBackgroundColor(getColor(R.color.DarkGreen))
+        status.text = """
+            ${status.text}
+            با موفقیت اضافه شد
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            number of try in writing: $k
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            number of try in confirming: $o
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Header: $headerNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Filter: $filterNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Partition: $partitionNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Company number: $companyNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Item number: $itemNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            Serial number: $serialNumber
+            """.trimIndent()
+        status.text = """
+            ${status.text}
+            New EPC: $New
+            """.trimIndent()
+        counterValue++
+        counterValueModified++
+        numberOfWritten.text = "تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue)
+        numberOfWrittenModified.text = "مقدار شمارنده: $counterValueModified"
         if (counterValue >= counterMaxValue) {
-            isAddNewOK = false;
+            isAddNewOK = false
         }
-
-        memoryEditor.putLong("value", counterValue);
-        memoryEditor.putLong("counterModified", counterValueModified);
-        memoryEditor.commit();
-
+        memoryEditor.putLong("value", counterValue)
+        memoryEditor.putLong("counterModified", counterValueModified)
+        memoryEditor.commit()
     }
 
     @SuppressLint("SetTextI18n")
-    public void CounterClearButton(View view) {
-        counterValueModified = 0;
-        numberOfWrittenModified.setText("مقدار شمارنده: " + counterValueModified);
-        memoryEditor.putLong("counterModified", counterValueModified);
-        memoryEditor.commit();
+    fun CounterClearButton(view: View?) {
+        counterValueModified = 0
+        numberOfWrittenModified.text = "مقدار شمارنده: $counterValueModified"
+        memoryEditor.putLong("counterModified", counterValueModified)
+        memoryEditor.commit()
     }
 
-    public void changeOption(View view) {
-        edit = editOption.isChecked();
+    fun changeOption(view: View?) {
+        edit = editOption.isChecked
+    }
+
+    companion object {
+        var step2 = false
+        var RFPower = 5
+        var oneStepActive = false
+        var counterMaxValue: Long = 5
+        var counterMinValue: Long = 0
+        var tagPassword: String? = "00000000"
+        var counterValue: Long = 0
+        var filterNumber = 0 // 3bit
+        var partitionNumber = 6 // 3bit
+        var headerNumber = 48 // 8bit
+        var companyNumber = 101 // 12bit
     }
 }

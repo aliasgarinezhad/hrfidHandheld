@@ -28,9 +28,9 @@
             android:parentActivityName=".AboutUsActivity" />
         <activity
             android:name=".ReadingResultActivity"
-            android:parentActivityName=".reading" />
+            android:parentActivityName=".WarehouseScanning" />
         <activity
-            android:name=".userSpecActivity"
+            android:name=".WarehouseScanningUserLogin"
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".LoginToSettingActivity"
@@ -41,10 +41,10 @@
         <activity android:name=".readingResultSubSubActivity"
             android:parentActivityName=".readingResultSubActivity"/>
         <activity
-            android:name=".reading"
-            android:parentActivityName=".userSpecActivity" />
+            android:name=".WarehouseScanning"
+            android:parentActivityName=".WarehouseScanningUserLogin" />
         <activity
-            android:name=".addNew"
+            android:name=".AddProductActivity"
             android:parentActivityName=".MainActivity" />
         <activity android:name=".MainActivity"
             android:exported="true">

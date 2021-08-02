@@ -34,7 +34,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class reading extends AppCompatActivity {
+public class WarehouseScanning extends AppCompatActivity {
 
     public static RFIDWithUHFUART RF;
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
@@ -92,8 +92,8 @@ public class reading extends AppCompatActivity {
                     }
                 }
 
-                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if (userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
+                if (WarehouseScanningUserLogin.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -140,8 +140,8 @@ public class reading extends AppCompatActivity {
                     }
                 }
 
-                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if (userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
+                if (WarehouseScanningUserLogin.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -172,8 +172,8 @@ public class reading extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if (userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
+                if (WarehouseScanningUserLogin.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -248,7 +248,7 @@ public class reading extends AppCompatActivity {
         EPCTable.clear();
         EPCTableValid.clear();
 
-        EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(userSpecActivity.wareHouseID), ""), HashMap.class);
+        EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), ""), HashMap.class);
 
         if (EPCTableValid == null) {
             EPCTableValid = new HashMap<String, Integer>();
@@ -307,8 +307,8 @@ public class reading extends AppCompatActivity {
             fromLogin = false;
         }
 
-        status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-        if (userSpecActivity.wareHouseID == 1) {
+        status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
+        if (WarehouseScanningUserLogin.wareHouseID == 1) {
             status.setText(status.getText() + "در سطح فروش" + '\n');
         } else {
             status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -358,6 +358,12 @@ public class reading extends AppCompatActivity {
                     readingInProgress = false;
                     processingInProgress = true;
                     status.setText("در حال پردازش ...");
+
+                    JSONObject tableJson = new JSONObject(EPCTableValid);
+                    tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
+                    tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.wareHouseID, ID);
+                    tableEditor.commit();
+
                     timerHandler.postDelayed(timerRunnable, 500);
                 }
             }
@@ -389,8 +395,8 @@ public class reading extends AppCompatActivity {
         API2.stop = true;
 
         tableJson = new JSONObject(EPCTableValid);
-        tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), tableJson.toString());
-        tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.wareHouseID, ID);
+        tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
+        tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.wareHouseID, ID);
         tableEditor.commit();
     }
 
@@ -421,13 +427,13 @@ public class reading extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 EPCTable.clear();
                 EPCTableValid.clear();
-                tableEditor.putString(String.valueOf(userSpecActivity.wareHouseID), "");
-                tableEditor.putInt(String.valueOf(userSpecActivity.departmentInfoID) + userSpecActivity.departmentInfoID, ID);
+                tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), "");
+                tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.departmentInfoID, ID);
                 tableEditor.commit();
                 EPCLastLength = 0;
 
-                status.setText("کد شعبه: " + userSpecActivity.departmentInfoID + '\n');
-                if (userSpecActivity.wareHouseID == 1) {
+                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
+                if (WarehouseScanningUserLogin.wareHouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');

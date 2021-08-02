@@ -1,8 +1,8 @@
 package com.jeanwest.reader;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,29 +10,28 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 
-public class APIAddNew extends Thread {
+public class FindingProductAPI extends Thread {
 
-    public String Barcode;
-    public String Response;
+    public String response;
     public boolean status = false;
     public volatile boolean run = false;
+    public JSONArray similar;
     public boolean stop = false;
+    public String barcode;
 
-    public void run() {
+    public void run(){
 
         while (!stop) {
 
-            if (run) {
+            if(run) {
 
                 status = false;
 
                 try {
 
-                    String getCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
-                    getCommand = getCommand.replace(" ", "%20");
-                    URL server = new URL(getCommand);
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=68&" + barcode;
+                    URL server = new URL(GetCommand);
                     HttpURLConnection connection = (HttpURLConnection) server.openConnection();
 
                     if (connection.getResponseCode() == 200) {
@@ -41,15 +40,19 @@ public class APIAddNew extends Thread {
                         BufferedReader reader = new BufferedReader(isr);
                         String receive = reader.readLine();
 
-                        JSONObject json = new JSONObject(receive);
-                        Response = json.getString("RFID");
+                        JSONObject Json = new JSONObject(receive);
+                        similar = Json.getJSONArray("products");
                         status = true;
-                    } else {
+                    }
+                    else {
 
-                        Response = connection.getResponseCode() + "Error: " + connection.getResponseMessage();
+                        response = connection.getResponseCode() + " error: " + connection.getResponseMessage();
+                        WarehouseScanning.databaseInProgress = false;
                     }
 
-                } catch (JSONException | IOException e) {
+                    connection.disconnect();
+
+                } catch (IOException | JSONException e) {
                     e.printStackTrace();
                 }
                 run = false;

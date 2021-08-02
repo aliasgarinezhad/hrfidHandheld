@@ -1,170 +1,133 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.preference.PreferenceManager
+import android.view.KeyEvent
+import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.Spinner
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import java.util.*
 
-import android.annotation.SuppressLint;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.view.KeyEvent;
-import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.Toast;
-import java.util.ArrayList;
+class WarehouseScanningUserLogin : AppCompatActivity() {
+    private lateinit var api: APIReadingInformation
+    private lateinit var status: Toast
+    private lateinit var departmentInfoIDView: EditText
+    private lateinit var wareHouseIDView: Spinner
+    private lateinit var nextActivityIntent: Intent
+    private lateinit var memory: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
 
-public class userSpecActivity extends AppCompatActivity {
-
-    APIReadingInformation API;
-    private Toast status;
-    EditText departmentInfoIDView;
-    Spinner wareHouseIDView;
-    Intent intent;
-    public static Integer departmentInfoID;
-    public static Integer wareHouseID;
-    SharedPreferences memory;
-    SharedPreferences.Editor editor;
-
-    @SuppressLint({"SetTextI18n", "CommitPrefEdits"})
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_user_spec);
-        departmentInfoIDView = (EditText) findViewById(R.id.DepartmentInfoIDView);
-        wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner);
-        intent = new Intent(this, reading.class);
-
-        status = Toast.makeText(this, "", Toast.LENGTH_LONG);
-
-        ArrayList<String> spinnerString = new ArrayList<>();
-        spinnerString.add("فروشگاه");
-        spinnerString.add("انبار");
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, spinnerString);
-        wareHouseIDView.setAdapter(spinnerAdapter);
-
-        memory = PreferenceManager.getDefaultSharedPreferences(this);
-        editor = memory.edit();
+    @SuppressLint("SetTextI18n", "CommitPrefEdits")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_user_spec)
+        departmentInfoIDView = findViewById<View>(R.id.DepartmentInfoIDView) as EditText
+        wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner)
+        nextActivityIntent = Intent(this, WarehouseScanning::class.java)
+        status = Toast.makeText(this, "", Toast.LENGTH_LONG)
+        val spinnerString = ArrayList<String>()
+        spinnerString.add("فروشگاه")
+        spinnerString.add("انبار")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, spinnerString)
+        wareHouseIDView.adapter = spinnerAdapter
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+        editor = memory.edit()
     }
 
     @SuppressLint("SetTextI18n")
-    protected void onResume() {
-        super.onResume();
-
-        departmentInfoID = memory.getInt("ID", 1); // value to store
-        departmentInfoIDView.setText(departmentInfoID.toString());
-
-        API = new APIReadingInformation();
-
-        API.stop = false;
-        API.start();
+    override fun onResume() {
+        super.onResume()
+        departmentInfoID = memory.getInt("ID", 1) // value to store
+        departmentInfoIDView.setText(departmentInfoID.toString())
+        api = APIReadingInformation()
+        api.stop = false
+        api.start()
     }
 
-    public void startReading(View view) {
-
-        if(departmentInfoIDView.getEditableText().toString().length() == 0) {
-            status.setText("\nلطفا کد شعبه را وارد کنید\n");
-            status.show();
-            return;
+    fun startReading(view: View?) {
+        if (departmentInfoIDView.editableText.toString().isEmpty()) {
+            status.setText("\nلطفا کد شعبه را وارد کنید\n")
+            status.show()
+            return
         }
-
-        API.departmentInfoID = Integer.parseInt(departmentInfoIDView.getEditableText().toString());
-        API.wareHouseID = wareHouseIDView.getSelectedItemPosition() + 1;
-
-        departmentInfoID = API.departmentInfoID;
-        wareHouseID = API.wareHouseID;
-
-        editor.putInt("ID", departmentInfoID); // value to store
-        editor.commit();
-
-        API.run = true;
-        while (API.run) {}
-
-        if (!API.status) {
-
-            status.setText("خطا در دیتابیس");
-            status.show();
-
-            return;
+        api.departmentInfoID = departmentInfoIDView.editableText.toString().toInt()
+        api.wareHouseID = wareHouseIDView.selectedItemPosition + 1
+        departmentInfoID = api.departmentInfoID
+        wareHouseID = api.wareHouseID
+        editor.putInt("ID", departmentInfoID) // value to store
+        editor.commit()
+        api.run = true
+        while (api.run) {
         }
-
-        wareHouseID = API.wareHouseID;
-        departmentInfoID = API.departmentInfoID;
-
-        reading.ID = Integer.parseInt(API.Response);
-
-        reading.fromLogin = true;
-        startActivity(intent);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        API.stop = true;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        if(keyCode == 4) {
-
-            API.stop = true;
-            finish();
+        if (!api.status) {
+            status.setText("خطا در دیتابیس")
+            status.show()
+            return
         }
-
-        return true;
+        wareHouseID = api.wareHouseID
+        departmentInfoID = api.departmentInfoID
+        WarehouseScanning.ID = api.Response.toInt()
+        WarehouseScanning.fromLogin = true
+        startActivity(nextActivityIntent)
     }
 
-    public void sendFileWithClearing(View view) {
-
-        AlertDialog alertDialog;
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-        alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود");
-        alertBuilder.setMessage("آیا ادامه می دهید؟");
-        alertBuilder.setPositiveButton("بله", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                reading.EPCTable.clear();
-                reading.EPCTableValid.clear();
-
-                editor.putString("1", "");
-                editor.putString("2", "");
-                editor.commit();
-
-                startReading(view);
-            }
-        });
-        alertBuilder.setNegativeButton("خیر", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-            }
-        });
-        alertDialog = alertBuilder.create();
-        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public void onShow(DialogInterface dlg) {
-                alertDialog.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
-            }
-        });
-        alertDialog.show();
+    override fun onPause() {
+        super.onPause()
+        api.stop = true
     }
 
-    public void finishReading(View view) {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == 4) {
+            api.stop = true
+            finish()
+        }
+        return true
+    }
 
-        APIReadingFinish APIFinish = new APIReadingFinish();
+    fun sendFileWithClearing(view: View?) {
+        val alertDialog: AlertDialog
+        val alertBuilder = AlertDialog.Builder(this)
+        alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
+        alertBuilder.setMessage("آیا ادامه می دهید؟")
+        alertBuilder.setPositiveButton("بله") { dialog, which ->
+            WarehouseScanning.EPCTable.clear()
+            WarehouseScanning.EPCTableValid.clear()
+            editor.putString("1", "")
+            editor.putString("2", "")
+            editor.commit()
+            startReading(view)
+        }
+        alertBuilder.setNegativeButton("خیر") { dialog, which -> }
+        alertDialog = alertBuilder.create()
+        alertDialog.setOnShowListener {
+            alertDialog.window!!.decorView.layoutDirection =
+                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+        }
+        alertDialog.show()
+    }
 
-        APIFinish.DepoMojodiReviewInfo_ID = memory.getInt(String.valueOf(departmentInfoID) + 2, 0);
-        APIFinish.StoreMojodiReviewInfo_ID = memory.getInt(String.valueOf(departmentInfoID) + 1, 0);
-        APIFinish.start();
-        while(APIFinish.run) {}
+    fun finishReading(view: View?) {
+        val finishWarehouseScanning = APIReadingFinish()
+        finishWarehouseScanning.DepoMojodiReviewInfo_ID = memory.getInt(departmentInfoID.toString() + 2, 0)
+        finishWarehouseScanning.StoreMojodiReviewInfo_ID = memory.getInt(departmentInfoID.toString() + 1, 0)
+        finishWarehouseScanning.start()
+        while (finishWarehouseScanning.run) {
+        }
+        status.setText(finishWarehouseScanning.Response)
+        status.show()
+    }
 
-        status.setText(APIFinish.Response);
-        status.show();
-
+    companion object {
+        @JvmField
+        var departmentInfoID: Int = 0
+        @JvmField
+        var wareHouseID: Int = 2
     }
 }

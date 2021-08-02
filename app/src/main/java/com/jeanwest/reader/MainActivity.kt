@@ -40,12 +40,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun addNewActivity(view: View?) {
-        val intent = Intent(this, addNew::class.java)
+        val intent = Intent(this, AddProductActivity::class.java)
         startActivity(intent)
     }
 
     fun readingActivity(view: View?) {
-        val intent = Intent(this, userSpecActivity::class.java)
+        val intent = Intent(this, WarehouseScanningUserLogin::class.java)
         startActivity(intent)
     }
 

@@ -11,7 +11,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class APIFindingEPC extends Thread {
+public class WareHouseScanningFindingProductAPI extends Thread {
 
     public String Response;
     public boolean status = false;
@@ -29,7 +29,7 @@ public class APIFindingEPC extends Thread {
 
                 try {
 
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/epcs?BarcodeMain_ID=" + readingResultSubSubActivity.stuffPrimaryCode + "&RFID=" + readingResultSubSubActivity.stuffRFIDCode;
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanning.ID + "/epcs?BarcodeMain_ID=" + readingResultSubSubActivity.stuffPrimaryCode + "&RFID=" + readingResultSubSubActivity.stuffRFIDCode;
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
