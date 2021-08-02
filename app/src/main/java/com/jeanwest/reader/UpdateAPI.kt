@@ -10,13 +10,13 @@ import java.net.URL
 
 class UpdateAPI : Thread() {
     var response: String? = null
-    var status = false
+    var finished = false
     var serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug.apk"
     var context: Context? = null
     var outputFile: File? = null
     override fun run() {
         try {
-            status = false
+            finished = false
             val server = URL(serverAddress)
             val connection = server.openConnection() as HttpURLConnection
             if (connection.responseCode == 200) {
@@ -45,6 +45,6 @@ class UpdateAPI : Thread() {
             e.printStackTrace()
             response = e.toString()
         }
-        status = true
+        finished = true
     }
 }

@@ -81,9 +81,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         while (!rf.setEPCAndTIDMode()) {
         }
-        api = AddProductAPI()
-        api.stop = false
-        api.start()
 
         if (memory.getLong("value", -1L) == -1L) {
             warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید")
@@ -131,7 +128,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
     override fun onPause() {
         super.onPause()
         close()
-        api.stop = true
         step2 = false
         if (barcodeIsScanning || rfIsScanning) {
             barcodeIsScanning = false
@@ -220,7 +216,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         } else if (keyCode == 4) {
 
             close()
-            api.stop = true
             step2 = false
             if (barcodeIsScanning || rfIsScanning) {
                 barcodeIsScanning = false
@@ -358,10 +353,12 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                 EPC: $epc
                 """.trimIndent()
         }
+
+        api = AddProductAPI()
         api.barcode = barcodeID
-        api.run = true
-        while (api.run) {
-        }
+        api.start()
+        while (api.run) {}
+
         if (!api.status) {
             status.text = """
                 ${status.text}
@@ -373,8 +370,8 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             status.setBackgroundColor(getColor(R.color.Brown))
             return
         }
-        while (!rf.setPower(30)) {
-        }
+        while (!rf.setPower(30)) {}
+
         val itemNumber = api.response.toLong() // 32 bit
         val serialNumber = counterValue // 38 bit
         tempStr = java.lang.Long.toBinaryString(itemNumber)

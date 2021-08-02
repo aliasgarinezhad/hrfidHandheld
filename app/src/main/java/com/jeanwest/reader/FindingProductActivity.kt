@@ -16,13 +16,15 @@ import java.util.*
 
 class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
-    lateinit var barcode2D: Barcode2D
+    private lateinit var barcode2D: Barcode2D
     lateinit var result: Toast
     lateinit var list: ListView
     var listString = ArrayList<String>()
     var pictureURLList = ArrayList<String>()
     lateinit var kBarCode: EditText
     lateinit var nextActivityIntent: Intent
+    private var product : JSONObject = JSONObject()
+    lateinit var api: FindingProductAPI
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +36,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         nextActivityIntent = Intent(this, FindingProductSubActivity::class.java)
 
         list.onItemClickListener = OnItemClickListener { _, _, i, _ ->
-            index = i
+            product = api.similar.getJSONObject(i);
+            nextActivityIntent.putExtra("product", product.toString());
             startActivity(nextActivityIntent)
         }
     }
@@ -44,14 +47,11 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         open()
         val findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
         list.adapter = findingListAdapter
-        API = FindingProductAPI()
-        API.start()
     }
 
     override fun onPause() {
         super.onPause()
         close()
-        API.stop = true
     }
 
     @Throws(InterruptedException::class)
@@ -61,28 +61,31 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
         if (barcode.isNotEmpty()) {
 
-            API.barcode = "kbarcode=$barcode"
-            API.run = true
-            while (API.run) {
+            api = FindingProductAPI()
+            api.barcode = "kbarcode=$barcode"
+            api.start()
+
+            while (api.run) {
             }
-            if (!API.status) {
-                result.setText(API.response)
+            if (!api.status) {
+                result.setText(api.response)
                 result.show()
                 return
             }
+
             val view = this.currentFocus
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(view!!.windowToken, 0)
             listString.clear()
             pictureURLList.clear()
             try {
-                kBarCode.setText(API.similar.getJSONObject(1).getString("K_Bar_Code"))
+                kBarCode.setText(api.similar.getJSONObject(1).getString("K_Bar_Code"))
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
-            for (i in 0 until API.similar.length()) {
+            for (i in 0 until api.similar.length()) {
                 try {
-                    json = API.similar.getJSONObject(i)
+                    json = api.similar.getJSONObject(i)
                     listString.add("""
                     سایز: ${json.getString("Size")}
                     
@@ -105,7 +108,6 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         } else if (keyCode == 4) {
             close()
             finish()
-            API.stop = true
         }
         return true
     }
@@ -131,23 +133,27 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
         var json: JSONObject
         val findingListAdapter: MyListAdapterFind
-        API.barcode = "K_Bar_Code=" + kBarCode.editableText.toString()
-        API.run = true
-        while (API.run) {
-        }
-        if (!API.status) {
-            result.setText(API.response)
+
+        api = FindingProductAPI()
+        api.barcode = "K_Bar_Code=" + kBarCode.editableText.toString()
+        api.start()
+
+        while (api.run) {}
+
+        if (!api.status) {
+            result.setText(api.response)
             result.show()
             return
         }
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(view.windowToken, 0)
-        if (API.similar.length() > 0) {
+
+        if (api.similar.length() > 0) {
             listString.clear()
             pictureURLList.clear()
-            for (i in 0 until API.similar.length()) {
+            for (i in 0 until api.similar.length()) {
                 try {
-                    json = API.similar.getJSONObject(i)
+                    json = api.similar.getJSONObject(i)
                     listString.add("""
                     سایز: ${json.getString("Size")}
                     
@@ -162,20 +168,22 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             list.adapter = findingListAdapter
             return
         }
-        API.barcode = "kbarcode=" + kBarCode.editableText.toString()
-        API.run = true
-        while (API.run) {
+
+        api = FindingProductAPI()
+        api.barcode = "kbarcode=" + kBarCode.editableText.toString()
+        api.start()
+        while (api.run) {
         }
-        if (!API.status) {
-            result.setText(API.response)
+        if (!api.status) {
+            result.setText(api.response)
             result.show()
             return
         }
         listString.clear()
         pictureURLList.clear()
-        for (i in 0 until API.similar.length()) {
+        for (i in 0 until api.similar.length()) {
             try {
-                json = API.similar.getJSONObject(i)
+                json = api.similar.getJSONObject(i)
                 listString.add("""
                 سایز: ${json.getString("Size")}
                 
@@ -188,11 +196,5 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
         list.adapter = findingListAdapter
-    }
-
-    companion object {
-
-        lateinit var API: FindingProductAPI
-        var index = 0
     }
 }

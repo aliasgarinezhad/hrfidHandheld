@@ -25,7 +25,7 @@ class AboutUsActivity : AppCompatActivity() {
     var handler = Handler()
     var thread: Runnable = object : Runnable {
         override fun run() {
-            if (api.status) {
+            if (api.finished) {
                 val intent = Intent(Intent.ACTION_VIEW)
                 intent.setDataAndType(
                     Uri.fromFile(api.outputFile),
