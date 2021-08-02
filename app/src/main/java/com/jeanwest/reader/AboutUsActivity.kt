@@ -3,7 +3,6 @@ package com.jeanwest.reader
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.content.DialogInterface.OnShowListener
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -17,6 +16,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 class AboutUsActivity : AppCompatActivity() {
+
     lateinit var response: Toast
     lateinit var versionName: TextView
     lateinit var debug: Toast
@@ -70,10 +70,9 @@ class AboutUsActivity : AppCompatActivity() {
         alertBuilder.setMessage("لطفا منتظر بمانید ...")
         alertBuilder.setTitle("در حال دانلود نسخه به روز")
         alert = alertBuilder.create()
-        alert.setOnShowListener(OnShowListener {
-            alert.window!!.decorView.layoutDirection =
-                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
-        })
+        alert.setOnShowListener {
+            alert.window!!.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+        }
     }
 
     fun update(view: View?) {
@@ -87,8 +86,7 @@ class AboutUsActivity : AppCompatActivity() {
         alertBuilder.setNegativeButton("خیر") { dialog, which -> }
         val alertUpdatePermit = alertBuilder.create()
         alertUpdatePermit.setOnShowListener {
-            alertUpdatePermit.window!!.decorView.layoutDirection =
-                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+            alertUpdatePermit.window!!.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
         }
         alertUpdatePermit.show()
     }

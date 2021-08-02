@@ -10,29 +10,32 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 
 class MainActivity : AppCompatActivity() {
-    var RF: RFIDWithUHFUART? = null
+    
+    lateinit var rf: RFIDWithUHFUART
+    
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         try {
-            RF = RFIDWithUHFUART.getInstance()
+            rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        while (!RF!!.init()) {
-            RF!!.free()
+        while (!rf.init()) {
+            rf.free()
         }
         if (Build.MODEL == "EXARKXK650") {
-            while (!RF!!.setFrequencyMode(0x08)) {
-                RF!!.free()
+            while (!rf.setFrequencyMode(0x08)) {
+                rf.free()
             }
         } else if (Build.MODEL == "c72") {
-            while (!RF!!.setFrequencyMode(0x04)) {
-                RF!!.free()
+            while (!rf.setFrequencyMode(0x04)) {
+                rf.free()
             }
         }
-        while (!RF!!.setRFLink(2)) {
-            RF!!.free()
+        while (!rf.setRFLink(2)) {
+            rf.free()
         }
     }
 
@@ -47,7 +50,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun findingActivity(view: View?) {
-        val intent = Intent(this, FindingActivity::class.java)
+        val intent = Intent(this, FindingProductActivity::class.java)
         startActivity(intent)
     }
 
@@ -57,13 +60,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun advanceSettingButton(view: View?) {
-        val intent = Intent(this, loginActivity::class.java)
+        val intent = Intent(this, LoginToSettingActivity::class.java)
         startActivity(intent)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == 4) {
-            RF!!.free()
+            rf.free()
             finish()
         }
         return true

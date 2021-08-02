@@ -1,34 +1,32 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader
 
-import androidx.appcompat.app.AppCompatActivity;
-import android.content.Intent;
-import android.graphics.Color;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.TextView;
+import android.content.Intent
+import android.graphics.Color
+import android.os.Bundle
+import android.view.View
+import android.widget.EditText
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 
-public class loginActivity extends AppCompatActivity {
+class LoginToSettingActivity : AppCompatActivity() {
 
-    public EditText password;
-    public TextView feedback;
+    private lateinit var password: EditText
+    private lateinit var feedback: TextView
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
-        password = findViewById(R.id.passwordText);
-        feedback = findViewById(R.id.feedback);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_login)
+        password = findViewById(R.id.passwordText)
+        feedback = findViewById(R.id.feedback)
     }
 
-    public void loginButton(View view) {
-        if(password.getText().toString().equals("123456")) {
-            Intent intent = new Intent(this, addNewSetting.class);
-            startActivity(intent);
-        }
-        else{
-            feedback.setText("رمز عبور اشتباه است!");
-            feedback.setTextColor(Color.RED);
+    fun loginButton(view: View?) {
+        if (password.text.toString() == "123456") {
+            val intent = Intent(this, SettingActivity::class.java)
+            startActivity(intent)
+        } else {
+            feedback.text = "رمز عبور اشتباه است!"
+            feedback.setTextColor(Color.RED)
         }
     }
 }

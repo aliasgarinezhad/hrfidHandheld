@@ -17,14 +17,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
         <activity android:name=".FindingResultSubActivity"
-            android:parentActivityName=".FindingActivity"/>
-        <activity android:name=".FindingActivity"
+            android:parentActivityName=".FindingProductActivity"/>
+        <activity android:name=".FindingProductActivity"
             android:parentActivityName=".MainActivity"/>
         <activity
             android:name=".readingResultSubActivity"
             android:parentActivityName=".ReadingResultActivity" />
         <activity
-            android:name=".addNewSetting"
+            android:name=".SettingActivity"
             android:parentActivityName=".AboutUsActivity" />
         <activity
             android:name=".ReadingResultActivity"
@@ -33,7 +33,7 @@
             android:name=".userSpecActivity"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".loginActivity"
+            android:name=".LoginToSettingActivity"
             android:parentActivityName=".AboutUsActivity" />
         <activity
             android:name=".AboutUsActivity"

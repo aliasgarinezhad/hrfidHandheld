@@ -173,7 +173,7 @@ class FindingResultSubActivity : AppCompatActivity() {
         while (!rf.setPower(findingPower)) {
         }
         try {
-            stuff = FindingActivity.API.similar.getJSONObject(FindingActivity.index)
+            stuff = FindingProductActivity.API.similar.getJSONObject(FindingProductActivity.index)
             stuffSpec.text = """
                 ${stuff.getString("productName")}
                 کد محصول: ${stuff.getString("K_Bar_Code")}

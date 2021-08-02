@@ -14,7 +14,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
-class FindingActivity : AppCompatActivity(), IBarcodeResult {
+class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
     lateinit var barcode2D: Barcode2D
     lateinit var result: Toast
@@ -85,10 +85,10 @@ class FindingActivity : AppCompatActivity(), IBarcodeResult {
                 try {
                     json = API.similar.getJSONObject(i)
                     listString.add("""
-    سایز: ${json.getString("Size")}
-    
-    رنگ: ${json.getString("Color")}
-    """.trimIndent())
+                    سایز: ${json.getString("Size")}
+                    
+                    رنگ: ${json.getString("Color")}
+                    """.trimIndent())
                     pictureURLList.add(json.getString("ImgUrl"))
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -150,10 +150,10 @@ class FindingActivity : AppCompatActivity(), IBarcodeResult {
                 try {
                     json = API.similar.getJSONObject(i)
                     listString.add("""
-    سایز: ${json.getString("Size")}
-    
-    رنگ: ${json.getString("Color")}
-    """.trimIndent())
+                    سایز: ${json.getString("Size")}
+                    
+                    رنگ: ${json.getString("Color")}
+                    """.trimIndent())
                     pictureURLList.add(json.getString("ImgUrl"))
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -178,10 +178,10 @@ class FindingActivity : AppCompatActivity(), IBarcodeResult {
             try {
                 json = API.similar.getJSONObject(i)
                 listString.add("""
-    سایز: ${json.getString("Size")}
-    
-    رنگ: ${json.getString("Color")}
-    """.trimIndent())
+                سایز: ${json.getString("Size")}
+                
+                رنگ: ${json.getString("Color")}
+                """.trimIndent())
                 pictureURLList.add(json.getString("ImgUrl"))
             } catch (e: JSONException) {
                 e.printStackTrace()
