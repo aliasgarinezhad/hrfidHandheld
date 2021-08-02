@@ -21,7 +21,7 @@ class AboutUsActivity : AppCompatActivity() {
     lateinit var versionName: TextView
     lateinit var debug: Toast
     lateinit var alert: AlertDialog
-    var api = APIUpdate()
+    var api = UpdateAPI()
     var handler = Handler()
     var thread: Runnable = object : Runnable {
         override fun run() {

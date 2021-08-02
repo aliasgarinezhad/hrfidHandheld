@@ -138,28 +138,28 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                 }
             }
 
-            if (WarehouseScanning.databaseInProgress) {
+            if (WarehouseScanningActivity.databaseInProgress) {
 
-                if (!WarehouseScanning.API.status) {
+                if (!WarehouseScanningActivity.API.status) {
                     status.setText("در حال ارسال به سرور ");
                     databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                } else if (!WarehouseScanning.API2.status) {
+                } else if (!WarehouseScanningActivity.API2.status) {
                     status.setText("در حال دریافت اطلاعات از سرور ");
                     databaseBackgroundTaskHandler.postDelayed(this, 1000);
                 } else {
                     try {
 
-                        for (int i = 0; i < WarehouseScanning.API2.stuffs.length(); i++) {
-                            temp = WarehouseScanning.API2.stuffs.getString(i);
-                            subStuffs = WarehouseScanning.API2.conflicts.getJSONArray(temp);
+                        for (int i = 0; i < WarehouseScanningActivity.API2.stuffs.length(); i++) {
+                            temp = WarehouseScanningActivity.API2.stuffs.getString(i);
+                            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(temp);
 
                             for (int j = 0; j < subStuffs.length(); j++) {
 
                                 temp2 = subStuffs.getJSONObject(j);
                                 if (temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)) {
-                                    ReadingResultActivity.index = WarehouseScanning.API2.stuffs.getString(i);
+                                    ReadingResultActivity.index = WarehouseScanningActivity.API2.stuffs.getString(i);
                                     readingResultSubActivity.subIndex = j;
-                                    i = WarehouseScanning.API2.stuffs.length() + 10;
+                                    i = WarehouseScanningActivity.API2.stuffs.length() + 10;
                                     j = subStuffs.length() + 10;
                                 }
                             }
@@ -173,10 +173,10 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     EPCTableFindingMatched.clear();
                     status.setText("");
                     database.stop = true;
-                    WarehouseScanning.API.stop = true;
-                    WarehouseScanning.API2.stop = true;
+                    WarehouseScanningActivity.API.stop = true;
+                    WarehouseScanningActivity.API2.stop = true;
 
-                    while (database.isAlive() || WarehouseScanning.API.isAlive() || WarehouseScanning.API2.isAlive()) {
+                    while (database.isAlive() || WarehouseScanningActivity.API.isAlive() || WarehouseScanningActivity.API2.isAlive()) {
                     }
 
                     onResume();
@@ -286,7 +286,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         try {
 
-            subStuffs = WarehouseScanning.API2.conflicts.getJSONArray(ReadingResultActivity.index);
+            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(ReadingResultActivity.index);
             stuff = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
 
             if (stuff.getBoolean("status")) {
@@ -328,7 +328,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
         }
 
-        WarehouseScanning.databaseInProgress = false;
+        WarehouseScanningActivity.databaseInProgress = false;
         switch (findingPower) {
             case 5:
                 powerSeekBar.setProgress(0);
@@ -464,8 +464,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
             database.stop = true;
-            WarehouseScanning.API.stop = true;
-            WarehouseScanning.API2.stop = true;
+            WarehouseScanningActivity.API.stop = true;
+            WarehouseScanningActivity.API2.stop = true;
             finish();
         }
         return true;
@@ -478,8 +478,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             RF.stopInventory();
             readEnable = false;
         }
-        WarehouseScanning.API.stop = true;
-        WarehouseScanning.API2.stop = true;
+        WarehouseScanningActivity.API.stop = true;
+        WarehouseScanningActivity.API2.stop = true;
     }
 
     public void clearEPCs(View view) {
@@ -501,24 +501,24 @@ public class readingResultSubSubActivity extends AppCompatActivity {
 
         JSONObject tableJson;
 
-        WarehouseScanning.EPCTable.putAll(EPCTableFindingMatched);
-        WarehouseScanning.EPCTableValid.putAll(EPCTableFindingMatched);
+        WarehouseScanningActivity.EPCTable.putAll(EPCTableFindingMatched);
+        WarehouseScanningActivity.EPCTableValid.putAll(EPCTableFindingMatched);
 
-        tableJson = new JSONObject(WarehouseScanning.EPCTableValid);
+        tableJson = new JSONObject(WarehouseScanningActivity.EPCTableValid);
         tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
         tableEditor.commit();
 
-        WarehouseScanning.API = new APIReadingEPC();
-        WarehouseScanning.API2 = new APIReadingConflicts();
-        WarehouseScanning.API.stop = false;
-        WarehouseScanning.API2.stop = false;
-        WarehouseScanning.API.start();
-        WarehouseScanning.API2.start();
+        WarehouseScanningActivity.API = new APIReadingEPC();
+        WarehouseScanningActivity.API2 = new APIReadingConflicts();
+        WarehouseScanningActivity.API.stop = false;
+        WarehouseScanningActivity.API2.stop = false;
+        WarehouseScanningActivity.API.start();
+        WarehouseScanningActivity.API2.start();
 
-        WarehouseScanning.API.status = false;
-        WarehouseScanning.API2.status = false;
-        WarehouseScanning.API.run = true;
-        WarehouseScanning.databaseInProgress = true;
+        WarehouseScanningActivity.API.status = false;
+        WarehouseScanningActivity.API2.status = false;
+        WarehouseScanningActivity.API.run = true;
+        WarehouseScanningActivity.databaseInProgress = true;
         databaseBackgroundTaskHandler.post(databaseBackgroundTask);
     }
 

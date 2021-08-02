@@ -16,7 +16,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".FindingResultSubActivity"
+        <activity android:name=".FindingProductSubActivity"
             android:parentActivityName=".FindingProductActivity"/>
         <activity android:name=".FindingProductActivity"
             android:parentActivityName=".MainActivity"/>
@@ -28,7 +28,7 @@
             android:parentActivityName=".AboutUsActivity" />
         <activity
             android:name=".ReadingResultActivity"
-            android:parentActivityName=".WarehouseScanning" />
+            android:parentActivityName=".WarehouseScanningActivity" />
         <activity
             android:name=".WarehouseScanningUserLogin"
             android:parentActivityName=".MainActivity" />
@@ -41,7 +41,7 @@
         <activity android:name=".readingResultSubSubActivity"
             android:parentActivityName=".readingResultSubActivity"/>
         <activity
-            android:name=".WarehouseScanning"
+            android:name=".WarehouseScanningActivity"
             android:parentActivityName=".WarehouseScanningUserLogin" />
         <activity
             android:name=".AddProductActivity"

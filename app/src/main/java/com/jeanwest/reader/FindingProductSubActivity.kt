@@ -21,7 +21,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
-class FindingResultSubActivity : AppCompatActivity() {
+class FindingProductSubActivity : AppCompatActivity() {
 
     lateinit var rf: RFIDWithUHFUART
     var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -35,7 +35,8 @@ class FindingResultSubActivity : AppCompatActivity() {
     lateinit var picture: WebView
     lateinit var option: CheckBox
     lateinit var stuff: JSONObject
-    var epcTableFindingMatched: MutableMap<String?, Int> = HashMap()
+    private var epcTableFindingMatched: MutableMap<String?, Int> = HashMap()
+    private var ePCTableFinding: MutableMap<String, Int> = HashMap()
     lateinit var setting: WebSettings
     var isChecked = false
     var findingInProgress = false
@@ -69,14 +70,14 @@ class FindingResultSubActivity : AppCompatActivity() {
                     
                     uhfTagInfo = rf.readTagFromBuffer()
                     if (uhfTagInfo != null) {
-                        EPCTableFinding[uhfTagInfo.epc] = 1
+                        ePCTableFinding[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
-                if (EPCTableFinding.isNotEmpty()) {
+                if (ePCTableFinding.isNotEmpty()) {
                     flag = false
-                    for ((key) in EPCTableFinding) {
+                    for ((key) in ePCTableFinding) {
                         EPCHexString = key
                         EPCInt1 = EPCHexString.substring(0, 8).toLong(16)
                         EPCInt2 = EPCHexString.substring(8, 16).toLong(16)
@@ -110,7 +111,7 @@ class FindingResultSubActivity : AppCompatActivity() {
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                     }
-                    EPCTableFinding.clear()
+                    ePCTableFinding.clear()
                     databaseBackgroundTaskHandler.postDelayed(this, 1000)
                 } else {
                     databaseBackgroundTaskHandler.postDelayed(this, 1000)
@@ -193,7 +194,7 @@ class FindingResultSubActivity : AppCompatActivity() {
         setting.useWideViewPort = true
         setting.loadWithOverviewMode = true
         picture.isFocusable = false
-        WarehouseScanning.databaseInProgress = false
+        WarehouseScanningActivity.databaseInProgress = false
         when (findingPower) {
             5 -> powerSeekBar.progress = 0
             10 -> powerSeekBar.progress = 1
@@ -205,12 +206,13 @@ class FindingResultSubActivity : AppCompatActivity() {
     }
     
     @SuppressLint("SetTextI18n")
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
             if (event.repeatCount == 0) {
                 status.text = ""
                 if (!readEnable) {
-                    EPCTableFinding.clear()
+                    ePCTableFinding.clear()
                     if (!isChecked) {
                         epcTableFindingMatched.clear()
                     }
@@ -227,7 +229,7 @@ class FindingResultSubActivity : AppCompatActivity() {
                     rf.stopInventory()
                     findingInProgress = false
                     flag = false
-                    for ((key) in EPCTableFinding) {
+                    for ((key) in ePCTableFinding) {
                         EPCHexString = key
                         EPCInt1 = EPCHexString.substring(0, 8).toLong(16)
                         EPCInt2 = EPCHexString.substring(8, 16).toLong(16)
@@ -260,7 +262,7 @@ class FindingResultSubActivity : AppCompatActivity() {
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                     }
-                    EPCTableFinding.clear()
+                    ePCTableFinding.clear()
                 }
             }
         } else if (keyCode == 4) {
@@ -284,7 +286,7 @@ class FindingResultSubActivity : AppCompatActivity() {
     }
 
     fun clearEPCs(view: View?) {
-        EPCTableFinding.clear()
+        ePCTableFinding.clear()
         epcTableFindingMatched.clear()
         status.text = ""
         numberOfFoundText.text = "0"
@@ -295,7 +297,6 @@ class FindingResultSubActivity : AppCompatActivity() {
     }
 
     companion object {
-        var EPCTableFinding: MutableMap<String, Int> = HashMap()
         lateinit var stuffPrimaryCode: String
         lateinit var stuffRFIDCode: String
     }

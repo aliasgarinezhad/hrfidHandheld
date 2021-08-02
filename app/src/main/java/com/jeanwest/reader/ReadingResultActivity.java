@@ -58,11 +58,11 @@ public class ReadingResultActivity extends AppCompatActivity {
         allNumber.clear();
         extraNumber.clear();
 
-        for (int i = 0; i < WarehouseScanning.API2.stuffs.length(); i++) {
+        for (int i = 0; i < WarehouseScanningActivity.API2.stuffs.length(); i++) {
 
             try {
-                temp = WarehouseScanning.API2.stuffs.getString(i);
-                subStuffs = WarehouseScanning.API2.conflicts.getJSONArray(temp);
+                temp = WarehouseScanningActivity.API2.stuffs.getString(i);
+                subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(temp);
                 titles.add(temp);
 
             } catch (JSONException e) {
@@ -76,7 +76,7 @@ public class ReadingResultActivity extends AppCompatActivity {
 
             try {
                 temp = titles.get(i);
-                subStuffs = WarehouseScanning.API2.conflicts.getJSONArray(temp);
+                subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(temp);
 
                 NotScanned = 0;
                 scanned = 0;

@@ -33,7 +33,7 @@ public class APIReadingConflicts extends Thread {
                 try {
 
                     stuffs = null;
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanning.ID + "/conflicts/v2";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanningActivity.ID + "/conflicts/v2";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
@@ -53,7 +53,7 @@ public class APIReadingConflicts extends Thread {
                     else {
 
                         Response = Connection.getResponseCode() + " error: " + Connection.getResponseMessage();
-                        WarehouseScanning.databaseInProgress = false;
+                        WarehouseScanningActivity.databaseInProgress = false;
                     }
 
                     Connection.disconnect();

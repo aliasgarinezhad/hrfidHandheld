@@ -69,7 +69,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         pictureURL = new ArrayList<>();
 
         try {
-            subStuffs = WarehouseScanning.API2.conflicts.getJSONArray(ReadingResultActivity.index);
+            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(ReadingResultActivity.index);
         } catch (JSONException e) {
             e.printStackTrace();
             return;

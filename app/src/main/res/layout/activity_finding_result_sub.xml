@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".FindingResultSubActivity">
+    tools:context=".FindingProductSubActivity">
 
     <SeekBar
         android:id="@+id/findingPowerSeekBar0"

@@ -358,7 +358,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                 EPC: $epc
                 """.trimIndent()
         }
-        api.Barcode = barcodeID
+        api.barcode = barcodeID
         api.run = true
         while (api.run) {
         }
@@ -366,7 +366,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             status.text = """
                 ${status.text}
                 خطا در دیتابیس
-                ${api.Response}
+                ${api.response}
                 
                 """.trimIndent()
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
@@ -375,7 +375,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         while (!rf.setPower(30)) {
         }
-        val itemNumber = api.Response.toLong() // 32 bit
+        val itemNumber = api.response.toLong() // 32 bit
         val serialNumber = counterValue // 38 bit
         tempStr = java.lang.Long.toBinaryString(itemNumber)
         val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")

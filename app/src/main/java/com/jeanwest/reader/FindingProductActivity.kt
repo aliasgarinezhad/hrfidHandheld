@@ -31,15 +31,12 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         result = Toast.makeText(this, "", Toast.LENGTH_LONG)
         list = findViewById(R.id.findingListView)
         kBarCode = findViewById(R.id.K_Bar_CodeView)
-        nextActivityIntent = Intent(this, FindingResultSubActivity::class.java)
+        nextActivityIntent = Intent(this, FindingProductSubActivity::class.java)
 
         list.onItemClickListener = OnItemClickListener { _, _, i, _ ->
             index = i
             startActivity(nextActivityIntent)
         }
-
-        API = FindingProductAPI()
-        API.start()
     }
 
     override fun onResume() {
@@ -47,6 +44,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         open()
         val findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
         list.adapter = findingListAdapter
+        API = FindingProductAPI()
+        API.start()
     }
 
     override fun onPause() {

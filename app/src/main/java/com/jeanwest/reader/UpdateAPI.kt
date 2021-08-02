@@ -8,7 +8,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-class APIUpdate : Thread() {
+class UpdateAPI : Thread() {
     var response: String? = null
     var status = false
     var serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug.apk"
@@ -34,7 +34,7 @@ class APIUpdate : Thread() {
             } else {
                 response =
                     connection.responseCode.toString() + " error: " + connection.responseMessage
-                WarehouseScanning.databaseInProgress = false
+                WarehouseScanningActivity.databaseInProgress = false
             }
             connection.disconnect()
             sleep(1000)

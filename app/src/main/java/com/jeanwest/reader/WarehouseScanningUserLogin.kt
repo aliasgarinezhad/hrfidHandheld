@@ -30,7 +30,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         setContentView(R.layout.activity_user_spec)
         departmentInfoIDView = findViewById<View>(R.id.DepartmentInfoIDView) as EditText
         wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner)
-        nextActivityIntent = Intent(this, WarehouseScanning::class.java)
+        nextActivityIntent = Intent(this, WarehouseScanningActivity::class.java)
         status = Toast.makeText(this, "", Toast.LENGTH_LONG)
         val spinnerString = ArrayList<String>()
         spinnerString.add("فروشگاه")
@@ -73,8 +73,8 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         }
         wareHouseID = api.wareHouseID
         departmentInfoID = api.departmentInfoID
-        WarehouseScanning.ID = api.Response.toInt()
-        WarehouseScanning.fromLogin = true
+        WarehouseScanningActivity.ID = api.Response.toInt()
+        WarehouseScanningActivity.fromLogin = true
         startActivity(nextActivityIntent)
     }
 
@@ -97,8 +97,8 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
-            WarehouseScanning.EPCTable.clear()
-            WarehouseScanning.EPCTableValid.clear()
+            WarehouseScanningActivity.EPCTable.clear()
+            WarehouseScanningActivity.EPCTableValid.clear()
             editor.putString("1", "")
             editor.putString("2", "")
             editor.commit()

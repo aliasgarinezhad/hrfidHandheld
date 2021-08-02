@@ -34,11 +34,11 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WarehouseScanning extends AppCompatActivity {
+public class WarehouseScanningActivity extends AppCompatActivity {
 
-    public static RFIDWithUHFUART RF;
+    RFIDWithUHFUART RF;
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-    public TextView status;
+    TextView status;
     TextView percentage;
     TextView powerText;
     SeekBar powerSeekBar;
