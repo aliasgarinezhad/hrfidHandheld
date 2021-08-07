@@ -1,69 +1,57 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+class APIReadingConflicts : Thread() {
+    var response: String = ""
 
-public class APIReadingConflicts extends Thread {
+    @JvmField
+    var status = false
 
-    public String Response;
-    public boolean status = false;
-    public volatile boolean run = false;
-    public JSONArray stuffs;
-    public JSONObject conflicts;
-    public boolean stop = false;
+    @Volatile
+    @JvmField
+    var run = true
 
-    public void run(){
+    @JvmField
+    var stuffs = JSONArray()
 
-        while (!stop) {
+    @JvmField
+    var conflicts = JSONObject()
 
-            if(run) {
+    override fun run() {
 
-                status = false;
+        try {
 
-                try {
-
-                    stuffs = null;
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanningActivity.ID + "/conflicts/v2";
-                    URL server = new URL(GetCommand);
-                    HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
-
-                    if (Connection.getResponseCode() == 200) {
-                        InputStream input = new BufferedInputStream(Connection.getInputStream());
-                        InputStreamReader isr = new InputStreamReader(input, StandardCharsets.UTF_8);
-
-                        BufferedReader reader = new BufferedReader(isr);
-                        String Receive = reader.readLine();
-
-                        JSONObject Json = new JSONObject(Receive);
-                        conflicts = Json.getJSONObject("conflicts");
-                        stuffs = conflicts.names();
-
-                        status = true;
-                    }
-                    else {
-
-                        Response = Connection.getResponseCode() + " error: " + Connection.getResponseMessage();
-                        WarehouseScanningActivity.databaseInProgress = false;
-                    }
-
-                    Connection.disconnect();
-
-                } catch (IOException | JSONException e) {
-                    e.printStackTrace();
-                }
-                run = false;
+            val getCommand =
+                "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanningActivity.ID + "/conflicts/v2"
+            val server = URL(getCommand)
+            val connection = server.openConnection() as HttpURLConnection
+            if (connection.responseCode == 200) {
+                val input: InputStream = BufferedInputStream(connection.inputStream)
+                val isr = InputStreamReader(input, StandardCharsets.UTF_8)
+                val reader = BufferedReader(isr)
+                val receive = reader.readLine()
+                val json = JSONObject(receive)
+                conflicts = json.getJSONObject("conflicts")
+                stuffs = conflicts.names()!!
+                status = true
+            } else {
+                response =
+                    connection.responseCode.toString() + " error: " + connection.responseMessage
+                WarehouseScanningActivity.databaseInProgress = false
             }
+            connection.disconnect()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        } catch (e: JSONException) {
+            e.printStackTrace()
         }
+        run = false
     }
 }
-

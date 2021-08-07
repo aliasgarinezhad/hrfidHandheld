@@ -281,7 +281,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                     }
                 }
             } else {
-                status.text = status.text.toString() + "\n" + "اسکن دوم با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
+                status.text = status.text.toString() + "\n" + "اسکن اول با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
 
                 isOK = true
             }
