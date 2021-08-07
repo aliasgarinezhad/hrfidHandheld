@@ -23,6 +23,8 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
     private lateinit var nextActivityIntent: Intent
     private lateinit var memory: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
+    private var warehouseID: Int = 2
+    private var departmentInfoID: Int = 0
 
     @SuppressLint("SetTextI18n", "CommitPrefEdits")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,9 +48,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         super.onResume()
         departmentInfoID = memory.getInt("ID", 1) // value to store
         departmentInfoIDView.setText(departmentInfoID.toString())
-        api = APIReadingInformation()
-        api.stop = false
-        api.start()
     }
 
     fun startReading(view: View?) {
@@ -57,35 +56,31 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
             status.show()
             return
         }
+        api = APIReadingInformation()
         api.departmentInfoID = departmentInfoIDView.editableText.toString().toInt()
         api.wareHouseID = wareHouseIDView.selectedItemPosition + 1
         departmentInfoID = api.departmentInfoID
-        wareHouseID = api.wareHouseID
+        warehouseID = api.wareHouseID
         editor.putInt("ID", departmentInfoID) // value to store
         editor.commit()
-        api.run = true
-        while (api.run) {
-        }
+        api.start()
+        while (api.run) {}
         if (!api.status) {
             status.setText("خطا در دیتابیس")
             status.show()
             return
         }
-        wareHouseID = api.wareHouseID
+        warehouseID = api.wareHouseID
         departmentInfoID = api.departmentInfoID
-        WarehouseScanningActivity.ID = api.Response.toInt()
-        WarehouseScanningActivity.fromLogin = true
+        nextActivityIntent.putExtra("fromLogin", true)
+        nextActivityIntent.putExtra("ID", api.response.toInt())
+        nextActivityIntent.putExtra("departmentInfoID", departmentInfoID)
+        nextActivityIntent.putExtra("warehouseID", warehouseID)
         startActivity(nextActivityIntent)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        api.stop = true
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == 4) {
-            api.stop = true
             finish()
         }
         return true
@@ -115,19 +110,12 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
 
     fun finishReading(view: View?) {
         val finishWarehouseScanning = APIReadingFinish()
-        finishWarehouseScanning.DepoMojodiReviewInfo_ID = memory.getInt(departmentInfoID.toString() + 2, 0)
-        finishWarehouseScanning.StoreMojodiReviewInfo_ID = memory.getInt(departmentInfoID.toString() + 1, 0)
+        finishWarehouseScanning.depoMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 2, 0)
+        finishWarehouseScanning.storeMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 1, 0)
         finishWarehouseScanning.start()
         while (finishWarehouseScanning.run) {
         }
-        status.setText(finishWarehouseScanning.Response)
+        status.setText(finishWarehouseScanning.response)
         status.show()
-    }
-
-    companion object {
-        @JvmField
-        var departmentInfoID: Int = 0
-        @JvmField
-        var wareHouseID: Int = 2
     }
 }

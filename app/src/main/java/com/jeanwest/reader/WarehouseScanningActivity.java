@@ -68,6 +68,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
     public static boolean fromLogin = false;
 
     String header;
+    public static int warehouseID = 2;
+    int departmentInfoID = 0;
 
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
@@ -92,8 +94,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
                     }
                 }
 
-                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
-                if (WarehouseScanningUserLogin.wareHouseID == 1) {
+                status.setText("کد شعبه: " + departmentInfoID + '\n');
+                if (warehouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -140,8 +142,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
                     }
                 }
 
-                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
-                if (WarehouseScanningUserLogin.wareHouseID == 1) {
+                status.setText("کد شعبه: " + departmentInfoID + '\n');
+                if (warehouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -172,8 +174,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
                 response.setText("خطا در دیتابیس" + '\n' + API.Response);
                 response.show();
 
-                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
-                if (WarehouseScanningUserLogin.wareHouseID == 1) {
+                status.setText("کد شعبه: " + departmentInfoID + '\n');
+                if (warehouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -248,7 +250,7 @@ public class WarehouseScanningActivity extends AppCompatActivity {
         EPCTable.clear();
         EPCTableValid.clear();
 
-        EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), ""), HashMap.class);
+        EPCTableValid = new Gson().fromJson(table.getString(String.valueOf(warehouseID), ""), HashMap.class);
 
         if (EPCTableValid == null) {
             EPCTableValid = new HashMap<String, Integer>();
@@ -282,8 +284,13 @@ public class WarehouseScanningActivity extends AppCompatActivity {
         API2.stop = false;
         API2.start();
 
+        fromLogin = intent.getBooleanExtra("fromLogin", false);
+
         if (fromLogin) {
 
+            ID = getIntent().getIntExtra("ID", 0);
+            warehouseID = getIntent().getIntExtra("warehouseID", 0);
+            departmentInfoID = getIntent().getIntExtra("departmentInfoID", 0);
             API2.status = false;
             API2.run = true;
             while (API2.run) {
@@ -307,8 +314,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
             fromLogin = false;
         }
 
-        status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
-        if (WarehouseScanningUserLogin.wareHouseID == 1) {
+        status.setText("کد شعبه: " + departmentInfoID + '\n');
+        if (warehouseID == 1) {
             status.setText(status.getText() + "در سطح فروش" + '\n');
         } else {
             status.setText(status.getText() + "در سطح انبار" + '\n');
@@ -360,8 +367,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
                     status.setText("در حال پردازش ...");
 
                     JSONObject tableJson = new JSONObject(EPCTableValid);
-                    tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
-                    tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.wareHouseID, ID);
+                    tableEditor.putString(String.valueOf(warehouseID), tableJson.toString());
+                    tableEditor.putInt(String.valueOf(departmentInfoID) + warehouseID, ID);
                     tableEditor.commit();
 
                     timerHandler.postDelayed(timerRunnable, 500);
@@ -395,8 +402,8 @@ public class WarehouseScanningActivity extends AppCompatActivity {
         API2.stop = true;
 
         tableJson = new JSONObject(EPCTableValid);
-        tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
-        tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.wareHouseID, ID);
+        tableEditor.putString(String.valueOf(warehouseID), tableJson.toString());
+        tableEditor.putInt(String.valueOf(departmentInfoID) + warehouseID, ID);
         tableEditor.commit();
     }
 
@@ -427,13 +434,13 @@ public class WarehouseScanningActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 EPCTable.clear();
                 EPCTableValid.clear();
-                tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), "");
-                tableEditor.putInt(String.valueOf(WarehouseScanningUserLogin.departmentInfoID) + WarehouseScanningUserLogin.departmentInfoID, ID);
+                tableEditor.putString(String.valueOf(warehouseID), "");
+                tableEditor.putInt(String.valueOf(departmentInfoID) + departmentInfoID, ID);
                 tableEditor.commit();
                 EPCLastLength = 0;
 
-                status.setText("کد شعبه: " + WarehouseScanningUserLogin.departmentInfoID + '\n');
-                if (WarehouseScanningUserLogin.wareHouseID == 1) {
+                status.setText("کد شعبه: " + departmentInfoID + '\n');
+                if (warehouseID == 1) {
                     status.setText(status.getText() + "در سطح فروش" + '\n');
                 } else {
                     status.setText(status.getText() + "در سطح انبار" + '\n');

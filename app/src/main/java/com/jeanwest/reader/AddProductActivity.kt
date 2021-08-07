@@ -142,7 +142,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         if (barcode.length > 2) {
             barcodeIsScanning = false
             barcodeID = barcode
-            status.text = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID\n"
+            status.text = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID"
             status.setBackgroundColor(getColor(R.color.DarkGreen))
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             if (oneStepActive) {
@@ -265,41 +265,32 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             rfIsScanning = true
             return
         } else if (numberOfScanned < 3) {
-            status.text = status.text.toString() + "هیچ تگی یافت نشد"
+            status.text = status.text.toString() + "\n" + "هیچ تگی یافت نشد"
         } else {
             collision = epcs.size != 1
             if (collision) {
                 if (edit) {
                     status.text =
-                        status.text.toString() + "تعداد تگ های یافت شده بیشتر از یک عدد است"
+                        status.text.toString() + "\n" + "تعداد تگ های یافت شده بیشتر از یک عدد است"
                 } else {
                     if (epcs.isEmpty()) {
-                        status.text = status.text.toString() + "هیچ تگ جدیدی یافت نشد"
+                        status.text = status.text.toString() + "\n" + "هیچ تگ جدیدی یافت نشد"
                     } else {
                         status.text =
-                            status.text.toString() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
+                            status.text.toString() + "\n" + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
                     }
                 }
             } else {
-                status.text = """
-                    ${status.text}اسکن اول با موفقیت انجام شد
-                    TID: $tid
-                    EPC: $epc
-                    """.trimIndent()
+                status.text = status.text.toString() + "\n" + "اسکن دوم با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
+
                 isOK = true
             }
         }
-        status.text = """
-            ${status.text}
-            تعداد دفعات اسکن:$numberOfScanned
-            
-            """.trimIndent()
+        status.text = status.text.toString() + "\n" + "تعداد دفعات اسکن:$numberOfScanned"
+
         if (!isOK) {
             epcs.clear()
-            status.text = """
-                ${status.text}
-                
-                """.trimIndent()
+
             Thread.sleep(100)
             rf.startInventoryTag(0, 0, 0)
             Thread.sleep(900)
@@ -325,7 +316,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             rf.stopInventory()
             numberOfScanned = loopVariable
             if (numberOfScanned <= 10) {
-                status.text = status.text.toString() + "هیچ تگی یافت نشد"
+                status.text = status.text.toString() + "\n" + "هیچ تگی یافت نشد"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 status.setBackgroundColor(getColor(R.color.Brown))
                 return
@@ -334,24 +325,20 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             if (collision) {
                 if (edit) {
                     status.text =
-                        status.text.toString() + "تعداد تگ های یافت شده بیشتر از یک عدد است"
+                        status.text.toString() + "\n" + "تعداد تگ های یافت شده بیشتر از یک عدد است"
                 } else {
-                    if (epcs.size == 0) {
-                        status.text = status.text.toString() + "هیچ تگ جدیدی یافت نشد"
+                    if (epcs.isEmpty()) {
+                        status.text = status.text.toString() + "\n" + "هیچ تگ جدیدی یافت نشد"
                     } else {
                         status.text =
-                            status.text.toString() + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
+                            status.text.toString() + "\n" + "تعداد تگ های جدید یافت شده بیشتر از یک عدد است"
                     }
                 }
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 status.setBackgroundColor(getColor(R.color.Brown))
                 return
             }
-            status.text = """
-                ${status.text}اسکن دوم با موفقیت انجام شد
-                TID: $tid
-                EPC: $epc
-                """.trimIndent()
+            status.text = status.text.toString() + "\n" + "اسکن دوم با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
         }
 
         api = AddProductAPI()
@@ -360,12 +347,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         while (api.run) {}
 
         if (!api.status) {
-            status.text = """
-                ${status.text}
-                خطا در دیتابیس
-                ${api.response}
-                
-                """.trimIndent()
+            status.text = status.text.toString() + "\n" + "خطا در دیتابیس" + api.response
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             status.setBackgroundColor(getColor(R.color.Brown))
             return
@@ -441,81 +423,38 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         while (!rf.setPower(RFPower)) {
         }
         if (o >= 15) {
-            status.text = """
-                ${status.text}
-                سریال نوشته شده با سریال واقعی تطابق ندارد
-                """.trimIndent()
-            status.text = """
-                ${status.text}
-                EPCVerify
-                """.trimIndent()
-            status.text = """
-                ${status.text}
-                $New
-                """.trimIndent()
+            status.text = status.text.toString() + "سریال نوشته شده با سریال واقعی تطابق ندارد"
+            status.text = status.text.toString() + "EPCVerify"
+            status.text = status.text.toString() + "New"
+
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             status.setBackgroundColor(getColor(R.color.Brown))
             return
         }
         if (New != EPCVerify) {
-            status.text = """
-                ${status.text}
-                سریال نوشته شده با سریال واقعی تطابق ندارد
-                """.trimIndent()
-            status.text = """
-                ${status.text}
-                $EPCVerify
-                """.trimIndent()
-            status.text = """
-                ${status.text}
-                $New
-                """.trimIndent()
+            status.text = status.text.toString() + "سریال نوشته شده با سریال واقعی تطابق ندارد"
+
+            status.text = status.text.toString() + EPCVerify
+            status.text = status.text.toString() + "New"
+
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             status.setBackgroundColor(getColor(R.color.Brown))
             return
         }
         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
         status.setBackgroundColor(getColor(R.color.DarkGreen))
-        status.text = """
-            ${status.text}
-            با موفقیت اضافه شد
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            number of try in writing: $k
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            number of try in confirming: $o
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Header: $headerNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Filter: $filterNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Partition: $partitionNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Company number: $companyNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Item number: $itemNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            Serial number: $serialNumber
-            """.trimIndent()
-        status.text = """
-            ${status.text}
-            New EPC: $New
-            """.trimIndent()
+
+        status.text = status.text.toString() + "\n" +"با موفقیت اضافه شد"
+        status.text = status.text.toString() + "\n" + "number of try in writing: $k"
+        status.text = status.text.toString() + "\n" + "number of try in confirming: $o"
+        status.text = status.text.toString() + "\n" + "Header: $headerNumber"
+        status.text = status.text.toString() + "\n" + "Filter: $filterNumber"
+        status.text = status.text.toString() + "\n" + "Partition: $partitionNumber"
+        status.text = status.text.toString() + "\n" + "Company number: $companyNumber"
+        status.text = status.text.toString() + "\n" + "Item number: $itemNumber"
+        status.text = status.text.toString() + "\n" + "Serial number: $serialNumber"
+        status.text = status.text.toString() + "\n" + "New EPC: $New"
+
         counterValue++
         counterValueModified++
         numberOfWritten.text = "تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue)

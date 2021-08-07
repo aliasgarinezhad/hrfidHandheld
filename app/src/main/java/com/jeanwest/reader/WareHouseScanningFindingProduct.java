@@ -27,12 +27,12 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class readingResultSubSubActivity extends AppCompatActivity {
+public class WareHouseScanningFindingProduct extends AppCompatActivity {
 
-    WareHouseScanningFindingProductAPI database;
-    public RFIDWithUHFUART RF;
-    public static Map<String, Integer> EPCTableFinding = new HashMap<>();
-    public ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+    GetProductEPCAPI api;
+    RFIDWithUHFUART RF;
+    Map<String, Integer> EPCTableFinding = new HashMap<>();
+    ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     int findingPower = 30;
     TextView status;
     TextView powerText;
@@ -43,8 +43,8 @@ public class readingResultSubSubActivity extends AppCompatActivity {
     WebView picture;
     CheckBox option;
 
-    public static String stuffPrimaryCode;
-    public static String stuffRFIDCode;
+    String stuffPrimaryCode;
+    String stuffRFIDCode;
     JSONArray subStuffs;
     JSONObject stuff;
     Map<String, Integer> EPCTableFindingMatched = new HashMap<>();
@@ -113,7 +113,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                             stuffCode = Long.parseLong(stuffRFIDCode);
                         }
                         if (header == 48 && itemNumber == stuffCode) {
-                            //status.setText(status.getText() + "\n" + EPCHexString);
                             EPCTableFindingMatched.put(EPCHexString, 1);
                             flag = true;
                         }
@@ -172,11 +171,10 @@ public class readingResultSubSubActivity extends AppCompatActivity {
                     EPCTableFinding.clear();
                     EPCTableFindingMatched.clear();
                     status.setText("");
-                    database.stop = true;
                     WarehouseScanningActivity.API.stop = true;
                     WarehouseScanningActivity.API2.stop = true;
 
-                    while (database.isAlive() || WarehouseScanningActivity.API.isAlive() || WarehouseScanningActivity.API2.isAlive()) {
+                    while (api.isAlive() || WarehouseScanningActivity.API.isAlive() || WarehouseScanningActivity.API2.isAlive()) {
                     }
 
                     onResume();
@@ -280,10 +278,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         while (!RF.setPower(findingPower)) {
         }
 
-        database = new WareHouseScanningFindingProductAPI();
-        database.stop = false;
-        database.start();
-
         try {
 
             subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(ReadingResultActivity.index);
@@ -318,14 +312,17 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         setting.setLoadWithOverviewMode(true);
         picture.setFocusable(false);
 
-        database.run = true;
-        while (database.run) {
-        }
+        api = new GetProductEPCAPI();
+        api.id = String.valueOf(WarehouseScanningActivity.ID);
+        api.primaryCode = stuffPrimaryCode;
+        api.rfidCode = stuffRFIDCode;
+        api.start();
+        while (api.run) {}
 
-        if (!database.status) {
-            stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
+        if (!api.status) {
+            stuffSpec.setText(stuffSpec.getText() + "\n" + api.response);
         } else {
-            stuffSpec.setText(stuffSpec.getText() + "\n" + database.Response);
+            stuffSpec.setText(stuffSpec.getText() + "\n" + api.response);
         }
 
         WarehouseScanningActivity.databaseInProgress = false;
@@ -463,7 +460,6 @@ public class readingResultSubSubActivity extends AppCompatActivity {
             findingInProgress = false;
             databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
-            database.stop = true;
             WarehouseScanningActivity.API.stop = true;
             WarehouseScanningActivity.API2.stop = true;
             finish();
@@ -505,7 +501,7 @@ public class readingResultSubSubActivity extends AppCompatActivity {
         WarehouseScanningActivity.EPCTableValid.putAll(EPCTableFindingMatched);
 
         tableJson = new JSONObject(WarehouseScanningActivity.EPCTableValid);
-        tableEditor.putString(String.valueOf(WarehouseScanningUserLogin.wareHouseID), tableJson.toString());
+        tableEditor.putString(String.valueOf(WarehouseScanningActivity.warehouseID), tableJson.toString());
         tableEditor.commit();
 
         WarehouseScanningActivity.API = new APIReadingEPC();

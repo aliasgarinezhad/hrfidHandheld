@@ -45,7 +45,7 @@ public class readingResultSubActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_result_sub);
         subResult = findViewById(R.id.subResultView);
-        intent = new Intent(this, readingResultSubSubActivity.class);
+        intent = new Intent(this, WareHouseScanningFindingProduct.class);
     }
 
     @SuppressLint("SetTextI18n")
