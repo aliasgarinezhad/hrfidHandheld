@@ -8,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 
-class APIReadingConflicts : Thread() {
+class WarehouseScanningReadingConflictsAPI : Thread() {
     var response: String = ""
 
     @JvmField
@@ -19,17 +19,16 @@ class APIReadingConflicts : Thread() {
     var run = true
 
     @JvmField
-    var stuffs = JSONArray()
+    var conflicts = JSONObject()
 
     @JvmField
-    var conflicts = JSONObject()
+    var id = 0
 
     override fun run() {
 
         try {
 
-            val getCommand =
-                "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanningActivity.ID + "/conflicts/v2"
+            val getCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/conflicts/v2"
             val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
             if (connection.responseCode == 200) {
@@ -39,12 +38,11 @@ class APIReadingConflicts : Thread() {
                 val receive = reader.readLine()
                 val json = JSONObject(receive)
                 conflicts = json.getJSONObject("conflicts")
-                stuffs = conflicts.names()!!
                 status = true
             } else {
                 response =
                     connection.responseCode.toString() + " error: " + connection.responseMessage
-                WarehouseScanningActivity.databaseInProgress = false
+                status = false
             }
             connection.disconnect()
         } catch (e: IOException) {

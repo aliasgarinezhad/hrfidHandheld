@@ -12,7 +12,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
-class APIReadingInformation : Thread() {
+class WarehouseScanningSendingInformationAPI : Thread() {
     var departmentInfoID = 68
     var wareHouseID = 1706
     var response: String = ""

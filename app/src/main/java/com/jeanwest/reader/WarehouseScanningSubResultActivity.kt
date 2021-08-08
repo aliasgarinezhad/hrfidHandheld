@@ -1,197 +1,168 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader
 
-import androidx.appcompat.app.AppCompatActivity;
-import android.annotation.SuppressLint;
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import java.util.ArrayList;
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.os.Bundle
+import android.widget.AdapterView.OnItemClickListener
+import android.widget.ListView
+import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.util.*
 
-public class readingResultSubActivity extends AppCompatActivity {
+class WarehouseScanningSubResultActivity : AppCompatActivity() {
+    lateinit var subResult: ListView
+    var subStuffs = JSONArray()
+    var numberOfNotStatusNotScanned = 0
+    var numberOfNotStatusScanned = 0
+    var j = 0
+    var numberOfStatusExtras = 0
+    var numberOfStatusScanned = 0
+    var numberOfNotStatusAll = 0
+    var numberOfStatusAll = 0
+    lateinit var nextActivityIntent: Intent
+    private lateinit var index: IntArray
+    var titles = ArrayList<String>()
+    var specs = ArrayList<String>()
+    var scanned = ArrayList<String>()
+    var notScanned = ArrayList<String>()
+    private var all = ArrayList<String>()
+    private var pictureURL = ArrayList<String>()
+    lateinit var listAdapter: MyListAdapterSub
+    var stuff = JSONObject()
 
-    ListView subResult;
-    JSONArray subStuffs;
-    int numberOfNotStatusNotScanned = 0;
-    int numberOfNotStatusScanned = 0;
-    int j;
-    int numberOfStatusExtras = 0;
-    int numberOfStatusScanned = 0;
-    int numberOfNotStatusAll = 0;
-    int numberOfStatusAll = 0;
-    Intent intent;
-
-    public static Integer indexNumberSub;
-
-    int[] index;
-    public static int subIndex;
-
-    ArrayList<String> titles;
-    ArrayList<String> specs;
-    ArrayList<String> scanned;
-    ArrayList<String> notScanned;
-    ArrayList<String> all;
-    ArrayList<String> pictureURL;
-
-    MyListAdapterSub listAdapter;
-    JSONObject stuff;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_reading_result_sub);
-        subResult = findViewById(R.id.subResultView);
-        intent = new Intent(this, WareHouseScanningFindingProduct.class);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_reading_result_sub)
+        subResult = findViewById(R.id.subResultView)
+        nextActivityIntent = Intent(this, WareHouseScanningFindingProduct::class.java)
     }
 
     @SuppressLint("SetTextI18n")
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        numberOfNotStatusNotScanned = 0;
-        numberOfStatusExtras = 0;
-        numberOfStatusScanned = 0;
-        numberOfNotStatusScanned = 0;
-        numberOfNotStatusAll = 0;
-        numberOfStatusAll = 0;
-        j = 0;
-
-        titles = new ArrayList<>();
-        specs = new ArrayList<>();
-        scanned = new ArrayList<>();
-        notScanned = new ArrayList<>();
-        all = new ArrayList<>();
-        pictureURL = new ArrayList<>();
-
-        try {
-            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(ReadingResultActivity.index);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
+    override fun onResume() {
+        super.onResume()
+        numberOfNotStatusNotScanned = 0
+        numberOfStatusExtras = 0
+        numberOfStatusScanned = 0
+        numberOfNotStatusScanned = 0
+        numberOfNotStatusAll = 0
+        numberOfStatusAll = 0
+        j = 0
+        titles = ArrayList()
+        specs = ArrayList()
+        scanned = ArrayList()
+        notScanned = ArrayList()
+        all = ArrayList()
+        pictureURL = ArrayList()
+        subStuffs = try {
+            WarehouseScanningActivity.conflicts.getJSONArray(WarehouseScanningResultActivity.index)
+        } catch (e: JSONException) {
+            e.printStackTrace()
+            return
         }
-
-        index = new int[subStuffs.length() + 100];
-
-        for (int i = 0; i < subStuffs.length(); i++) {
-
+        index = IntArray(subStuffs.length() + 100)
+        for (i in 0 until subStuffs.length()) {
             try {
-                stuff = subStuffs.getJSONObject(i);
-
+                stuff = subStuffs.getJSONObject(i)
                 if (!stuff.getBoolean("status")) {
-                    numberOfNotStatusNotScanned += stuff.getInt("diffCount");
-                    numberOfNotStatusScanned += stuff.getInt("handheldCount");
-                    numberOfNotStatusAll += stuff.getInt("dbCount");
+                    numberOfNotStatusNotScanned += stuff.getInt("diffCount")
+                    numberOfNotStatusScanned += stuff.getInt("handheldCount")
+                    numberOfNotStatusAll += stuff.getInt("dbCount")
                 }
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return;
+            } catch (e: JSONException) {
+                e.printStackTrace()
+                return
             }
         }
-
-        titles.add("کالاهای اسکن نشده");
-        specs.add("ناموجود در انبار، موجود در سرور");
-        notScanned.add("تعداد اسکن نشده: " + numberOfNotStatusNotScanned);
-        scanned.add("تعداد اسکن شده: " + numberOfNotStatusScanned);
-        all.add("تعداد کل: " + numberOfNotStatusAll);
-        pictureURL.add("a");
-
-
-        index[j] = -1;
-        j++;
-
-        for (int i = 0; i<subStuffs.length(); i++) {
-
+        titles.add("کالاهای اسکن نشده")
+        specs.add("ناموجود در انبار، موجود در سرور")
+        notScanned.add("تعداد اسکن نشده: $numberOfNotStatusNotScanned")
+        scanned.add("تعداد اسکن شده: $numberOfNotStatusScanned")
+        all.add("تعداد کل: $numberOfNotStatusAll")
+        pictureURL.add("a")
+        index[j] = -1
+        j++
+        for (i in 0 until subStuffs.length()) {
             try {
-                stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i)
                 if (!stuff.getBoolean("status") && stuff.getInt("diffCount") != 0) {
-                    index[j] = i;
-                    j++;
-
-                    titles.add(stuff.getString("productName"));
-                    specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                            "بارکد: " + stuff.getString("KBarCode"));
-                    notScanned.add("تعداد اسکن نشده: " + stuff.getString("diffCount"));
-                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
-                    all.add("تعداد کل: " + stuff.getString("dbCount"));
-                    pictureURL.add(stuff.getString("ImgUrl"));
-
+                    index[j] = i
+                    j++
+                    titles.add(stuff.getString("productName"))
+                    specs.add(
+                        """
+                            کد محصول: ${stuff.getString("K_Bar_Code")}
+                            بارکد: ${stuff.getString("KBarCode")}
+                            """.trimIndent()
+                    )
+                    notScanned.add("تعداد اسکن نشده: " + stuff.getString("diffCount"))
+                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"))
+                    all.add("تعداد کل: " + stuff.getString("dbCount"))
+                    pictureURL.add(stuff.getString("ImgUrl"))
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+            } catch (e: JSONException) {
+                e.printStackTrace()
             }
-
         }
-
-        for (int i = 0; i < subStuffs.length(); i++) {
-
+        for (i in 0 until subStuffs.length()) {
             try {
-                stuff = subStuffs.getJSONObject(i);
-
+                stuff = subStuffs.getJSONObject(i)
                 if (stuff.getBoolean("status")) {
-                    numberOfStatusExtras += stuff.getInt("diffCount");
-                    numberOfStatusScanned += stuff.getInt("handheldCount");
-                    numberOfStatusAll += stuff.getInt("dbCount");
+                    numberOfStatusExtras += stuff.getInt("diffCount")
+                    numberOfStatusScanned += stuff.getInt("handheldCount")
+                    numberOfStatusAll += stuff.getInt("dbCount")
                 }
-
-            } catch (JSONException e) {
-                e.printStackTrace();
+            } catch (e: JSONException) {
+                e.printStackTrace()
             }
         }
-
-        titles.add("کالاهای اضافی");
-        specs.add("ناموجود در سرور، موجود در انبار");
-        notScanned.add("تعداد اسکن نشده: " + numberOfStatusExtras);
-        scanned.add("تعداد اسکن شده: " + numberOfStatusScanned);
-        all.add("تعداد کل: " + numberOfStatusAll);
-        pictureURL.add("a");
-
-        index[j] = -1;
-        j++;
-
-        for (int i = 0; i<subStuffs.length(); i++) {
-
+        titles.add("کالاهای اضافی")
+        specs.add("ناموجود در سرور، موجود در انبار")
+        notScanned.add("تعداد اسکن نشده: $numberOfStatusExtras")
+        scanned.add("تعداد اسکن شده: $numberOfStatusScanned")
+        all.add("تعداد کل: $numberOfStatusAll")
+        pictureURL.add("a")
+        index[j] = -1
+        j++
+        for (i in 0 until subStuffs.length()) {
             try {
-                stuff = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i)
                 if (stuff.getBoolean("status")) {
-                    index[j] = i;
-                    j++;
-
-                    titles.add(stuff.getString("productName"));
-                    specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
-                            "بارکد: " + stuff.getString("KBarCode"));
-                    notScanned.add("تعداد اضافی: " + stuff.getString("diffCount"));
-                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
-                    all.add("تعداد کل: " + stuff.getString("dbCount"));
-                    pictureURL.add(stuff.getString("ImgUrl"));
-
+                    index[j] = i
+                    j++
+                    titles.add(stuff.getString("productName"))
+                    specs.add(
+                        """
+                            کد محصول: ${stuff.getString("K_Bar_Code")}
+                            بارکد: ${stuff.getString("KBarCode")}
+                            """.trimIndent()
+                    )
+                    notScanned.add("تعداد اضافی: " + stuff.getString("diffCount"))
+                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"))
+                    all.add("تعداد کل: " + stuff.getString("dbCount"))
+                    pictureURL.add(stuff.getString("ImgUrl"))
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+            } catch (e: JSONException) {
+                e.printStackTrace()
             }
-
         }
-
-        listAdapter = new MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL);
-
-        subResult.setAdapter(listAdapter);
-
-        subResult.setSelection(indexNumberSub);
-
-        subResult.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                if(index[i] != -1) {
-                    indexNumberSub = i;
-                    subIndex = index[i];
-                    startActivity(intent);
-                }
+        listAdapter =
+            MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL)
+        subResult.adapter = listAdapter
+        subResult.setSelection(indexNumberSub)
+        subResult.onItemClickListener = OnItemClickListener { _, _, i, _ ->
+            if (index[i] != -1) {
+                indexNumberSub = i
+                subIndex = index[i]
+                startActivity(nextActivityIntent)
             }
-        });
+        }
+    }
+
+    companion object {
+        var indexNumberSub = 0
+        @JvmField
+        var subIndex = 0
     }
 }

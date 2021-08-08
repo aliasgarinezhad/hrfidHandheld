@@ -21,13 +21,13 @@
         <activity android:name=".FindingProductActivity"
             android:parentActivityName=".MainActivity"/>
         <activity
-            android:name=".readingResultSubActivity"
-            android:parentActivityName=".ReadingResultActivity" />
+            android:name=".WarehouseScanningSubResultActivity"
+            android:parentActivityName=".WarehouseScanningResultActivity" />
         <activity
             android:name=".SettingActivity"
             android:parentActivityName=".AboutUsActivity" />
         <activity
-            android:name=".ReadingResultActivity"
+            android:name=".WarehouseScanningResultActivity"
             android:parentActivityName=".WarehouseScanningActivity" />
         <activity
             android:name=".WarehouseScanningUserLogin"
@@ -39,7 +39,7 @@
             android:name=".AboutUsActivity"
             android:parentActivityName=".MainActivity" />
         <activity android:name=".WareHouseScanningFindingProduct"
-            android:parentActivityName=".readingResultSubActivity"/>
+            android:parentActivityName=".WarehouseScanningSubResultActivity"/>
         <activity
             android:name=".WarehouseScanningActivity"
             android:parentActivityName=".WarehouseScanningUserLogin" />

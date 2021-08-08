@@ -5,7 +5,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 
-class APIReadingFinish : Thread() {
+class WarehouseScanningFinishAPI : Thread() {
 
     var response = ""
     var status = false

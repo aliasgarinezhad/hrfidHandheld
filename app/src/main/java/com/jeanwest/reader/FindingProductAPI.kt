@@ -35,7 +35,6 @@ class FindingProductAPI : Thread() {
             } else {
                 response =
                     connection.responseCode.toString() + " error: " + connection.responseMessage
-                WarehouseScanningActivity.databaseInProgress = false
             }
             connection.disconnect()
         } catch (e: IOException) {

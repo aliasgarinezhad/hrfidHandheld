@@ -31,8 +31,9 @@ import org.json.JSONObject
 import kotlin.collections.HashMap
 
 class WarehouseScanningActivity : AppCompatActivity() {
+
+    var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     lateinit var rf: RFIDWithUHFUART
-    var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     lateinit var status: TextView
     lateinit var percentage: TextView
     lateinit var powerText: TextView
@@ -46,7 +47,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
     var epcLastLength = 0
     var readingPower = 30
     lateinit var table: SharedPreferences
-    lateinit var tableEditor: SharedPreferences.Editor
+    private lateinit var tableEditor: SharedPreferences.Editor
     var temp = ""
     var subStuffs = JSONArray()
     var temp2 = JSONObject()
@@ -55,11 +56,18 @@ class WarehouseScanningActivity : AppCompatActivity() {
     var allStuffs = 0
     var fromLogin = false
     var timerHandler = Handler()
+    var receivingData = false
+    var apiReadingEPC = WarehouseScanningSendingEPCsAPI()
+    var databaseInProgress = false
+    var apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
 
-    var timerRunnable: Runnable = object : Runnable {
+    private var timerRunnable: Runnable = object : Runnable {
+
         @SuppressLint("SetTextI18n", "ResourceAsColor")
         override fun run() {
+
             if (readingInProgress) {
+
                 var uhfTagInfo: UHFTAGInfo?
                 while (true) {
                     uhfTagInfo = rf.readTagFromBuffer()
@@ -69,38 +77,17 @@ class WarehouseScanningActivity : AppCompatActivity() {
                         break
                     }
                 }
-                status.text = " کد شعبه:" + departmentInfoID + "\n"
 
-                if (warehouseID == 1) {
-                    status.text = status.text.toString() + "در سطح فروش" + "\n"
-                } else {
-                    status.text = status.text.toString() + "در سطح انبار" + "\n"
-                }
+                showPropertiesToUser(EPCTable.size - epcLastLength, beepMain)
 
-                status.text = status.text.toString() + " سرعت اسکن (تگ بر ثانیه):" + (EPCTable.size - epcLastLength) + "\n"
-                    
-                if (EPCTable.size > epcLastLength + 100) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
-                    epcLastLength = EPCTable.size
-                }
-                if (EPCTable.size > epcLastLength + 30) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                    epcLastLength = EPCTable.size
-                }
-                if (EPCTable.size > epcLastLength + 10) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                    epcLastLength = EPCTable.size
-                }
-                if (EPCTable.size > epcLastLength) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    epcLastLength = EPCTable.size
-                }
                 timerHandler.postDelayed(this, 1000)
+
             } else if (processingInProgress) {
+
                 EPCTableValid.clear()
                 for ((key) in EPCTable) {
 
-                    if (key.length > 0) {
+                    if (key.isNotEmpty()) {
                         header = key.substring(0, 2)
                         if (header == "30") {
                             EPCTableValid[key] = 1
@@ -109,51 +96,56 @@ class WarehouseScanningActivity : AppCompatActivity() {
                         Log.e("errorx", key)
                     }
                 }
-                status.text = " کد شعبه:" + departmentInfoID + "\n"
-
-                if (warehouseID == 1) {
-                    status.text = status.text.toString() + "در سطح فروش" + "\n"
-                } else {
-                    status.text = status.text.toString() + "در سطح انبار" + "\n"
-                }
-                status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): 0" + "\n"
-
-                status.text = status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
-
-                circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
-                percentage.text = circularProgressBar.progress.toString() + '%'
+                showPropertiesToUser(0, beepMain)
 
                 readingInProgress = false
                 databaseInProgress = false
                 processingInProgress = false
                 button.setBackgroundColor(getColor(R.color.Primary))
+
             } else if (databaseInProgress) {
-                if (!API.status) {
-                    status.text = "در حال ارسال به سرور "
-                    timerHandler.postDelayed(this, 1000)
-                } else if (!API2.status) {
-                    if (!API2.isAlive) {
-                        API2.start()
+
+                if (!receivingData) {
+
+                    if (apiReadingEPC.run) {
+                        status.text = "در حال ارسال به سرور "
+                        timerHandler.postDelayed(this, 1000)
+
+                    } else {
+
+                        if (apiReadingEPC.status) {
+                            apiReadingConflicts.start()
+                            receivingData = true
+                            timerHandler.postDelayed(this, 1000)
+
+                        } else {
+                            databaseInProgress = false
+                            response.setText("خطا در دیتابیس " + apiReadingEPC.response)
+                            response.show()
+                            showPropertiesToUser(0, beepMain)
+                        }
                     }
-                    status.text = "در حال دریافت اطلاعات از سرور "
-                    timerHandler.postDelayed(this, 1000)
                 } else {
-                    startActivity(nextActivityIntent)
+
+                    if (apiReadingConflicts.run) {
+                        status.text = "در حال دریافت اطلاعات از سرور "
+                        timerHandler.postDelayed(this, 1000)
+
+                    } else {
+
+                        receivingData = false
+                        databaseInProgress = false
+                        if (apiReadingConflicts.status) {
+                            startActivity(nextActivityIntent)
+                        }
+                        else {
+                            databaseInProgress = false
+                            response.setText("خطا در دیتابیس " + apiReadingEPC.response)
+                            response.show()
+                            showPropertiesToUser(0, beepMain)
+                        }
+                    }
                 }
-            } else {
-                response.setText("خطا در دیتابیس " + API.response)
-
-                response.show()
-                status.text = " کد شعبه:" + departmentInfoID + "\n"
-
-                if (warehouseID == 1) {
-                    status.text = status.text.toString() + "در سطح فروش" + "\n"
-                } else {
-                    status.text = status.text.toString() + "در سطح انبار" + "\n"
-                }
-                status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): 0" + "\n"
-
-                status.text = status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
             }
         }
     }
@@ -165,7 +157,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
         status = findViewById(R.id.section_label)
         response = Toast.makeText(this, "", Toast.LENGTH_LONG)
         button = findViewById(R.id.buttonReading)
-        nextActivityIntent = Intent(this, ReadingResultActivity::class.java)
+        nextActivityIntent = Intent(this, WarehouseScanningResultActivity::class.java)
         circularProgressBar = findViewById(R.id.circularProgressBar)
         percentage = findViewById(R.id.progressText)
         powerText = findViewById(R.id.readingPowerTextView)
@@ -237,15 +229,20 @@ class WarehouseScanningActivity : AppCompatActivity() {
             ID = intent.getIntExtra("ID", 0)
             warehouseID = intent.getIntExtra("warehouseID", 0)
             departmentInfoID = intent.getIntExtra("departmentInfoID", 0)
-            API2 = APIReadingConflicts()
-            API2.start()
-            while (API2.run) {
+            apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
+            apiReadingConflicts.id = ID
+            apiReadingConflicts.start()
+            while (apiReadingConflicts.run) {
             }
             allStuffs = 0
-            for (i in 0 until API2.stuffs.length()) {
+
+            conflicts = apiReadingConflicts.conflicts
+            var stuffs = conflicts.names()!!
+
+            for (i in 0 until stuffs.length()) {
                 try {
-                    temp = API2.stuffs.getString(i)
-                    subStuffs = API2.conflicts.getJSONArray(temp)
+                    temp = stuffs.getString(i)
+                    subStuffs = apiReadingConflicts.conflicts.getJSONArray(temp)
                     for (j in 0 until subStuffs.length()) {
                         temp2 = subStuffs.getJSONObject(j)
                         allStuffs += temp2.getInt("dbCount")
@@ -256,19 +253,9 @@ class WarehouseScanningActivity : AppCompatActivity() {
             }
             fromLogin = false
         }
-        status.text = " کد شعبه:" + departmentInfoID + "\n"
 
-        if (warehouseID == 1) {
-            status.text = status.text.toString() + "در سطح فروش" + "\n"
-        } else {
-            status.text = status.text.toString() + "در سطح انبار" + "\n"
-        }
-        status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): 0" + "\n"
+        showPropertiesToUser(0, beepMain)
 
-        status.text = status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
-
-        circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
-        percentage.text = (EPCTableValid.size * 100 / allStuffs).toFloat().toString() + '%'
         powerText.text = "اندازه توان($readingPower)"
         powerSeekBar.progress = readingPower - 5
     }
@@ -333,10 +320,13 @@ class WarehouseScanningActivity : AppCompatActivity() {
         if (readingInProgress || processingInProgress) {
             return
         }
-        ReadingResultActivity.indexNumber = 0
-        API = APIReadingEPC()
-        API.start()
-        API2 = APIReadingConflicts()
+        WarehouseScanningResultActivity.indexNumber = 0
+        apiReadingEPC = WarehouseScanningSendingEPCsAPI()
+        apiReadingEPC.id = ID
+        apiReadingEPC.data.putAll(EPCTableValid)
+        apiReadingEPC.start()
+        apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
+        apiReadingConflicts.id = ID
         databaseInProgress = true
         timerHandler.post(timerRunnable)
     }
@@ -355,19 +345,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
             tableEditor.commit()
             epcLastLength = 0
 
-            status.text = " کد شعبه:" + departmentInfoID + "\n"
-
-            if (warehouseID == 1) {
-                status.text = status.text.toString() + "در سطح فروش" + "\n"
-            } else {
-                status.text = status.text.toString() + "در سطح انبار" + "\n"
-            }
-            status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): 0" + "\n"
-
-            status.text = status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
-
-            circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
-            percentage.text = (EPCTableValid.size * 100 / allStuffs).toFloat().toString() + '%'
         }
         alertBuilder.setNegativeButton("خیر") { dialog, which -> }
         alertDialog = alertBuilder.create()
@@ -376,6 +353,44 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
         }
         alertDialog.show()
+    }
+
+    @SuppressLint("SetTextI18n")
+    fun showPropertiesToUser(speed: Int, beep: ToneGenerator) {
+
+        status.text = "کد شعبه: " + " " + departmentInfoID + "\n"
+
+        if (warehouseID == 1) {
+            status.text = status.text.toString() + "در سطح فروش" + "\n"
+        } else {
+            status.text = status.text.toString() + "در سطح انبار" + "\n"
+        }
+        status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): " + speed + "\n"
+
+        if (speed == 0) {
+            status.text =
+                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
+        } else {
+            if (EPCTable.size > epcLastLength + 100) {
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+                epcLastLength = EPCTable.size
+            }
+            if (EPCTable.size > epcLastLength + 30) {
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                epcLastLength = EPCTable.size
+            }
+            if (EPCTable.size > epcLastLength + 10) {
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
+                epcLastLength = EPCTable.size
+            }
+            if (EPCTable.size > epcLastLength) {
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                epcLastLength = EPCTable.size
+            }
+        }
+
+        circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
+        percentage.text = (EPCTableValid.size * 100 / allStuffs).toFloat().toString() + '%'
     }
 
     companion object {
@@ -389,15 +404,9 @@ class WarehouseScanningActivity : AppCompatActivity() {
         var ID: Int = 0
 
         @JvmField
-        var API = APIReadingEPC()
-
-        @JvmField
-        var API2 = APIReadingConflicts()
-
-        @JvmField
-        var databaseInProgress = false
-
-        @JvmField
         var warehouseID = 2
+
+        @JvmField
+        var conflicts = JSONObject()
     }
 }

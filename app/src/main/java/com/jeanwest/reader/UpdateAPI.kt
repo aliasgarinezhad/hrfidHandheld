@@ -34,8 +34,8 @@ class UpdateAPI : Thread() {
             } else {
                 response =
                     connection.responseCode.toString() + " error: " + connection.responseMessage
-                WarehouseScanningActivity.databaseInProgress = false
             }
+
             connection.disconnect()
             sleep(1000)
         } catch (e: IOException) {

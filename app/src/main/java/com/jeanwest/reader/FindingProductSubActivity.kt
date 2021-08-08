@@ -194,7 +194,7 @@ class FindingProductSubActivity : AppCompatActivity() {
         setting.useWideViewPort = true
         setting.loadWithOverviewMode = true
         picture.isFocusable = false
-        WarehouseScanningActivity.databaseInProgress = false
+
         when (findingPower) {
             5 -> powerSeekBar.progress = 0
             10 -> powerSeekBar.progress = 1

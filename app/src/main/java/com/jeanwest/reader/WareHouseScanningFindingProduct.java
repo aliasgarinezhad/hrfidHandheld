@@ -18,12 +18,15 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
 import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,6 +63,11 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
     boolean findingInProgress = false;
     boolean updateDatabaseInProgress;
     boolean readEnable = false;
+
+    WarehouseScanningSendingEPCsAPI apiReadingEPC = new WarehouseScanningSendingEPCsAPI();
+    WarehouseScanningReadingConflictsAPI apiReadingConflicts = new WarehouseScanningReadingConflictsAPI();
+    boolean databaseInProgress = false;
+    boolean receivingData = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
 
@@ -137,45 +145,71 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
                 }
             }
 
-            if (WarehouseScanningActivity.databaseInProgress) {
+            if (databaseInProgress) {
 
-                if (!WarehouseScanningActivity.API.status) {
-                    status.setText("در حال ارسال به سرور ");
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                } else if (!WarehouseScanningActivity.API2.status) {
-                    if(!WarehouseScanningActivity.API2.isAlive()) {
-                        WarehouseScanningActivity.API2.start();
-                    }
-                    status.setText("در حال دریافت اطلاعات از سرور ");
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000);
-                } else {
-                    try {
+                if (!receivingData) {
 
-                        for (int i = 0; i < WarehouseScanningActivity.API2.stuffs.length(); i++) {
-                            temp = WarehouseScanningActivity.API2.stuffs.getString(i);
-                            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(temp);
+                    if (apiReadingEPC.run) {
+                        status.setText("در حال ارسال به سرور ");
+                        databaseBackgroundTaskHandler.postDelayed(this, 1000);
 
-                            for (int j = 0; j < subStuffs.length(); j++) {
+                    } else {
 
-                                temp2 = subStuffs.getJSONObject(j);
-                                if (temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)) {
-                                    ReadingResultActivity.index = WarehouseScanningActivity.API2.stuffs.getString(i);
-                                    readingResultSubActivity.subIndex = j;
-                                    i = WarehouseScanningActivity.API2.stuffs.length() + 10;
-                                    j = subStuffs.length() + 10;
-                                }
-                            }
+                        if (apiReadingEPC.status) {
+                            apiReadingConflicts.start();
+                            receivingData = true;
+                            databaseBackgroundTaskHandler.postDelayed(this, 1000);
+
+                        } else {
+                            databaseInProgress = false;
+                            status.setText("خطا در دیتابیس " + apiReadingEPC.response);
                         }
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
                     }
+                } else {
 
-                    EPCTableFinding.clear();
-                    EPCTableFindingMatched.clear();
-                    status.setText("");
+                    if (apiReadingConflicts.run) {
+                        status.setText("در حال دریافت اطلاعات از سرور ");
+                        databaseBackgroundTaskHandler.postDelayed(this, 1000);
 
-                    onResume();
+                    } else {
+
+                        receivingData = false;
+                        databaseInProgress = false;
+                        if (apiReadingConflicts.status) {
+                            try {
+
+                                WarehouseScanningActivity.conflicts = apiReadingConflicts.conflicts;
+                                JSONArray stuffs = WarehouseScanningActivity.conflicts.names();
+
+                                for (int i = 0; i < stuffs.length(); i++) {
+                                    temp = stuffs.getString(i);
+                                    subStuffs = WarehouseScanningActivity.conflicts.getJSONArray(temp);
+
+                                    for (int j = 0; j < subStuffs.length(); j++) {
+
+                                        temp2 = subStuffs.getJSONObject(j);
+                                        if (temp2.getString("BarcodeMain_ID").equals(stuffPrimaryCode)) {
+                                            WarehouseScanningResultActivity.index = stuffs.getString(i);
+                                            WarehouseScanningSubResultActivity.subIndex = j;
+                                            i = stuffs.length() + 10;
+                                            j = subStuffs.length() + 10;
+                                        }
+                                    }
+                                }
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                            EPCTableFinding.clear();
+                            EPCTableFindingMatched.clear();
+                            status.setText("");
+
+                            onResume();
+                        } else {
+                            status.setText("خطا در دیتابیس " + apiReadingEPC.response);
+                        }
+                    }
                 }
             }
         }
@@ -278,8 +312,8 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
 
         try {
 
-            subStuffs = WarehouseScanningActivity.API2.conflicts.getJSONArray(ReadingResultActivity.index);
-            stuff = subStuffs.getJSONObject(readingResultSubActivity.subIndex);
+            subStuffs = apiReadingConflicts.conflicts.getJSONArray(WarehouseScanningResultActivity.index);
+            stuff = subStuffs.getJSONObject(WarehouseScanningSubResultActivity.subIndex);
 
             if (stuff.getBoolean("status")) {
                 stuffSpec.setText(stuff.getString("productName") + "\n" +
@@ -315,7 +349,8 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
         api.primaryCode = stuffPrimaryCode;
         api.rfidCode = stuffRFIDCode;
         api.start();
-        while (api.run) {}
+        while (api.run) {
+        }
 
         if (!api.status) {
             stuffSpec.setText(stuffSpec.getText() + "\n" + api.response);
@@ -323,7 +358,7 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
             stuffSpec.setText(stuffSpec.getText() + "\n" + api.response);
         }
 
-        WarehouseScanningActivity.databaseInProgress = false;
+        databaseInProgress = false;
         switch (findingPower) {
             case 5:
                 powerSeekBar.setProgress(0);
@@ -498,11 +533,14 @@ public class WareHouseScanningFindingProduct extends AppCompatActivity {
         tableEditor.putString(String.valueOf(WarehouseScanningActivity.warehouseID), tableJson.toString());
         tableEditor.commit();
 
-        WarehouseScanningActivity.API = new APIReadingEPC();
-        WarehouseScanningActivity.API2 = new APIReadingConflicts();
-        WarehouseScanningActivity.API.start();
+        apiReadingEPC = new WarehouseScanningSendingEPCsAPI();
+        apiReadingEPC.id = WarehouseScanningActivity.ID;
+        apiReadingEPC.data.putAll(WarehouseScanningActivity.EPCTableValid);
+        apiReadingConflicts = new WarehouseScanningReadingConflictsAPI();
+        apiReadingConflicts.id = WarehouseScanningActivity.ID;
+        apiReadingEPC.start();
 
-        WarehouseScanningActivity.databaseInProgress = true;
+        databaseInProgress = true;
         databaseBackgroundTaskHandler.post(databaseBackgroundTask);
     }
 

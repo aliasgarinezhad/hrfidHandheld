@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.ArrayList
 
-class APIReadingEPC : Thread() {
+class WarehouseScanningSendingEPCsAPI : Thread() {
 
     @JvmField
     var response: String = ""
@@ -19,12 +19,17 @@ class APIReadingEPC : Thread() {
     @JvmField
     var run = true
 
+    @JvmField
+    var id = 0
+
+    @JvmField
+    var data = HashMap<String, Int>()
+
     override fun run() {
 
         try {
 
-            val getCommand =
-                "http://rfid-api-0-1.avakatan.ir/stock-taking/" + WarehouseScanningActivity.ID + "/epcs/v2"
+            val getCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/epcs/v2"
             val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
             connection.doOutput = true
@@ -34,9 +39,11 @@ class APIReadingEPC : Thread() {
             connection.doInput = true
             val out = OutputStreamWriter(connection.outputStream)
             val temp = ArrayList<String>()
-            for ((key) in WarehouseScanningActivity.EPCTableValid) {
+
+            for ((key) in data) {
                 temp.add('"' + key + '"')
             }
+
             out.write(temp.toString())
             out.close()
             val statusCode = connection.responseCode
@@ -47,7 +54,7 @@ class APIReadingEPC : Thread() {
                 status = true
             } else {
                 response = connection.responseCode.toString() + " error: " + connection.responseMessage
-                WarehouseScanningActivity.databaseInProgress = false
+                status = false
             }
         } catch (e: IOException) {
             e.printStackTrace()

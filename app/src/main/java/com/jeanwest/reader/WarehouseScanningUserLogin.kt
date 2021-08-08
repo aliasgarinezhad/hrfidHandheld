@@ -16,7 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.*
 
 class WarehouseScanningUserLogin : AppCompatActivity() {
-    private lateinit var api: APIReadingInformation
+    private lateinit var api: WarehouseScanningSendingInformationAPI
     private lateinit var status: Toast
     private lateinit var departmentInfoIDView: EditText
     private lateinit var wareHouseIDView: Spinner
@@ -56,7 +56,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
             status.show()
             return
         }
-        api = APIReadingInformation()
+        api = WarehouseScanningSendingInformationAPI()
         api.departmentInfoID = departmentInfoIDView.editableText.toString().toInt()
         api.wareHouseID = wareHouseIDView.selectedItemPosition + 1
         departmentInfoID = api.departmentInfoID
@@ -109,7 +109,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
     }
 
     fun finishReading(view: View?) {
-        val finishWarehouseScanning = APIReadingFinish()
+        val finishWarehouseScanning = WarehouseScanningFinishAPI()
         finishWarehouseScanning.depoMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 2, 0)
         finishWarehouseScanning.storeMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 1, 0)
         finishWarehouseScanning.start()
