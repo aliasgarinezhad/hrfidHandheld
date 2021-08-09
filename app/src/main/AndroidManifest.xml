@@ -5,8 +5,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -16,10 +16,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".FindingProductSubActivity"
-            android:parentActivityName=".FindingProductActivity"/>
-        <activity android:name=".FindingProductActivity"
-            android:parentActivityName=".MainActivity"/>
+        <activity android:name=".UserLoginActivity"></activity>
+        <activity
+            android:name=".FindingProductSubActivity"
+            android:parentActivityName=".FindingProductActivity" />
+        <activity
+            android:name=".FindingProductActivity"
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".WarehouseScanningSubResultActivity"
             android:parentActivityName=".WarehouseScanningResultActivity" />
@@ -38,15 +41,17 @@
         <activity
             android:name=".AboutUsActivity"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".WareHouseScanningFindingProduct"
-            android:parentActivityName=".WarehouseScanningSubResultActivity"/>
+        <activity
+            android:name=".WareHouseScanningFindingProduct"
+            android:parentActivityName=".WarehouseScanningSubResultActivity" />
         <activity
             android:name=".WarehouseScanningActivity"
             android:parentActivityName=".WarehouseScanningUserLogin" />
         <activity
             android:name=".AddProductActivity"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

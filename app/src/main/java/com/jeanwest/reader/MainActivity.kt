@@ -1,10 +1,14 @@
 package com.jeanwest.reader
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -39,6 +43,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
+    override fun onResume() {
+        super.onResume()
+        val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val accountButton = findViewById<Button>(R.id.accountButtonView)
+
+        if(memory.getString("username", "empty") != "") {
+
+            username = memory.getString("username", "empty")!!
+            token = memory.getString("accessToken", "empty")!!
+            accountButton.text = "خروج از حساب $username"
+        } else {
+
+            accountButton.text = "ورود به حساب کاربری"
+        }
+    }
+
     fun addNewActivity(view: View?) {
         val intent = Intent(this, AddProductActivity::class.java)
         startActivity(intent)
@@ -70,5 +91,30 @@ class MainActivity : AppCompatActivity() {
             finish()
         }
         return true
+    }
+
+    fun logIn(view: View) {
+
+        val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val accountButton = findViewById<Button>(R.id.accountButtonView)
+
+        if(memory.getString("username", "empty") != "") {
+
+            val editor: SharedPreferences.Editor = memory.edit()
+            editor.putString("accessToken", "")
+            editor.putString("username", "")
+            editor.apply()
+            accountButton.text = "ورود به حساب کاربری"
+        } else {
+
+            val intent = Intent(this, UserLoginActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
+    companion object {
+
+        var username = ""
+        var token = ""
     }
 }

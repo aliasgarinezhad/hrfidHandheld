@@ -54,7 +54,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
     var header = ""
     var departmentInfoID = 0
     var allStuffs = 0
-    var fromLogin = false
     var timerHandler = Handler()
     var receivingData = false
     var apiReadingEPC = WarehouseScanningSendingEPCsAPI()
@@ -137,8 +136,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                         databaseInProgress = false
                         if (apiReadingConflicts.status) {
                             startActivity(nextActivityIntent)
-                        }
-                        else {
+                        } else {
                             databaseInProgress = false
                             response.setText("خطا در دیتابیس " + apiReadingEPC.response)
                             response.show()
@@ -189,6 +187,32 @@ class WarehouseScanningActivity : AppCompatActivity() {
         }
         table = PreferenceManager.getDefaultSharedPreferences(this)
         tableEditor = table.edit()
+
+        ID = intent.getIntExtra("ID", 0)
+        warehouseID = intent.getIntExtra("warehouseID", 0)
+        departmentInfoID = intent.getIntExtra("departmentInfoID", 0)
+        apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
+        apiReadingConflicts.id = ID
+        apiReadingConflicts.start()
+        while (apiReadingConflicts.run) {
+        }
+        allStuffs = 0
+
+        conflicts = apiReadingConflicts.conflicts
+        var stuffs = conflicts.names()!!
+
+        for (i in 0 until stuffs.length()) {
+            try {
+                temp = stuffs.getString(i)
+                subStuffs = apiReadingConflicts.conflicts.getJSONArray(temp)
+                for (j in 0 until subStuffs.length()) {
+                    temp2 = subStuffs.getJSONObject(j)
+                    allStuffs += temp2.getInt("dbCount")
+                }
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -223,36 +247,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
         databaseInProgress = false
         readingInProgress = false
         processingInProgress = false
-        fromLogin = intent.getBooleanExtra("fromLogin", false)
-
-        if (fromLogin) {
-            ID = intent.getIntExtra("ID", 0)
-            warehouseID = intent.getIntExtra("warehouseID", 0)
-            departmentInfoID = intent.getIntExtra("departmentInfoID", 0)
-            apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
-            apiReadingConflicts.id = ID
-            apiReadingConflicts.start()
-            while (apiReadingConflicts.run) {
-            }
-            allStuffs = 0
-
-            conflicts = apiReadingConflicts.conflicts
-            var stuffs = conflicts.names()!!
-
-            for (i in 0 until stuffs.length()) {
-                try {
-                    temp = stuffs.getString(i)
-                    subStuffs = apiReadingConflicts.conflicts.getJSONArray(temp)
-                    for (j in 0 until subStuffs.length()) {
-                        temp2 = subStuffs.getJSONObject(j)
-                        allStuffs += temp2.getInt("dbCount")
-                    }
-                } catch (e: JSONException) {
-                    e.printStackTrace()
-                }
-            }
-            fromLogin = false
-        }
 
         showPropertiesToUser(0, beepMain)
 

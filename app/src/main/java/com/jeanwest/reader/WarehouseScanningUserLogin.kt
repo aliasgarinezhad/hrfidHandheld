@@ -72,7 +72,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         }
         warehouseID = api.wareHouseID
         departmentInfoID = api.departmentInfoID
-        nextActivityIntent.putExtra("fromLogin", true)
         nextActivityIntent.putExtra("ID", api.response.toInt())
         nextActivityIntent.putExtra("departmentInfoID", departmentInfoID)
         nextActivityIntent.putExtra("warehouseID", warehouseID)

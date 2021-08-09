@@ -22,6 +22,8 @@ class WarehouseScanningFinishAPI : Thread() {
                         storeMojodiReviewInfoID + "&DepoMojodiReviewInfo_ID=" + depoMojodiReviewInfoID
             val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200 || connection.responseCode == 204) {
                 response = "با موفقیت ارسال شد"
                 status = true

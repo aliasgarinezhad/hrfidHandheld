@@ -36,6 +36,7 @@ class WarehouseScanningSendingEPCsAPI : Thread() {
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
             connection.doInput = true
             val out = OutputStreamWriter(connection.outputStream)
             val temp = ArrayList<String>()

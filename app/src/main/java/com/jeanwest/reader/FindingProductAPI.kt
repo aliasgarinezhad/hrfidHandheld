@@ -24,6 +24,8 @@ class FindingProductAPI : Thread() {
                 "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=68&$barcode"
             val server = URL(urlString)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200) {
                 val input: InputStream = BufferedInputStream(connection.inputStream)
                 val isr = InputStreamReader(input, "UTF-8")

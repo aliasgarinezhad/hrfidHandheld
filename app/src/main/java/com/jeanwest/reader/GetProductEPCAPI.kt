@@ -27,6 +27,8 @@ class GetProductEPCAPI : Thread() {
             val url = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/epcs?BarcodeMain_ID=$primaryCode&RFID=$rfidCode"
             val server = URL(url)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200) {
                 val input: InputStream = BufferedInputStream(connection.inputStream)
                 val isr = InputStreamReader(input, "UTF-8")

@@ -22,6 +22,8 @@ class AddProductAPI : Thread() {
             getCommand = getCommand.replace(" ", "%20")
             val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200) {
                 val input: InputStream = BufferedInputStream(connection.inputStream)
                 val isr = InputStreamReader(input, "UTF-8")

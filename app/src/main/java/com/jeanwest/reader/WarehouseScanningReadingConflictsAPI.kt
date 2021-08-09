@@ -31,6 +31,8 @@ class WarehouseScanningReadingConflictsAPI : Thread() {
             val getCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/conflicts/v2"
             val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200) {
                 val input: InputStream = BufferedInputStream(connection.inputStream)
                 val isr = InputStreamReader(input, StandardCharsets.UTF_8)

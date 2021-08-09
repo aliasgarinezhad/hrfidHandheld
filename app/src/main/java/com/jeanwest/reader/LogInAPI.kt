@@ -12,9 +12,10 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
-class WarehouseScanningSendingInformationAPI : Thread() {
-    var departmentInfoID = 68
-    var wareHouseID = 1706
+class LogInAPI : Thread() {
+
+    /*var username = ""
+    var password = ""
     var response: String = ""
     var status = false
 
@@ -22,6 +23,7 @@ class WarehouseScanningSendingInformationAPI : Thread() {
     var run = true
     var getCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations/v2"
     var context: Context? = null
+
     override fun run() {
         try {
             val body = JSONObject()
@@ -38,7 +40,6 @@ class WarehouseScanningSendingInformationAPI : Thread() {
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8")
             connection.setRequestProperty("Accept", "application/json")
-            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
             connection.doInput = true
             val out = OutputStreamWriter(connection.outputStream)
             out.write(body.toString())
@@ -60,5 +61,5 @@ class WarehouseScanningSendingInformationAPI : Thread() {
             e.printStackTrace()
         }
         run = false
-    }
+    }*/
 }

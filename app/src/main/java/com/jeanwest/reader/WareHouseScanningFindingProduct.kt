@@ -27,30 +27,30 @@ import org.json.JSONObject
 import java.util.*
 
 class WareHouseScanningFindingProduct : AppCompatActivity() {
-    var api: GetProductEPCAPI? = null
-    var RF: RFIDWithUHFUART? = null
-    var EPCTableFinding: MutableMap<String, Int> = HashMap()
+    var api = GetProductEPCAPI()
+    lateinit var rf: RFIDWithUHFUART
+    var epcTableFinding: MutableMap<String, Int> = HashMap()
     var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     var findingPower = 30
-    var status: TextView? = null
+    lateinit var status: TextView
     lateinit var powerText: TextView
     lateinit var powerSeekBar: SeekBar
-    var numberOfFoundText: TextView? = null
-    var stuffSpec: TextView? = null
+    lateinit var numberOfFoundText: TextView
+    lateinit var stuffSpec: TextView
     var stuffCode: Long = 0
-    var picture: WebView? = null
-    var option: CheckBox? = null
-    var stuffPrimaryCode: String? = null
-    var stuffRFIDCode: String? = null
+    lateinit var picture: WebView
+    lateinit var option: CheckBox
+    var stuffPrimaryCode = ""
+    var stuffRFIDCode = ""
     var subStuffs = JSONArray()
     var stuff = JSONObject()
-    var EPCTableFindingMatched: MutableMap<String, Int> = HashMap()
+    var epcTableFindingMatched: MutableMap<String, Int> = HashMap()
     var temp = ""
     var temp2 = JSONObject()
-    var setting: WebSettings? = null
-    var update: Button? = null
+    lateinit var setting: WebSettings
+    lateinit  var update: Button
     lateinit var table: SharedPreferences
-    var tableEditor: SharedPreferences.Editor? = null
+    private lateinit var tableEditor: SharedPreferences.Editor
     var isChecked = true
     var findingInProgress = false
     var updateDatabaseInProgress = false
@@ -59,63 +59,79 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
     var apiReadingConflicts = WarehouseScanningReadingConflictsAPI()
     var databaseInProgress = false
     var receivingData = false
+
+    var header = 0
+    var companyNumber = 0
+    var itemNumber = 0L
+    var flag = false
+    var epcInt1 = 0L
+    var epcInt2 = 0L
+    var epcInt3 = 0L
+    var epcHexString = ""
+    var epcBinaryString = ""
+    var epcBinaryString1 = ""
+    var epcBinaryString2 = ""
+    var epcBinaryString3 = ""
+
     var databaseBackgroundTaskHandler = Handler()
-    var databaseBackgroundTask: Runnable = object : Runnable {
+
+    private var databaseBackgroundTask: Runnable = object : Runnable {
+
         @SuppressLint("SetTextI18n")
         override fun run() {
             if (findingInProgress) {
                 var uhftagInfo: UHFTAGInfo?
                 while (true) {
-                    uhftagInfo = RF!!.readTagFromBuffer()
+                    uhftagInfo = rf.readTagFromBuffer()
                     if (uhftagInfo != null) {
-                        EPCTableFinding[uhftagInfo.epc] = 1
+                        epcTableFinding[uhftagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
-                if (EPCTableFinding.size > 0) {
+                if (epcTableFinding.isNotEmpty()) {
                     flag = false
-                    for ((key) in EPCTableFinding) {
-                        EPCHexString = key
-                        EPCInt1 = EPCHexString!!.substring(0, 8).toLong(16)
-                        EPCInt2 = EPCHexString!!.substring(8, 16).toLong(16)
-                        EPCInt3 = EPCHexString!!.substring(16, 24).toLong(16)
-                        EPCBinaryString1 = java.lang.Long.toBinaryString(EPCInt1)
-                        EPCBinaryString1 =
-                            String.format("%32s", EPCBinaryString1).replace(" ".toRegex(), "0")
-                        EPCBinaryString2 = java.lang.Long.toBinaryString(EPCInt2)
-                        EPCBinaryString2 =
-                            String.format("%32s", EPCBinaryString2).replace(" ".toRegex(), "0")
-                        EPCBinaryString3 = java.lang.Long.toBinaryString(EPCInt3)
-                        EPCBinaryString3 =
-                            String.format("%32s", EPCBinaryString3).replace(" ".toRegex(), "0")
-                        EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3
-                        header = EPCBinaryString!!.substring(0, 8).toInt(2)
-                        companyNumber = EPCBinaryString!!.substring(14, 26).toInt(2)
-                        itemNumber = EPCBinaryString!!.substring(26, 58).toLong(2)
+                    for ((key) in epcTableFinding) {
+                        epcHexString = key
+                        epcInt1 = epcHexString.substring(0, 8).toLong(16)
+                        epcInt2 = epcHexString.substring(8, 16).toLong(16)
+                        epcInt3 = epcHexString.substring(16, 24).toLong(16)
+                        epcBinaryString1 = java.lang.Long.toBinaryString(epcInt1)
+                        epcBinaryString1 =
+                            String.format("%32s", epcBinaryString1).replace(" ".toRegex(), "0")
+                        epcBinaryString2 = java.lang.Long.toBinaryString(epcInt2)
+                        epcBinaryString2 =
+                            String.format("%32s", epcBinaryString2).replace(" ".toRegex(), "0")
+                        epcBinaryString3 = java.lang.Long.toBinaryString(epcInt3)
+                        epcBinaryString3 =
+                            String.format("%32s", epcBinaryString3).replace(" ".toRegex(), "0")
+                        epcBinaryString = epcBinaryString1 + epcBinaryString2 + epcBinaryString3
+                        header = epcBinaryString.substring(0, 8).toInt(2)
+                        companyNumber = epcBinaryString.substring(14, 26).toInt(2)
+                        itemNumber = epcBinaryString.substring(26, 58).toLong(2)
                         if (companyNumber == 100) {
-                            stuffCode = stuffPrimaryCode!!.toLong()
+                            stuffCode = stuffPrimaryCode.toLong()
                         } else if (companyNumber == 101) {
-                            stuffCode = stuffRFIDCode!!.toLong()
+                            stuffCode = stuffRFIDCode.toLong()
                         }
                         if (header == 48 && itemNumber == stuffCode) {
-                            EPCTableFindingMatched[EPCHexString!!] = 1
+                            epcTableFindingMatched[epcHexString] = 1
                             flag = true
                         }
                     }
-                    numberOfFoundText!!.text = EPCTableFindingMatched.size.toString()
-                    status!!.text = ""
-                    status!!.text = "در حال جست و جو ..."
-                    for ((key) in EPCTableFindingMatched) {
-                        status!!.text = """
-                            ${status!!.text}
+                    numberOfFoundText.text = epcTableFindingMatched.size.toString()
+                    status.text = ""
+                    status.text = "در حال جست و جو ..."
+                    for ((key) in epcTableFindingMatched) {
+                        status.text = """
+                            ${status.text}
                             $key
                             """.trimIndent()
                     }
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                     }
-                    EPCTableFinding.clear()
+                    epcTableFinding.clear()
                     databaseBackgroundTaskHandler.postDelayed(this, 1000)
                 } else {
                     databaseBackgroundTaskHandler.postDelayed(this, 1000)
@@ -124,7 +140,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
             if (databaseInProgress) {
                 if (!receivingData) {
                     if (apiReadingEPC.run) {
-                        status!!.text = "در حال ارسال به سرور "
+                        status.text = "در حال ارسال به سرور "
                         databaseBackgroundTaskHandler.postDelayed(this, 1000)
                     } else {
                         if (apiReadingEPC.status) {
@@ -133,12 +149,12 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                             databaseBackgroundTaskHandler.postDelayed(this, 1000)
                         } else {
                             databaseInProgress = false
-                            status!!.text = "خطا در دیتابیس " + apiReadingEPC.response
+                            status.text = "خطا در دیتابیس " + apiReadingEPC.response
                         }
                     }
                 } else {
                     if (apiReadingConflicts.run) {
-                        status!!.text = "در حال دریافت اطلاعات از سرور "
+                        status.text = "در حال دریافت اطلاعات از سرور "
                         databaseBackgroundTaskHandler.postDelayed(this, 1000)
                     } else {
                         receivingData = false
@@ -148,7 +164,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                                 WarehouseScanningActivity.conflicts = apiReadingConflicts.conflicts
                                 val stuffs = WarehouseScanningActivity.conflicts.names()
                                 var i = 0
-                                while (i < stuffs!!.length()) {
+                                while (i < stuffs.length()) {
                                     temp = stuffs.getString(i)
                                     subStuffs =
                                         WarehouseScanningActivity.conflicts.getJSONArray(temp)
@@ -169,12 +185,12 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                             } catch (e: JSONException) {
                                 e.printStackTrace()
                             }
-                            EPCTableFinding.clear()
-                            EPCTableFindingMatched.clear()
-                            status!!.text = ""
+                            epcTableFinding.clear()
+                            epcTableFindingMatched.clear()
+                            status.text = ""
                             onResume()
                         } else {
-                            status!!.text = "خطا در دیتابیس " + apiReadingEPC.response
+                            status.text = "خطا در دیتابیس " + apiReadingEPC.response
                         }
                     }
                 }
@@ -206,7 +222,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                     }
                     powerText.setText("قدرت سیگنال($findingPower)")
                 } else {
-                    RF!!.stopInventory()
+                    rf.stopInventory()
                     when (progress) {
                         0 -> findingPower = 5
                         1 -> findingPower = 10
@@ -214,10 +230,10 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                         3 -> findingPower = 20
                         4 -> findingPower = 30
                     }
-                    powerText.setText("قدرت سیگنال($findingPower)")
-                    while (!RF!!.setPower(findingPower)) {
+                    powerText.text = "قدرت سیگنال($findingPower)"
+                    while (!rf.setPower(findingPower)) {
                     }
-                    RF!!.startInventoryTag(0, 0, 0)
+                    rf.startInventoryTag(0, 0, 0)
                 }
             }
 
@@ -225,7 +241,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
         try {
-            RF = RFIDWithUHFUART.getInstance()
+            rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
@@ -237,15 +253,14 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateDatabaseInProgress = false
-        while (!RF!!.setPower(findingPower)) {
+        while (!rf.setPower(findingPower)) {
         }
         try {
             subStuffs =
-                apiReadingConflicts.conflicts.getJSONArray(WarehouseScanningResultActivity.index)
+                WarehouseScanningActivity.conflicts.getJSONArray(WarehouseScanningResultActivity.index)
             stuff = subStuffs.getJSONObject(WarehouseScanningSubResultActivity.subIndex)
             if (stuff.getBoolean("status")) {
-                stuffSpec!!.text = """
-                    ${stuff.getString("productName")}
+                stuffSpec.text = stuff.getString("productName") + "\n" + """"
                     کد محصول: ${stuff.getString("K_Bar_Code")}
                     بارکد: ${stuff.getString("KBarCode")}
                     تعداد اضافی: ${stuff.getString("diffCount")}
@@ -253,8 +268,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                     تعداد کل: ${stuff.getString("dbCount")}
                     """.trimIndent()
             } else {
-                stuffSpec!!.text = """
-                    ${stuff.getString("productName")}
+                stuffSpec.text = stuff.getString("productName") + "\n" +  """
                     کد محصول: ${stuff.getString("K_Bar_Code")}
                     بارکد: ${stuff.getString("KBarCode")}
                     تعداد اسکن نشده: ${stuff.getString("diffCount")}
@@ -262,57 +276,45 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                     تعداد کل: ${stuff.getString("dbCount")}
                     """.trimIndent()
             }
-            picture!!.loadUrl(stuff.getString("ImgUrl"))
+            picture.loadUrl(stuff.getString("ImgUrl"))
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID")
             stuffRFIDCode = stuff.getString("RFID")
         } catch (e: JSONException) {
             e.printStackTrace()
         }
-        setting = picture!!.settings
-        setting!!.useWideViewPort = true
-        setting!!.loadWithOverviewMode = true
-        picture!!.isFocusable = false
+        setting = picture.settings
+        setting.useWideViewPort = true
+        setting.loadWithOverviewMode = true
+        picture.isFocusable = false
         api = GetProductEPCAPI()
-        api!!.id = WarehouseScanningActivity.ID.toString()
-        api!!.primaryCode = stuffPrimaryCode!!
-        api!!.rfidCode = stuffRFIDCode!!
-        api!!.start()
-        while (api!!.run) {
+        api.id = WarehouseScanningActivity.ID.toString()
+        api.primaryCode = stuffPrimaryCode
+        api.rfidCode = stuffRFIDCode
+        api.start()
+        while (api.run) {
         }
-        if (!api!!.status) {
-            stuffSpec!!.text = """
-                ${stuffSpec!!.text}
-                ${api!!.response}
+        if (!api.status) {
+            stuffSpec.text = """
+                ${stuffSpec.text}
+                ${api.response}
                 """.trimIndent()
         } else {
-            stuffSpec!!.text = """
-                ${stuffSpec!!.text}
-                ${api!!.response}
+            stuffSpec.text = """
+                ${stuffSpec.text}
+                ${api.response}
                 """.trimIndent()
         }
         databaseInProgress = false
         when (findingPower) {
-            5 -> powerSeekBar!!.progress = 0
-            10 -> powerSeekBar!!.progress = 1
-            15 -> powerSeekBar!!.progress = 2
-            20 -> powerSeekBar!!.progress = 3
-            30 -> powerSeekBar!!.progress = 4
+            5 -> powerSeekBar.progress = 0
+            10 -> powerSeekBar.progress = 1
+            15 -> powerSeekBar.progress = 2
+            20 -> powerSeekBar.progress = 3
+            30 -> powerSeekBar.progress = 4
         }
-        powerText!!.text = "قدرت سیگنال($findingPower)"
+        powerText.text = "قدرت سیگنال($findingPower)"
     }
 
-    var header = 0
-    var companyNumber = 0
-    var itemNumber: Long = 0
-    var flag = false
-    var EPCInt1: Long = 0
-    var EPCInt2: Long = 0
-    var EPCInt3: Long = 0
-    var EPCHexString: String? = null
-    var EPCBinaryString: String? = null
-    var EPCBinaryString1: String? = null
-    var EPCBinaryString2: String? = null
-    var EPCBinaryString3: String? = null
     @SuppressLint("SetTextI18n")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (updateDatabaseInProgress) {
@@ -320,72 +322,72 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
         }
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
             if (event.repeatCount == 0) {
-                status!!.text = ""
+                status.text = ""
                 if (!readEnable) {
-                    update!!.setBackgroundColor(Color.GRAY)
-                    EPCTableFinding.clear()
+                    update.setBackgroundColor(Color.GRAY)
+                    epcTableFinding.clear()
                     if (!isChecked) {
-                        EPCTableFindingMatched.clear()
+                        epcTableFindingMatched.clear()
                     }
-                    while (!RF!!.setPower(findingPower)) {
+                    while (!rf.setPower(findingPower)) {
                     }
                     readEnable = true
-                    RF!!.startInventoryTag(0, 0, 0)
-                    status!!.text = "در حال جست و جو ..."
+                    rf.startInventoryTag(0, 0, 0)
+                    status.text = "در حال جست و جو ..."
                     findingInProgress = true
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000)
                 } else {
-                    update!!.setBackgroundColor(getColor(R.color.Primary))
+                    update.setBackgroundColor(getColor(R.color.Primary))
                     databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
                     readEnable = false
-                    RF!!.stopInventory()
+                    rf.stopInventory()
                     findingInProgress = false
                     flag = false
-                    for ((key) in EPCTableFinding) {
-                        EPCHexString = key
-                        EPCInt1 = EPCHexString!!.substring(0, 8).toLong(16)
-                        EPCInt2 = EPCHexString!!.substring(8, 16).toLong(16)
-                        EPCInt3 = EPCHexString!!.substring(16, 24).toLong(16)
-                        EPCBinaryString1 = java.lang.Long.toBinaryString(EPCInt1)
-                        EPCBinaryString1 =
-                            String.format("%32s", EPCBinaryString1).replace(" ".toRegex(), "0")
-                        EPCBinaryString2 = java.lang.Long.toBinaryString(EPCInt2)
-                        EPCBinaryString2 =
-                            String.format("%32s", EPCBinaryString2).replace(" ".toRegex(), "0")
-                        EPCBinaryString3 = java.lang.Long.toBinaryString(EPCInt3)
-                        EPCBinaryString3 =
-                            String.format("%32s", EPCBinaryString3).replace(" ".toRegex(), "0")
-                        EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3
-                        header = EPCBinaryString!!.substring(0, 8).toInt(2)
-                        companyNumber = EPCBinaryString!!.substring(14, 26).toInt(2)
-                        itemNumber = EPCBinaryString!!.substring(26, 58).toLong(2)
+                    for ((key) in epcTableFinding) {
+                        epcHexString = key
+                        epcInt1 = epcHexString.substring(0, 8).toLong(16)
+                        epcInt2 = epcHexString.substring(8, 16).toLong(16)
+                        epcInt3 = epcHexString.substring(16, 24).toLong(16)
+                        epcBinaryString1 = java.lang.Long.toBinaryString(epcInt1)
+                        epcBinaryString1 =
+                            String.format("%32s", epcBinaryString1).replace(" ".toRegex(), "0")
+                        epcBinaryString2 = java.lang.Long.toBinaryString(epcInt2)
+                        epcBinaryString2 =
+                            String.format("%32s", epcBinaryString2).replace(" ".toRegex(), "0")
+                        epcBinaryString3 = java.lang.Long.toBinaryString(epcInt3)
+                        epcBinaryString3 =
+                            String.format("%32s", epcBinaryString3).replace(" ".toRegex(), "0")
+                        epcBinaryString = epcBinaryString1 + epcBinaryString2 + epcBinaryString3
+                        header = epcBinaryString.substring(0, 8).toInt(2)
+                        companyNumber = epcBinaryString.substring(14, 26).toInt(2)
+                        itemNumber = epcBinaryString.substring(26, 58).toLong(2)
                         if (companyNumber == 100) {
-                            stuffCode = stuffPrimaryCode!!.toLong()
+                            stuffCode = stuffPrimaryCode.toLong()
                         } else if (companyNumber == 101) {
-                            stuffCode = stuffRFIDCode!!.toLong()
+                            stuffCode = stuffRFIDCode.toLong()
                         }
                         if (header == 48 && itemNumber == stuffCode) {
-                            EPCTableFindingMatched[EPCHexString!!] = 1
+                            epcTableFindingMatched[epcHexString] = 1
                             flag = true
                         }
                     }
-                    numberOfFoundText!!.text = EPCTableFindingMatched.size.toString()
-                    status!!.text = ""
-                    for ((key) in EPCTableFindingMatched) {
-                        status!!.text = """
-                            ${status!!.text}
+                    numberOfFoundText.text = epcTableFindingMatched.size.toString()
+                    status.text = ""
+                    for ((key) in epcTableFindingMatched) {
+                        status.text = """
+                            ${status.text}
                             $key
                             """.trimIndent()
                     }
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                     }
-                    EPCTableFinding.clear()
+                    epcTableFinding.clear()
                 }
             }
         } else if (keyCode == 4) {
             if (readEnable) {
-                RF!!.stopInventory()
+                rf.stopInventory()
                 readEnable = false
             }
             findingInProgress = false
@@ -398,16 +400,16 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         if (readEnable) {
-            RF!!.stopInventory()
+            rf.stopInventory()
             readEnable = false
         }
     }
 
     fun clearEPCs(view: View?) {
-        EPCTableFinding.clear()
-        EPCTableFindingMatched.clear()
-        status!!.text = ""
-        numberOfFoundText!!.text = "0"
+        epcTableFinding.clear()
+        epcTableFindingMatched.clear()
+        status.text = ""
+        numberOfFoundText.text = "0"
     }
 
     @SuppressLint("SetTextI18n")
@@ -417,14 +419,14 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
         }
         updateDatabaseInProgress = true
         val tableJson: JSONObject
-        WarehouseScanningActivity.EPCTable.putAll(EPCTableFindingMatched)
-        WarehouseScanningActivity.EPCTableValid.putAll(EPCTableFindingMatched)
+        WarehouseScanningActivity.EPCTable.putAll(epcTableFindingMatched)
+        WarehouseScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
         tableJson = JSONObject(WarehouseScanningActivity.EPCTableValid as Map<*, *>)
-        tableEditor!!.putString(
+        tableEditor.putString(
             java.lang.String.valueOf(WarehouseScanningActivity.warehouseID),
             tableJson.toString()
         )
-        tableEditor!!.commit()
+        tableEditor.commit()
         apiReadingEPC = WarehouseScanningSendingEPCsAPI()
         apiReadingEPC.id = WarehouseScanningActivity.ID
         apiReadingEPC.data.putAll(WarehouseScanningActivity.EPCTableValid)
@@ -436,6 +438,6 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
     }
 
     fun optionChange(view: View?) {
-        isChecked = option!!.isChecked
+        isChecked = option.isChecked
     }
 }
