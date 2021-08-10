@@ -21,7 +21,6 @@ class UserLoginActivity : AppCompatActivity() {
 
     fun signIn(view: View) {
 
-
         val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val editor: SharedPreferences.Editor = memory.edit()
 
@@ -31,7 +30,7 @@ class UserLoginActivity : AppCompatActivity() {
         val logInRequest = Volley.newRequestQueue(this)
         val url = "http://rfid-api-0-1.avakatan.ir/login"
 
-        val jsonRequest = object : JsonObjectRequest(Request.Method.POST, url, null, { response ->
+        val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 
             Toast.makeText(this, response.getString("accessToken"), Toast.LENGTH_LONG).show()
             editor.putString("accessToken", response.getString("accessToken"))

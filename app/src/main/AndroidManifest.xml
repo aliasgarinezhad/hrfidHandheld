@@ -16,7 +16,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".UserLoginActivity"></activity>
+        <activity android:name=".TransferenceActivity"></activity>
+        <activity android:name=".TransferenceActivityLogIn" />
+        <activity android:name=".UserLoginActivity" />
         <activity
             android:name=".FindingProductSubActivity"
             android:parentActivityName=".FindingProductActivity" />

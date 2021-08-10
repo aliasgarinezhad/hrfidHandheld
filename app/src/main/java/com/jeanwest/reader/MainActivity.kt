@@ -112,6 +112,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun transference(view: View) {
+
+        val intent = Intent(this, TransferenceActivityLogIn::class.java)
+        startActivity(intent)
+    }
+
     companion object {
 
         var username = ""

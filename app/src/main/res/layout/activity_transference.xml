@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraintLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pagesBackground"
+    tools:context=".TransferenceActivity">
+
+    <TextView
+        android:id="@+id/section_labelT"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="\n\n\n\n\n"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_constraintLeft_creator="1"
+        tools:layout_constraintTop_creator="1" />
+
+    <Button
+        android:id="@+id/buttonReadingT"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="8dp"
+        android:onClick="sendFile"
+        android:text="ارسال حواله"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/button10T"
+        app:layout_constraintTop_toBottomOf="@+id/section_labelT"
+        app:strokeColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/button10T"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="8dp"
+        android:onClick="clearAll"
+        android:text="پاک کردن"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toStartOf="@+id/buttonReadingT"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/section_labelT" />
+
+    <SeekBar
+        android:id="@+id/readingPowerSeekBarT"
+        android:layout_width="244dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:max="25"
+        app:layout_constraintEnd_toStartOf="@+id/readingPowerTextViewT"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/buttonReadingT" />
+
+    <TextView
+        android:id="@+id/readingPowerTextViewT"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="اندازه توان (30dB)"
+        app:layout_constraintBottom_toBottomOf="@+id/readingPowerSeekBarT"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/readingPowerSeekBarT"
+        app:layout_constraintTop_toTopOf="@+id/readingPowerSeekBarT" />
+
+    <ListView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/readingPowerSeekBarT" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

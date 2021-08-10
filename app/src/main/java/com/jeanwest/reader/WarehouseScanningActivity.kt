@@ -78,6 +78,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 }
 
                 showPropertiesToUser(EPCTable.size - epcLastLength, beepMain)
+                epcLastLength = EPCTable.size
 
                 timerHandler.postDelayed(this, 1000)
 
@@ -365,21 +366,19 @@ class WarehouseScanningActivity : AppCompatActivity() {
             status.text =
                 status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
         } else {
-            if (EPCTable.size > epcLastLength + 100) {
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
-                epcLastLength = EPCTable.size
-            }
-            if (EPCTable.size > epcLastLength + 30) {
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                epcLastLength = EPCTable.size
-            }
-            if (EPCTable.size > epcLastLength + 10) {
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                epcLastLength = EPCTable.size
-            }
-            if (EPCTable.size > epcLastLength) {
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                epcLastLength = EPCTable.size
+            when {
+                speed > 100 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+                }
+                speed > 30 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                }
+                speed > 10 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
+                }
+                speed > 0 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                }
             }
         }
 
@@ -388,19 +387,14 @@ class WarehouseScanningActivity : AppCompatActivity() {
     }
 
     companion object {
-        @JvmField
         var EPCTable: MutableMap<String, Int> = HashMap()
 
-        @JvmField
         var EPCTableValid: MutableMap<String, Int> = HashMap()
 
-        @JvmField
         var ID: Int = 0
 
-        @JvmField
         var warehouseID = 2
 
-        @JvmField
         var conflicts = JSONObject()
     }
 }
