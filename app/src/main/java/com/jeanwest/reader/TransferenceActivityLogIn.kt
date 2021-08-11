@@ -23,7 +23,7 @@ class TransferenceActivityLogIn : AppCompatActivity() {
                 .isEmpty() || desWarehouseV.editableText.toString().isEmpty()
             || transferExplanationV.editableText.toString().isEmpty()
         ) {
-            Toast.makeText(this, "لطفا مبدا و مقصد را تعیین کنید", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "لطفا مبدا، مقصد و توضیحات را کامل کنید", Toast.LENGTH_LONG).show()
             return
         }
 

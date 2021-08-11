@@ -1,7 +1,6 @@
 package com.jeanwest.reader
 
 import android.annotation.SuppressLint
-import android.app.VoiceInteractor
 import android.graphics.Color
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -12,19 +11,19 @@ import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.widget.Button
-import android.widget.SeekBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.StringRequest
+
 import com.android.volley.toolbox.Volley
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
-import java.lang.reflect.Method
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -44,6 +43,8 @@ class TransferenceActivity : AppCompatActivity() {
     var source = 0;
     var des = 0;
     var explanation = ""
+
+    lateinit var result: ListView
 
     private var timerRunnable: Runnable = object : Runnable {
 
@@ -89,9 +90,36 @@ class TransferenceActivity : AppCompatActivity() {
                     url += "epc=" + key.key + "&"
                 }
 
-                var request = JsonObjectRequest(Request.Method.GET, url, null,  {
+                val request = JsonArrayRequest(Request.Method.GET, url, null,  {
                     response ->
-                    Toast.makeText(this@TransferenceActivity, response.toString(), Toast.LENGTH_LONG).show()
+
+                    var template: JSONObject
+                    val titles = ArrayList<String>()
+                    val specs = ArrayList<String>()
+                    val size = ArrayList<String>()
+                    val color = ArrayList<String>()
+                    val scannedNumber = ArrayList<String>()
+                    val pictureURL = ArrayList<String>()
+
+                    for(i in 0 until response.length()) {
+                        try {
+                            template = response.getJSONObject(i)
+                            titles.add(template.getString("productName"))
+                            size.add("اندازه: " + template.getString("Size"))
+                            color.add("رنگ: " + template.getString("Color"))
+                            scannedNumber.add("تعداد: " + template.getString("handheldCount"))
+                            pictureURL.add(template.getString("ImgUrl"))
+                            specs.add("کد محصول: " + template.getString("KBarCode"))
+
+                        } catch (ignored: JSONException) {
+
+                        }
+
+                    }
+
+                    var listAdapter = MyListAdapterTransfer(this@TransferenceActivity, titles, specs, size, color, scannedNumber, pictureURL)
+                    result.adapter = listAdapter
+
                 }, { response ->
                     Toast.makeText(this@TransferenceActivity, response.toString(), Toast.LENGTH_LONG).show()
                 })
@@ -114,6 +142,7 @@ class TransferenceActivity : AppCompatActivity() {
         val powerSeekBar = findViewById<SeekBar>(R.id.readingPowerSeekBarT)
         button = findViewById(R.id.buttonReadingT)
         status = findViewById(R.id.section_labelT)
+        result = findViewById(R.id.listViewT)
 
         powerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
 
@@ -149,15 +178,15 @@ class TransferenceActivity : AppCompatActivity() {
         isScanning = false
         processingInProgress = false
 
+        source = intent.getIntExtra("source", 0)
+        des = intent.getIntExtra("des", 0)
+        explanation = intent.getStringExtra("explanation")!!
+
         showPropertiesToUser(0, beepMain)
 
         powerText.text = "اندازه توان($power)"
         powerSeekBar.progress = power - 5
 
-        source = intent.getIntExtra("source", 0)
-        des = intent.getIntExtra("des", 0)
-        explanation = intent.getStringExtra("explanation")!!
-        
     }
 
     @SuppressLint("SetTextI18n")
@@ -194,10 +223,51 @@ class TransferenceActivity : AppCompatActivity() {
         return true
     }
 
+    fun sendFile(view: View) {
 
-    fun sendFile(view: View) {}
+        val queue = Volley.newRequestQueue(this)
+
+        val request = object : StringRequest(Request.Method.POST, "http://rfid-api-0-1.avakatan.ir/stock-drafts",
+            { response ->
+                Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
+
+            }, {response ->
+                Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
+        }) {
+
+            override fun getBody(): ByteArray {
+                val json = JSONObject()
+                json.put("SourceWareHouse_ID", source)
+                json.put("DestWareHouse_ID", des)
+                json.put("StockDraftDescription", explanation)
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.UK)
+                val formattedDate = sdf.format(Date())
+                json.put("CreateDate", formattedDate)
+
+                val temp = JSONArray()
+                for ((key) in epcTableValid) {
+                    temp.put(key)
+                }
+
+                json.put("epcs", temp)
+
+                return json.toString().toByteArray()
+            }
+
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+        queue.add(request)
+
+    }
     fun clearAll(view: View) {
         epcLastLength = 0
+        epcTable.clear()
+        epcTableValid.clear()
     }
 
     @SuppressLint("SetTextI18n")
@@ -209,7 +279,7 @@ class TransferenceActivity : AppCompatActivity() {
 
         status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): " + speed + "\n"
 
-        if (speed == 0) {
+        if (!isScanning) {
             status.text =
                 status.text.toString() + "تعداد کالا های پیدا شده: " + epcTableValid.size
         } else {

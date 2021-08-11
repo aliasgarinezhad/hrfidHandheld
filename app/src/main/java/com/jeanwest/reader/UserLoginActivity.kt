@@ -32,10 +32,11 @@ class UserLoginActivity : AppCompatActivity() {
 
         val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 
-            Toast.makeText(this, response.getString("accessToken"), Toast.LENGTH_LONG).show()
+            //Toast.makeText(this, response.getString("accessToken"), Toast.LENGTH_LONG).show()
             editor.putString("accessToken", response.getString("accessToken"))
             editor.putString("username", username.editableText.toString())
             editor.apply()
+            finish()
 
         },{ response ->
 

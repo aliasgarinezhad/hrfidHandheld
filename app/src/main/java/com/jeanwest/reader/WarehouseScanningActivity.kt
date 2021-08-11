@@ -362,9 +362,9 @@ class WarehouseScanningActivity : AppCompatActivity() {
         }
         status.text = status.text.toString() + "سرعت اسکن (تگ بر ثانیه): " + speed + "\n"
 
-        if (speed == 0) {
+        if (!readingInProgress) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
+                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTable.size + "/" + allStuffs
         } else {
             when {
                 speed > 100 -> {
