@@ -1,5 +1,6 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.finding
 
+import com.jeanwest.reader.MainActivity
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject

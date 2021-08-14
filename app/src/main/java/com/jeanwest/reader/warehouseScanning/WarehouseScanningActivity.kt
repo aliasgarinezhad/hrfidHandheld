@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -20,6 +20,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
+import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirection
 import com.rscja.deviceapi.RFIDWithUHFUART

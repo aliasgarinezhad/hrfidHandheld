@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import androidx.appcompat.app.AppCompatActivity
 import android.content.Intent
@@ -9,6 +9,7 @@ import android.os.Bundle
 import org.json.JSONException
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ListView
+import com.jeanwest.reader.R
 import java.util.ArrayList
 
 class WarehouseScanningResultActivity : AppCompatActivity() {

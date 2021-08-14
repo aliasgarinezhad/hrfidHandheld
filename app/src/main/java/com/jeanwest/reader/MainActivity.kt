@@ -10,6 +10,10 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.add.AddProductActivity
+import com.jeanwest.reader.finding.FindingProductActivity
+import com.jeanwest.reader.transference.TransferenceActivityLogIn
+import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 

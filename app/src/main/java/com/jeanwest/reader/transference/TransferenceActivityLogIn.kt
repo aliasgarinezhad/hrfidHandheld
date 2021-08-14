@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.transference
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
+import com.jeanwest.reader.R
 
 class TransferenceActivityLogIn : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

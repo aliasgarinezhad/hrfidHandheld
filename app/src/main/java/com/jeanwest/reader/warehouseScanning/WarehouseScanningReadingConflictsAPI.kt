@@ -1,50 +1,52 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
+import com.jeanwest.reader.MainActivity
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.StandardCharsets
 
-class GetProductEPCAPI : Thread() {
-    @JvmField
-    var response: String? = null
+class WarehouseScanningReadingConflictsAPI : Thread() {
+    var response: String = ""
+
     @JvmField
     var status = false
 
-    @Volatile @JvmField
+    @Volatile
+    @JvmField
     var run = true
-    var json = JSONObject()
+
     @JvmField
-    var rfidCode = ""
+    var conflicts = JSONObject()
+
     @JvmField
-    var primaryCode = ""
-    @JvmField
-    var id = ""
+    var id = 0
 
     override fun run() {
+
         try {
-            val url = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/epcs?BarcodeMain_ID=$primaryCode&RFID=$rfidCode"
-            val server = URL(url)
+
+            val getCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/$id/conflicts/v2"
+            val server = URL(getCommand)
             val connection = server.openConnection() as HttpURLConnection
             connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
 
             if (connection.responseCode == 200) {
                 val input: InputStream = BufferedInputStream(connection.inputStream)
-                val isr = InputStreamReader(input, "UTF-8")
+                val isr = InputStreamReader(input, StandardCharsets.UTF_8)
                 val reader = BufferedReader(isr)
                 val receive = reader.readLine()
-                json = JSONObject(receive)
-                response = ""
-
-                for (g in 0 until json.length()) {
-                    response += json.getString(g.toString())
-                }
-
+                val json = JSONObject(receive)
+                conflicts = json.getJSONObject("conflicts")
                 status = true
             } else {
-                response = connection.responseCode.toString() + "Error: " + connection.responseMessage
+                response =
+                    connection.responseCode.toString() + " error: " + connection.responseMessage
+                status = false
             }
+            connection.disconnect()
         } catch (e: IOException) {
             e.printStackTrace()
         } catch (e: JSONException) {

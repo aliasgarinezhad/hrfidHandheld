@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.transference
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -9,6 +9,7 @@ import android.webkit.WebView
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
+import com.jeanwest.reader.R
 import java.util.*
 
 class MyListAdapterTransfer(

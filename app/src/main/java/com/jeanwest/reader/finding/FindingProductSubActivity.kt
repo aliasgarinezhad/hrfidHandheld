@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.finding
 
 import android.annotation.SuppressLint
 import android.media.AudioManager
@@ -14,6 +14,7 @@ import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException

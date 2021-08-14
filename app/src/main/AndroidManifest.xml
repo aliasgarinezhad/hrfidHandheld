@@ -16,26 +16,29 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity android:name=".TransferenceActivity"></activity>
-        <activity android:name=".TransferenceActivityLogIn" />
+        <activity
+            android:name=".TransferenceConfirmationActivity"
+            android:exported="true" />
+        <activity android:name=".transference.TransferenceActivity" />
+        <activity android:name=".transference.TransferenceActivityLogIn" />
         <activity android:name=".UserLoginActivity" />
         <activity
-            android:name=".FindingProductSubActivity"
-            android:parentActivityName=".FindingProductActivity" />
+            android:name=".finding.FindingProductSubActivity"
+            android:parentActivityName=".finding.FindingProductActivity" />
         <activity
-            android:name=".FindingProductActivity"
+            android:name=".finding.FindingProductActivity"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".WarehouseScanningSubResultActivity"
-            android:parentActivityName=".WarehouseScanningResultActivity" />
+            android:name=".warehouseScanning.WarehouseScanningSubResultActivity"
+            android:parentActivityName=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity
             android:name=".SettingActivity"
             android:parentActivityName=".AboutUsActivity" />
         <activity
-            android:name=".WarehouseScanningResultActivity"
-            android:parentActivityName=".WarehouseScanningActivity" />
+            android:name=".warehouseScanning.WarehouseScanningResultActivity"
+            android:parentActivityName=".warehouseScanning.WarehouseScanningActivity" />
         <activity
-            android:name=".WarehouseScanningUserLogin"
+            android:name=".warehouseScanning.WarehouseScanningUserLogin"
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".LoginToSettingActivity"
@@ -44,17 +47,18 @@
             android:name=".AboutUsActivity"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".WareHouseScanningFindingProduct"
-            android:parentActivityName=".WarehouseScanningSubResultActivity" />
+            android:name=".warehouseScanning.WareHouseScanningFindingProduct"
+            android:parentActivityName=".warehouseScanning.WarehouseScanningSubResultActivity" />
         <activity
-            android:name=".WarehouseScanningActivity"
-            android:parentActivityName=".WarehouseScanningUserLogin" />
+            android:name=".warehouseScanning.WarehouseScanningActivity"
+            android:parentActivityName=".warehouseScanning.WarehouseScanningUserLogin" />
         <activity
-            android:name=".AddProductActivity"
+            android:name=".add.AddProductActivity"
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.main">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

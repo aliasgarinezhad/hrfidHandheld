@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -13,6 +13,7 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.R
 import java.util.*
 
 class WarehouseScanningUserLogin : AppCompatActivity() {

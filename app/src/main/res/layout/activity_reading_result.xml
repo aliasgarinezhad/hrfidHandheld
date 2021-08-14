@@ -7,7 +7,7 @@
     android:layout_gravity="end"
     android:background="@color/pagesBackground"
     android:foregroundGravity="right"
-    tools:context=".WarehouseScanningResultActivity">
+    tools:context=".warehouseScanning.WarehouseScanningResultActivity">
 
     <ListView
         android:id="@+id/readingResult"

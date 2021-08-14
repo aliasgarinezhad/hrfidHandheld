@@ -1,10 +1,11 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import android.app.Activity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.TextView
+import com.jeanwest.reader.R
 import java.util.*
 
 class MyListAdapter(

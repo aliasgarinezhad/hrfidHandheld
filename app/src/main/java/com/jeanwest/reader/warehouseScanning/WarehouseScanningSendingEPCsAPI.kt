@@ -1,5 +1,6 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
+import com.jeanwest.reader.MainActivity
 import kotlin.jvm.Volatile
 import java.io.IOException
 import java.io.OutputStreamWriter

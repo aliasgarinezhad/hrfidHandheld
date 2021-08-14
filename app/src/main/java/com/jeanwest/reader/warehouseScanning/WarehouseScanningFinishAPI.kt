@@ -1,5 +1,6 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
+import com.jeanwest.reader.MainActivity
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL

@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.add
 
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
@@ -14,6 +14,9 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.Barcode2D
+import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException

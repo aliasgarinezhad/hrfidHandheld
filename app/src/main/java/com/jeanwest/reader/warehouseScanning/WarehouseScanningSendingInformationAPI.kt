@@ -1,6 +1,7 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import android.content.Context
+import com.jeanwest.reader.MainActivity
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader

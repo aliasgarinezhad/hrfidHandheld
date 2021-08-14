@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.transference
 
 import android.annotation.SuppressLint
 import android.graphics.Color
@@ -17,6 +17,9 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.StringRequest
 
 import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.R
+import com.jeanwest.reader.warehouseScanning.WarehouseScanningActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -129,6 +132,7 @@ class TransferenceActivity : AppCompatActivity() {
 
                 isScanning = false
                 processingInProgress = false
+                button.setBackgroundColor(getColor(R.color.Primary))
             }
         }
     }

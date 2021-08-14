@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.finding
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,6 +10,9 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.Barcode2D
+import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.R
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*

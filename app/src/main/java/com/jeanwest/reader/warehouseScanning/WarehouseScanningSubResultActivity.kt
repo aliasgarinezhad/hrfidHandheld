@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.warehouseScanning
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
+import com.jeanwest.reader.R
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
