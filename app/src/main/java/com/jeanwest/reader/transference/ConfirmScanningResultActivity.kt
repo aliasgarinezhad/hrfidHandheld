@@ -10,8 +10,9 @@ import com.jeanwest.reader.R
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
+import kotlin.collections.ArrayList
 
-class TransferScanningResultActivity : AppCompatActivity() {
+class ConfirmScanningResultActivity : AppCompatActivity() {
     lateinit var subResult: ListView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,54 +35,55 @@ class TransferScanningResultActivity : AppCompatActivity() {
         val notScanned = ArrayList<String>()
         val all = ArrayList<String>()
         val pictureURL = ArrayList<String>()
+        val productRFIDCodes = ArrayList<String>()
 
-        var stuffs = TransferScanningActivity.conflicts.getJSONArray("shortage")
-        var subStuffs: JSONObject
+        var products = ConfirmScanningActivity.conflicts.getJSONArray("shortage")
+        var product: JSONObject
 
-        for (i in 0 until stuffs.length()) {
+        for (i in 0 until products.length()) {
 
-            subStuffs = stuffs.getJSONObject(i)
-            shortageScanned += subStuffs.getInt("handheldCount")
-            shortageAll += subStuffs.getInt("dbCount")
+            product = products.getJSONObject(i)
+            shortageScanned += product.getInt("handheldCount")
+            shortageAll += product.getInt("dbCount")
         }
-
-        (shortageAll-shortageScanned)
 
         titles.add("کالاهای اسکن نشده")
         notScanned.add("تعداد اسکن نشده: " + (shortageAll-shortageScanned))
         specs.add("ناموجود در انبار، موجود در سرور")
         scanned.add("تعداد اسکن شده: $shortageScanned")
         all.add("تعداد کل: $shortageAll")
-        pictureURL.add("a")
+        pictureURL.add("null")
+        productRFIDCodes.add("null")
 
-        for (i in 0 until stuffs.length()) {
+        for (i in 0 until products.length()) {
             try {
-                subStuffs = stuffs.getJSONObject(i)
+                product = products.getJSONObject(i)
 
-                titles.add(subStuffs.getString("productName"))
+                titles.add(product.getString("productName"))
                 specs.add(
                     """
-                        کد محصول: ${subStuffs.getString("K_Bar_Code")}
-                        بارکد: ${subStuffs.getString("KBarCode")}
+                        کد محصول: ${product.getString("K_Bar_Code")}
+                        بارکد: ${product.getString("KBarCode")}
                         """.trimIndent()
                 )
                 notScanned.add("تعداد اسکن نشده: " +
-                        (subStuffs.getInt("dbCount") - subStuffs.getInt("handheldCount")))
-                scanned.add("تعداد اسکن شده: " + subStuffs.getString("handheldCount"))
-                all.add("تعداد کل: " + subStuffs.getString("dbCount"))
-                pictureURL.add(subStuffs.getString("ImgUrl"))
+                        (product.getInt("dbCount") - product.getInt("handheldCount")))
+                scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
+                all.add("تعداد کل: " + product.getString("dbCount"))
+                pictureURL.add(product.getString("ImgUrl"))
+                productRFIDCodes.add(product.getString("RFID"))
 
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
         }
 
-        stuffs = TransferScanningActivity.conflicts.getJSONArray("additional")
-        for (i in 0 until stuffs.length()) {
+        products = ConfirmScanningActivity.conflicts.getJSONArray("additional")
+        for (i in 0 until products.length()) {
             try {
-                subStuffs = stuffs.getJSONObject(i)
-                additionalScanned += subStuffs.getInt("handheldCount")
-                additionalAll += subStuffs.getInt("dbCount")
+                product = products.getJSONObject(i)
+                additionalScanned += product.getInt("handheldCount")
+                additionalAll += product.getInt("dbCount")
 
             } catch (e: JSONException) {
                 e.printStackTrace()
@@ -93,24 +95,26 @@ class TransferScanningResultActivity : AppCompatActivity() {
         notScanned.add("تعداد اضافی: " + (additionalScanned - additionalAll))
         scanned.add("تعداد اسکن شده: $additionalScanned")
         all.add("تعداد کل: $additionalAll")
-        pictureURL.add("a")
+        pictureURL.add("null")
+        productRFIDCodes.add("null")
 
-        for (i in 0 until stuffs.length()) {
+        for (i in 0 until products.length()) {
             try {
-                subStuffs = stuffs.getJSONObject(i)
+                product = products.getJSONObject(i)
 
-                titles.add(subStuffs.getString("productName"))
+                titles.add(product.getString("productName"))
                 specs.add(
                     """
-                        کد محصول: ${subStuffs.getString("K_Bar_Code")}
-                        بارکد: ${subStuffs.getString("KBarCode")}
+                        کد محصول: ${product.getString("K_Bar_Code")}
+                        بارکد: ${product.getString("KBarCode")}
                         """.trimIndent()
                 )
                 notScanned.add("تعداد اضافی: " +
-                        (subStuffs.getInt("handheldCount") - subStuffs.getInt("dbCount")))
-                scanned.add("تعداد اسکن شده: " + subStuffs.getString("handheldCount"))
-                all.add("تعداد کل: " + subStuffs.getString("dbCount"))
-                pictureURL.add(subStuffs.getString("ImgUrl"))
+                        (product.getInt("handheldCount") - product.getInt("dbCount")))
+                scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
+                all.add("تعداد کل: " + product.getString("dbCount"))
+                pictureURL.add(product.getString("ImgUrl"))
+                productRFIDCodes.add(product.getString("RFID"))
 
             } catch (e: JSONException) {
                 e.printStackTrace()
@@ -119,10 +123,14 @@ class TransferScanningResultActivity : AppCompatActivity() {
         val listAdapter =
             MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL)
         subResult.adapter = listAdapter
+
         subResult.onItemClickListener = OnItemClickListener { _, _, i, _ ->
-            val nextActivityIntent = Intent(this, TransferScanningFindingProduct::class.java)
-            nextActivityIntent.putExtra("arrayIndex", i)
-            startActivity(nextActivityIntent)
+
+            if(productRFIDCodes[i] != "null") {
+                val nextActivityIntent = Intent(this, ConfirmScanningFindingProduct::class.java)
+                nextActivityIntent.putExtra("productRFIDCode", productRFIDCodes[i])
+                startActivity(nextActivityIntent)
+            }
         }
     }
 }

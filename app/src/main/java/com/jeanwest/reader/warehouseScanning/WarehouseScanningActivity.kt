@@ -340,6 +340,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
             tableEditor.putInt(departmentInfoID.toString() + departmentInfoID, ID)
             tableEditor.commit()
             epcLastLength = 0
+            showPropertiesToUser(0, beepMain)
 
         }
         alertBuilder.setNegativeButton("خیر") { dialog, which -> }

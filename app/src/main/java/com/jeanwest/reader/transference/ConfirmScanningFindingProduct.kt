@@ -1,6 +1,7 @@
 package com.jeanwest.reader.transference
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.media.AudioManager
@@ -12,12 +13,12 @@ import android.view.KeyEvent
 import android.view.View
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.widget.Button
-import android.widget.CheckBox
-import android.widget.SeekBar
+import android.widget.*
 import android.widget.SeekBar.OnSeekBarChangeListener
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -27,7 +28,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
-class TransferScanningFindingProduct : AppCompatActivity() {
+class ConfirmScanningFindingProduct : AppCompatActivity() {
+
     lateinit var rf: RFIDWithUHFUART
     var epcTableFinding: MutableMap<String, Int> = HashMap()
     var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -73,12 +75,13 @@ class TransferScanningFindingProduct : AppCompatActivity() {
 
         @SuppressLint("SetTextI18n")
         override fun run() {
+
             if (findingInProgress) {
-                var uhftagInfo: UHFTAGInfo?
+                var uhfTagInfo: UHFTAGInfo?
                 while (true) {
-                    uhftagInfo = rf.readTagFromBuffer()
-                    if (uhftagInfo != null) {
-                        epcTableFinding[uhftagInfo.epc] = 1
+                    uhfTagInfo = rf.readTagFromBuffer()
+                    if (uhfTagInfo != null) {
+                        epcTableFinding[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
@@ -136,7 +139,7 @@ class TransferScanningFindingProduct : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reading_result_sub_sub)
+        setContentView(R.layout.activity_confirm_find)
         status = findViewById(R.id.section_label)
         stuffSpec = findViewById(R.id.result)
         picture = findViewById(R.id.pictureView)
@@ -188,18 +191,18 @@ class TransferScanningFindingProduct : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onResume() {
         super.onResume()
-        updateDatabaseInProgress = false
         while (!rf.setPower(findingPower)) {
         }
+        stuffRFIDCode = intent.getStringExtra("productRFIDCode")!!
+        stuff = getProduct(stuffRFIDCode)
+
         try {
-            //subStuffs =
-               // TransferScanningActivity.conflicts.getJSONArray(TransferScanningResultActivity.index)
-            //stuff = subStuffs.getJSONObject(TransferScanningResultActivity.subIndex)
+
             if (stuff.getBoolean("status")) {
                 stuffSpec.text = stuff.getString("productName") + "\n" + """"
                     کد محصول: ${stuff.getString("K_Bar_Code")}
                     بارکد: ${stuff.getString("KBarCode")}
-                    تعداد اضافی: ${stuff.getString("diffCount")}
+                   تعداد اضافی:  ${(stuff.getInt("handheldCount") - stuff.getInt("dbCount"))}
                     تعداد اسکن شده: ${stuff.getString("handheldCount")}
                     تعداد کل: ${stuff.getString("dbCount")}
                     """.trimIndent()
@@ -207,17 +210,18 @@ class TransferScanningFindingProduct : AppCompatActivity() {
                 stuffSpec.text = stuff.getString("productName") + "\n" +  """
                     کد محصول: ${stuff.getString("K_Bar_Code")}
                     بارکد: ${stuff.getString("KBarCode")}
-                    تعداد اسکن نشده: ${stuff.getString("diffCount")}
+                   تعداد اسکن نشده:  ${(stuff.getInt("dbCount") - stuff.getInt("handheldCount"))}
                     تعداد اسکن شده: ${stuff.getString("handheldCount")}
                     تعداد کل: ${stuff.getString("dbCount")}
                     """.trimIndent()
             }
             picture.loadUrl(stuff.getString("ImgUrl"))
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID")
-            stuffRFIDCode = stuff.getString("RFID")
+
         } catch (e: JSONException) {
             e.printStackTrace()
         }
+
         setting = picture.settings
         setting.useWideViewPort = true
         setting.loadWithOverviewMode = true
@@ -232,6 +236,7 @@ class TransferScanningFindingProduct : AppCompatActivity() {
             30 -> powerSeekBar.progress = 4
         }
         powerText.text = "قدرت سیگنال($findingPower)"
+        clearEPCs(View(this))
     }
 
     @SuppressLint("SetTextI18n")
@@ -337,17 +342,67 @@ class TransferScanningFindingProduct : AppCompatActivity() {
             return
         }
         updateDatabaseInProgress = true
-        val tableJson: JSONObject
-        TransferScanningActivity.EPCTable.putAll(epcTableFindingMatched)
-        TransferScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
-        tableJson = JSONObject(TransferScanningActivity.EPCTableValid as Map<*, *>)
+        ConfirmScanningActivity.EPCTable.putAll(epcTableFindingMatched)
+        ConfirmScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
 
-        tableEditor.commit()
-        databaseInProgress = true
-        databaseBackgroundTaskHandler.post(databaseBackgroundTask)
+        val queue = Volley.newRequestQueue(this)
+
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/${ConfirmScanningActivity.transferID}/conflicts"
+
+        val request = object : JsonObjectRequest(
+            Method.POST, url, null,
+            {
+                ConfirmScanningActivity.conflicts = it
+                updateDatabaseInProgress = false
+                onResume()
+
+            }, {
+                Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+            }) {
+            override fun getBody(): ByteArray {
+
+                return JSONArray(ConfirmScanningActivity.EPCTableValid.keys).toString().toByteArray()
+            }
+
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+
+        status.text = "در حال دریافت اطلاعات ..."
+        queue.add(request)
+
     }
 
     fun optionChange(view: View?) {
         isChecked = option.isChecked
+    }
+
+    private fun getProduct(productRFIDCode : String) : JSONObject {
+
+        var products = ConfirmScanningActivity.conflicts.getJSONArray("shortage")
+        var product : JSONObject
+        for(i in 0 until products.length()) {
+
+            product = products.getJSONObject(i)
+            if(product.getString("RFID").equals(productRFIDCode)) {
+                product.put("status", false)
+                return product
+            }
+        }
+
+        products = ConfirmScanningActivity.conflicts.getJSONArray("additional")
+        for (i in 0 until products.length()) {
+
+            product = products.getJSONObject(i)
+            if(product.getString("RFID").equals(productRFIDCode)) {
+                product.put("status", true)
+                return product
+            }
+        }
+        return JSONObject()
     }
 }

@@ -27,12 +27,12 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
 import kotlin.collections.HashMap
 
-class TransferScanningActivity : AppCompatActivity() {
+class ConfirmScanningActivity : AppCompatActivity() {
 
+    private var updateDatabaseInProgress = false
     var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     lateinit var rf: RFIDWithUHFUART
     lateinit var status: TextView
@@ -49,7 +49,6 @@ class TransferScanningActivity : AppCompatActivity() {
     var temp = ""
     var temp2 = JSONObject()
     var header = ""
-    private var transferID = 0L
     var allStuffs = 1
     var timerHandler = Handler()
 
@@ -104,7 +103,7 @@ class TransferScanningActivity : AppCompatActivity() {
         setContentView(R.layout.activity_confirm)
         status = findViewById(R.id.section_label)
         button = findViewById(R.id.buttonReading)
-        nextActivityIntent = Intent(this, TransferScanningResultActivity::class.java)
+        nextActivityIntent = Intent(this, ConfirmScanningResultActivity::class.java)
         circularProgressBar = findViewById(R.id.circularProgressBar)
         percentage = findViewById(R.id.progressText)
         powerText = findViewById(R.id.readingPowerTextView)
@@ -193,6 +192,11 @@ class TransferScanningActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+
+        if (updateDatabaseInProgress) {
+            return true
+        }
+
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
             if (event.repeatCount == 0) {
                 if (!readingInProgress) {
@@ -243,6 +247,8 @@ class TransferScanningActivity : AppCompatActivity() {
             return
         }
 
+        updateDatabaseInProgress = true
+
         val queue = Volley.newRequestQueue(this)
 
         val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/conflicts"
@@ -250,21 +256,15 @@ class TransferScanningActivity : AppCompatActivity() {
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
                 conflicts = it
-                allStuffs = 0
-                val stuffs = it.getJSONArray("shortage")
-                for (i in 0 until stuffs.length()) {
-
-                    temp2 = stuffs.getJSONObject(i)
-                    allStuffs += temp2.getInt("dbCount")
-
-                }
-                startActivity(Intent(this, TransferScanningResultActivity::class.java))
+                updateDatabaseInProgress = false
+                startActivity(Intent(this, ConfirmScanningResultActivity::class.java))
 
             }, {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
             }) {
             override fun getBody(): ByteArray {
-                return JSONArray().toString().toByteArray()
+
+                return JSONArray(EPCTableValid.keys).toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -289,6 +289,7 @@ class TransferScanningActivity : AppCompatActivity() {
             EPCTable.clear()
             EPCTableValid.clear()
             epcLastLength = 0
+            showPropertiesToUser(0, beepMain)
 
         }
         alertBuilder.setNegativeButton("خیر") { dialog, which -> }
@@ -336,7 +337,7 @@ class TransferScanningActivity : AppCompatActivity() {
 
         var EPCTableValid: MutableMap<String, Int> = HashMap()
 
-        var ID: Int = 0
+        var transferID = 0L
 
         var conflicts = JSONObject()
     }

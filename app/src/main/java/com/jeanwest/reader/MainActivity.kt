@@ -17,7 +17,7 @@ import com.jeanwest.reader.transference.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
-import com.jeanwest.reader.transference.TransferScanningLogin
+import com.jeanwest.reader.transference.ConfirmScanningLogin
 
 class MainActivity : AppCompatActivity() {
     
@@ -144,7 +144,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
             return
         }
-        val intent = Intent(this, TransferScanningLogin::class.java)
+        val intent = Intent(this, ConfirmScanningLogin::class.java)
         startActivity(intent)
 
     }
