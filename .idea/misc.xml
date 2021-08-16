@@ -3,13 +3,23 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_add_circle_outline_24.xml" value="0.33046875" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_new_setting.xml" value="0.1" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_confirm.xml" value="0.33" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_confirm_imformation.xml" value="0.33" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_confirm_result.xml" value="0.1875" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_finding.xml" value="0.67" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_login.xml" value="0.30625" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_main.xml" value="0.33" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_reading_result_sub.xml" value="0.1875" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_transfer_imformation.xml" value="0.22916666666666666" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_transference.xml" value="0.33" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_transference_confirmation.xml" value="0.2569444444444444" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_transference_login.xml" value="0.33" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_user_login.xml" value="0.33" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_user_spec.xml" value="0.30625" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/list.xml" value="0.2152777777777778" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/list_find.xml" value="0.2152777777777778" />
       </map>
     </option>
   </component>

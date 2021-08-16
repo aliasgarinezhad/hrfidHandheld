@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.jeanwest.reader">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -16,12 +15,23 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity
-            android:name=".TransferenceConfirmationActivity"
-            android:exported="true" />
-        <activity android:name=".transference.TransferenceActivity" />
-        <activity android:name=".transference.TransferenceActivityLogIn" />
-        <activity android:name=".UserLoginActivity" />
+
+        <activity android:name=".transference.TransferScanningLogin"
+            android:parentActivityName=".MainActivity"/>
+
+        <activity android:name=".transference.TransferScanningActivity"
+            android:parentActivityName=".transference.TransferScanningLogin"/>
+
+        <activity android:name=".transference.TransferScanningResultActivity"
+            android:parentActivityName=".transference.TransferScanningActivity"/>
+
+        <activity android:name=".transference.TransferenceActivity"
+            android:parentActivityName=".transference.TransferenceActivityLogIn"/>
+
+        <activity android:name=".transference.TransferenceActivityLogIn"
+            android:parentActivityName=".MainActivity"/>
+        <activity android:name=".UserLoginActivity"
+            android:parentActivityName=".MainActivity"/>
         <activity
             android:name=".finding.FindingProductSubActivity"
             android:parentActivityName=".finding.FindingProductActivity" />

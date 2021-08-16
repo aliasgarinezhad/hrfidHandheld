@@ -9,6 +9,7 @@ import android.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.add.AddProductActivity
 import com.jeanwest.reader.finding.FindingProductActivity
@@ -16,15 +17,20 @@ import com.jeanwest.reader.transference.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
+import com.jeanwest.reader.transference.TransferScanningLogin
 
 class MainActivity : AppCompatActivity() {
     
     lateinit var rf: RFIDWithUHFUART
-    
+    private lateinit var memory: SharedPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+
         try {
             rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
@@ -50,7 +56,6 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onResume() {
         super.onResume()
-        val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val accountButton = findViewById<Button>(R.id.accountButtonView)
 
         if(memory.getString("username", "empty") != "") {
@@ -65,11 +70,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun addNewActivity(view: View?) {
+
+        if(memory.getString("username", "empty") == "") {
+            Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(this, AddProductActivity::class.java)
         startActivity(intent)
     }
 
     fun readingActivity(view: View?) {
+
+        if(memory.getString("username", "empty") == "") {
+            Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(this, WarehouseScanningUserLogin::class.java)
         startActivity(intent)
     }
@@ -80,11 +95,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun settingActivity(view: View?) {
+
         val intent = Intent(this, AboutUsActivity::class.java)
         startActivity(intent)
     }
 
     fun advanceSettingButton(view: View?) {
+        if(memory.getString("username", "empty") == "") {
+            Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(this, LoginToSettingActivity::class.java)
         startActivity(intent)
     }
@@ -108,6 +128,8 @@ class MainActivity : AppCompatActivity() {
             editor.putString("accessToken", "")
             editor.putString("username", "")
             editor.apply()
+            username = ""
+            token = ""
             accountButton.text = "ورود به حساب کاربری"
         } else {
 
@@ -116,8 +138,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun confirmTransfer(view: View) {
+
+        if(memory.getString("username", "empty") == "") {
+            Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
+            return
+        }
+        val intent = Intent(this, TransferScanningLogin::class.java)
+        startActivity(intent)
+
+    }
+
     fun transference(view: View) {
 
+        if(memory.getString("username", "empty") == "") {
+            Toast.makeText(this, "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(this, TransferenceActivityLogIn::class.java)
         startActivity(intent)
     }

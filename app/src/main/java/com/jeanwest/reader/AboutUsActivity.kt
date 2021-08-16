@@ -79,11 +79,11 @@ class AboutUsActivity : AppCompatActivity() {
         val alertBuilder = AlertDialog.Builder(this)
         alertBuilder.setMessage("نرم افزار به روز رسانی شود؟")
         alertBuilder.setTitle("به روز رسانی نرم افزار")
-        alertBuilder.setPositiveButton("بله") { dialog, which ->
+        alertBuilder.setPositiveButton("بله") { _, _ ->
             api.start()
             handler.postDelayed(thread, 1000)
         }
-        alertBuilder.setNegativeButton("خیر") { dialog, which -> }
+        alertBuilder.setNegativeButton("خیر") { _, _ -> }
         val alertUpdatePermit = alertBuilder.create()
         alertUpdatePermit.setOnShowListener {
             alertUpdatePermit.window!!.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL

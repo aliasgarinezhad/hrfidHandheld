@@ -4,10 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.EditText
 import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.Barcode2D
@@ -25,8 +27,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
     var listString = ArrayList<String>()
     var pictureURLList = ArrayList<String>()
     lateinit var kBarCode: EditText
-    lateinit var nextActivityIntent: Intent
-    private var product : JSONObject = JSONObject()
+    private lateinit var nextActivityIntent: Intent
+    private var product: JSONObject = JSONObject()
     lateinit var api: FindingProductAPI
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,8 +42,14 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
         list.onItemClickListener = OnItemClickListener { _, _, i, _ ->
             product = api.similar.getJSONObject(i);
-            nextActivityIntent.putExtra("product", product.toString());
+            nextActivityIntent.putExtra("product", product.toString())
             startActivity(nextActivityIntent)
+        }
+
+        kBarCode.setOnEditorActionListener{ _, _, _ ->
+
+            receive(View(this))
+            true
         }
     }
 
@@ -89,11 +97,13 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             for (i in 0 until api.similar.length()) {
                 try {
                     json = api.similar.getJSONObject(i)
-                    listString.add("""
+                    listString.add(
+                        """
                     سایز: ${json.getString("Size")}
                     
                     رنگ: ${json.getString("Color")}
-                    """.trimIndent())
+                    """.trimIndent()
+                    )
                     pictureURLList.add(json.getString("ImgUrl"))
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -141,7 +151,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         api.barcode = "K_Bar_Code=" + kBarCode.editableText.toString()
         api.start()
 
-        while (api.run) {}
+        while (api.run) {
+        }
 
         if (!api.status) {
             result.setText(api.response)
@@ -157,11 +168,13 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             for (i in 0 until api.similar.length()) {
                 try {
                     json = api.similar.getJSONObject(i)
-                    listString.add("""
+                    listString.add(
+                        """
                     سایز: ${json.getString("Size")}
                     
                     رنگ: ${json.getString("Color")}
-                    """.trimIndent())
+                    """.trimIndent()
+                    )
                     pictureURLList.add(json.getString("ImgUrl"))
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -187,11 +200,13 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         for (i in 0 until api.similar.length()) {
             try {
                 json = api.similar.getJSONObject(i)
-                listString.add("""
+                listString.add(
+                    """
                 سایز: ${json.getString("Size")}
                 
                 رنگ: ${json.getString("Color")}
-                """.trimIndent())
+                """.trimIndent()
+                )
                 pictureURLList.add(json.getString("ImgUrl"))
             } catch (e: JSONException) {
                 e.printStackTrace()
