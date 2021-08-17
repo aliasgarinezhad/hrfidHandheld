@@ -71,34 +71,21 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 var uhfTagInfo: UHFTAGInfo?
                 while (true) {
                     uhfTagInfo = rf.readTagFromBuffer()
-                    if (uhfTagInfo != null) {
-                        EPCTable[uhfTagInfo.epc] = 1
+                    if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
+                        EPCTableValid[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
 
-                showPropertiesToUser(EPCTable.size - epcLastLength, beepMain)
-                epcLastLength = EPCTable.size
+                showPropertiesToUser(EPCTableValid.size - epcLastLength, beepMain)
+                epcLastLength = EPCTableValid.size
 
                 timerHandler.postDelayed(this, 1000)
 
             } else if (processingInProgress) {
 
-                EPCTableValid.clear()
-                for ((key) in EPCTable) {
-
-                    if (key.isNotEmpty()) {
-                        header = key.substring(0, 2)
-                        if (header == "30") {
-                            EPCTableValid[key] = 1
-                        }
-                    } else {
-                        Log.e("errorx", key)
-                    }
-                }
                 showPropertiesToUser(0, beepMain)
-
                 readingInProgress = false
                 databaseInProgress = false
                 processingInProgress = false
@@ -137,6 +124,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                         receivingData = false
                         databaseInProgress = false
                         if (apiReadingConflicts.status) {
+                            conflicts = apiReadingConflicts.conflicts
                             startActivity(nextActivityIntent)
                         } else {
                             databaseInProgress = false
@@ -220,7 +208,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onResume() {
         super.onResume()
-        EPCTable.clear()
         EPCTableValid.clear()
 
         EPCTableValid =
@@ -237,9 +224,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 HashMap<String, Int>()
             }
 
-        EPCTable.putAll(EPCTableValid)
-
-        epcLastLength = EPCTable.size
+        epcLastLength = EPCTableValid.size
         while (!rf.setEPCMode()) {
         }
         if (rf.power != readingPower) {
@@ -334,7 +319,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
-            EPCTable.clear()
             EPCTableValid.clear()
             tableEditor.putString(warehouseID.toString(), "")
             tableEditor.putInt(departmentInfoID.toString() + departmentInfoID, ID)
@@ -366,7 +350,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
         if (!readingInProgress) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTable.size + "/" + allStuffs
+                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
         } else {
             when {
                 speed > 100 -> {
@@ -389,14 +373,12 @@ class WarehouseScanningActivity : AppCompatActivity() {
     }
 
     companion object {
-        var EPCTable: MutableMap<String, Int> = HashMap()
+        internal var EPCTableValid: MutableMap<String, Int> = HashMap()
 
-        var EPCTableValid: MutableMap<String, Int> = HashMap()
+        internal var ID: Int = 0
 
-        var ID: Int = 0
+        internal var warehouseID = 2
 
-        var warehouseID = 2
-
-        var conflicts = JSONObject()
+        internal var conflicts = JSONObject()
     }
 }

@@ -17,22 +17,25 @@ import androidx.core.content.ContextCompat
 
 class AboutUsActivity : AppCompatActivity() {
 
-    lateinit var response: Toast
     lateinit var versionName: TextView
-    lateinit var debug: Toast
     lateinit var alert: AlertDialog
     var api = UpdateAPI()
     var handler = Handler()
     var thread: Runnable = object : Runnable {
         override fun run() {
             if (api.finished) {
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setDataAndType(
-                    Uri.fromFile(api.outputFile),
-                    "application/vnd.android.package-archive"
-                )
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                startActivity(intent)
+                if (!api.response.equals("ok")) {
+                    Toast.makeText(this@AboutUsActivity, api.response, Toast.LENGTH_LONG).show()
+                } else {
+
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.setDataAndType(
+                        Uri.fromFile(api.outputFile),
+                        "application/vnd.android.package-archive"
+                    )
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    startActivity(intent)
+                }
             } else {
                 if (!alert.isShowing) {
                     alert.show()
@@ -46,14 +49,12 @@ class AboutUsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setting)
-        response = Toast.makeText(this, " ", Toast.LENGTH_LONG)
         versionName = findViewById(R.id.versionNameView)
         try {
             versionName.text = "ورژن: " + packageManager.getPackageInfo(packageName, 0).versionName
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }
-        debug = Toast.makeText(this, "", Toast.LENGTH_LONG)
         api.context = this
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -71,7 +72,8 @@ class AboutUsActivity : AppCompatActivity() {
         alertBuilder.setTitle("در حال دانلود نسخه به روز")
         alert = alertBuilder.create()
         alert.setOnShowListener {
-            alert.window!!.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+            alert.window!!.decorView.layoutDirection =
+                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
         }
     }
 
@@ -86,7 +88,8 @@ class AboutUsActivity : AppCompatActivity() {
         alertBuilder.setNegativeButton("خیر") { _, _ -> }
         val alertUpdatePermit = alertBuilder.create()
         alertUpdatePermit.setOnShowListener {
-            alertUpdatePermit.window!!.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+            alertUpdatePermit.window!!.decorView.layoutDirection =
+                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
         }
         alertUpdatePermit.show()
     }

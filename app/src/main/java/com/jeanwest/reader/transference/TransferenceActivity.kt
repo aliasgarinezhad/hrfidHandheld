@@ -37,7 +37,6 @@ class TransferenceActivity : AppCompatActivity() {
     var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     var timerHandler = Handler(Looper.getMainLooper())
     lateinit var rf: RFIDWithUHFUART
-    var epcTable: MutableMap<String, Int> = HashMap()
     var epcTableValid: MutableMap<String, Int> = HashMap()
     var epcLastLength = 0
     private var processingInProgress = false
@@ -59,15 +58,15 @@ class TransferenceActivity : AppCompatActivity() {
                 var uhfTagInfo: UHFTAGInfo?
                 while (true) {
                     uhfTagInfo = rf.readTagFromBuffer()
-                    if (uhfTagInfo != null) {
-                        epcTable[uhfTagInfo.epc] = 1
+                    if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
+                        epcTableValid[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
 
-                showPropertiesToUser(epcTable.size - epcLastLength, beepMain)
-                epcLastLength = epcTable.size
+                showPropertiesToUser(epcTableValid.size - epcLastLength, beepMain)
+                epcLastLength = epcTableValid.size
 
                 timerHandler.postDelayed(this, 1000)
 
@@ -75,7 +74,7 @@ class TransferenceActivity : AppCompatActivity() {
 
                 var header = ""
                 epcTableValid.clear()
-                for ((key) in epcTable) {
+                for ((key) in epcTableValid) {
 
                     if (key.isNotEmpty()) {
                         header = key.substring(0, 2)
@@ -169,10 +168,9 @@ class TransferenceActivity : AppCompatActivity() {
             e.printStackTrace()
         }
 
-        epcTable.clear()
         epcTableValid.clear()
 
-        epcLastLength = WarehouseScanningActivity.EPCTable.size
+        epcLastLength = epcTableValid.size
         while (!rf.setEPCMode()) {
         }
         if (rf.power != power) {
@@ -270,7 +268,6 @@ class TransferenceActivity : AppCompatActivity() {
     }
     fun clearAll(view: View) {
         epcLastLength = 0
-        epcTable.clear()
         epcTableValid.clear()
     }
 

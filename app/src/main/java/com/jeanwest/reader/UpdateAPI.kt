@@ -19,6 +19,8 @@ class UpdateAPI : Thread() {
             finished = false
             val server = URL(serverAddress)
             val connection = server.openConnection() as HttpURLConnection
+            connection.setRequestProperty("Authorization", ("Bearer " + MainActivity.token))
+
             if (connection.responseCode == 200) {
                 outputFile = File(Environment.getExternalStorageDirectory().path, "app.apk")
                 val fos = FileOutputStream(outputFile)

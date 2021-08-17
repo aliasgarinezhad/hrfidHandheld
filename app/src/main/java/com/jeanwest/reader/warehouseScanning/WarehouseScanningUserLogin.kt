@@ -92,7 +92,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
-            WarehouseScanningActivity.EPCTable.clear()
             WarehouseScanningActivity.EPCTableValid.clear()
             editor.putString("1", "")
             editor.putString("2", "")

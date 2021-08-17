@@ -124,10 +124,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                     status.text = ""
                     status.text = "در حال جست و جو ..."
                     for ((key) in epcTableFindingMatched) {
-                        status.text = """
-                            ${status.text}
-                            $key
-                            """.trimIndent()
+                        status.text = "${status.text}" + "\n$key"
                     }
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
@@ -261,21 +258,23 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                 WarehouseScanningActivity.conflicts.getJSONArray(WarehouseScanningResultActivity.index)
             stuff = subStuffs.getJSONObject(WarehouseScanningSubResultActivity.subIndex)
             if (stuff.getBoolean("status")) {
-                stuffSpec.text = stuff.getString("productName") + "\n" + """"
-                    کد محصول: ${stuff.getString("K_Bar_Code")}
-                    بارکد: ${stuff.getString("KBarCode")}
-                    تعداد اضافی: ${stuff.getString("diffCount")}
-                    تعداد اسکن شده: ${stuff.getString("handheldCount")}
-                    تعداد کل: ${stuff.getString("dbCount")}
-                    """.trimIndent()
+                stuffSpec.text = """
+                ${stuff.getString("productName")}
+                کد محصول: ${stuff.getString("K_Bar_Code")}
+                بارکد: ${stuff.getString("KBarCode")}
+                تعداد اضافی: ${stuff.getString("diffCount")}
+                تعداد اسکن شده: ${stuff.getString("handheldCount")}
+                تعداد کل: ${stuff.getString("dbCount")}
+                """.trimIndent()
             } else {
-                stuffSpec.text = stuff.getString("productName") + "\n" +  """
-                    کد محصول: ${stuff.getString("K_Bar_Code")}
-                    بارکد: ${stuff.getString("KBarCode")}
-                    تعداد اسکن نشده: ${stuff.getString("diffCount")}
-                    تعداد اسکن شده: ${stuff.getString("handheldCount")}
-                    تعداد کل: ${stuff.getString("dbCount")}
-                    """.trimIndent()
+                stuffSpec.text = """
+                ${stuff.getString("productName")}
+                کد محصول: ${stuff.getString("K_Bar_Code")}
+                بارکد: ${stuff.getString("KBarCode")}
+                تعداد اسکن نشده: ${stuff.getString("diffCount")}
+                تعداد اسکن شده: ${stuff.getString("handheldCount")}
+                تعداد کل: ${stuff.getString("dbCount")}
+                """.trimIndent()
             }
             picture.loadUrl(stuff.getString("ImgUrl"))
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID")
@@ -294,17 +293,9 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
         api.start()
         while (api.run) {
         }
-        if (!api.status) {
-            stuffSpec.text = """
-                ${stuffSpec.text}
-                ${api.response}
-                """.trimIndent()
-        } else {
-            stuffSpec.text = """
-                ${stuffSpec.text}
-                ${api.response}
-                """.trimIndent()
-        }
+
+        status.text = "${status.text}" + "\n${api.response}"
+
         databaseInProgress = false
         when (findingPower) {
             5 -> powerSeekBar.progress = 0
@@ -419,10 +410,8 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
             return
         }
         updateDatabaseInProgress = true
-        val tableJson: JSONObject
-        WarehouseScanningActivity.EPCTable.putAll(epcTableFindingMatched)
         WarehouseScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
-        tableJson = JSONObject(WarehouseScanningActivity.EPCTableValid as Map<*, *>)
+        val tableJson = JSONObject(WarehouseScanningActivity.EPCTableValid as Map<*, *>)
         tableEditor.putString(
             java.lang.String.valueOf(WarehouseScanningActivity.warehouseID),
             tableJson.toString()

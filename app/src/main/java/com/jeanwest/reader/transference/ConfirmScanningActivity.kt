@@ -76,20 +76,7 @@ class ConfirmScanningActivity : AppCompatActivity() {
 
             } else if (processingInProgress) {
 
-                EPCTableValid.clear()
-                for ((key) in EPCTable) {
-
-                    if (key.isNotEmpty()) {
-                        header = key.substring(0, 2)
-                        if (header == "30") {
-                            EPCTableValid[key] = 1
-                        }
-                    } else {
-                        Log.e("errorx", key)
-                    }
-                }
                 showPropertiesToUser(0, beepMain)
-
                 readingInProgress = false
                 processingInProgress = false
                 button.setBackgroundColor(getColor(R.color.Primary))
@@ -333,12 +320,13 @@ class ConfirmScanningActivity : AppCompatActivity() {
     }
 
     companion object {
-        var EPCTable: MutableMap<String, Int> = HashMap()
 
-        var EPCTableValid: MutableMap<String, Int> = HashMap()
+        internal var EPCTable: MutableMap<String, Int> = HashMap()
 
-        var transferID = 0L
+        internal var EPCTableValid: MutableMap<String, Int> = HashMap()
 
-        var conflicts = JSONObject()
+        internal var transferID = 0L
+
+        internal var conflicts = JSONObject()
     }
 }

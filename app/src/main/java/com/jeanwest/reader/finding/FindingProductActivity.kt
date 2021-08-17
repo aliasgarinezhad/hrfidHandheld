@@ -48,7 +48,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
         kBarCode.setOnEditorActionListener{ _, _, _ ->
 
-            receive(View(this))
+            receive(kBarCode)
             true
         }
     }
@@ -90,7 +90,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             listString.clear()
             pictureURLList.clear()
             try {
-                kBarCode.setText(api.similar.getJSONObject(1).getString("K_Bar_Code"))
+                kBarCode.setText(api.similar.getJSONObject(0
+                ).getString("K_Bar_Code"))
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
@@ -197,6 +198,13 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         listString.clear()
         pictureURLList.clear()
+
+        try {
+            kBarCode.setText(api.similar.getJSONObject(0).getString("K_Bar_Code"))
+        } catch (e: JSONException) {
+            e.printStackTrace()
+        }
+
         for (i in 0 until api.similar.length()) {
             try {
                 json = api.similar.getJSONObject(i)
