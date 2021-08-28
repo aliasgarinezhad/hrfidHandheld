@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.*
@@ -17,9 +16,10 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.StringRequest
 
 import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.Barcode2D
+import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.warehouseScanning.WarehouseScanningActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -28,10 +28,12 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-class TransferenceActivity : AppCompatActivity() {
+class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
+    private val barcode2D = Barcode2D(this)
     var power = 30
     private var isScanning = false
     var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -45,6 +47,7 @@ class TransferenceActivity : AppCompatActivity() {
     var source = 0;
     var des = 0;
     var explanation = ""
+    var barcodeTable = ArrayList<String>()
 
     lateinit var result: ListView
 
@@ -72,19 +75,6 @@ class TransferenceActivity : AppCompatActivity() {
 
             } else if (processingInProgress) {
 
-                var header = ""
-                epcTableValid.clear()
-                for ((key) in epcTableValid) {
-
-                    if (key.isNotEmpty()) {
-                        header = key.substring(0, 2)
-                        if (header == "30") {
-                            epcTableValid[key] = 1
-                        }
-                    } else {
-                        Log.e("errorx", key)
-                    }
-                }
                 showPropertiesToUser(0, beepMain)
 
                 var url = "http://rfid-api-0-1.avakatan.ir/products/v2?"
@@ -116,10 +106,9 @@ class TransferenceActivity : AppCompatActivity() {
                         } catch (ignored: JSONException) {
 
                         }
-
                     }
 
-                    var listAdapter = MyListAdapterTransfer(this@TransferenceActivity, titles, specs, size, color, scannedNumber, pictureURL)
+                    val listAdapter = MyListAdapterTransfer(this@TransferenceActivity, titles, specs, size, color, scannedNumber, pictureURL)
                     result.adapter = listAdapter
 
                 }, { response ->
@@ -191,9 +180,21 @@ class TransferenceActivity : AppCompatActivity() {
 
     }
 
+    override fun onResume() {
+        super.onResume()
+        open()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        close()
+    }
+
     @SuppressLint("SetTextI18n")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
+
+        if (keyCode == 280 || keyCode == 293) {
+
             if (event.repeatCount == 0) {
                 if (!isScanning) {
                     while (!rf.setPower(power)) {
@@ -216,11 +217,14 @@ class TransferenceActivity : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
+            close()
             if (isScanning) {
                 rf.stopInventory()
                 isScanning = false
             }
             finish()
+        } else if (keyCode == 139) {
+            start()
         }
         return true
     }
@@ -231,8 +235,9 @@ class TransferenceActivity : AppCompatActivity() {
 
         val request = object : StringRequest(Request.Method.POST, "http://rfid-api-0-1.avakatan.ir/stock-drafts",
             { response ->
-                Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
-
+                Toast.makeText(this, "حواله با موفقیت ثبت شد" + "\n" + "شماره حواله: "
+                        + JSONObject(response).getString("stockDraftId")
+                    , Toast.LENGTH_LONG).show()
             }, {response ->
                 Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
         }) {
@@ -269,6 +274,11 @@ class TransferenceActivity : AppCompatActivity() {
     fun clearAll(view: View) {
         epcLastLength = 0
         epcTableValid.clear()
+        showPropertiesToUser(0, beepMain)
+        var listAdapter = MyListAdapterTransfer(this@TransferenceActivity, ArrayList<String>(),
+            ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>())
+        result.adapter = listAdapter
+
     }
 
     @SuppressLint("SetTextI18n")
@@ -299,5 +309,30 @@ class TransferenceActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun getBarcode(barcode: String?) {
+        if (!barcode.isNullOrEmpty()) {
+
+            barcodeTable.add(barcode)
+        }
+    }
+
+    private fun start() {
+
+        barcode2D.startScan(this)
+    }
+
+    fun stop() {
+        barcode2D.stopScan(this)
+    }
+
+    private fun open() {
+        barcode2D.open(this, this)
+    }
+
+    fun close() {
+        barcode2D.stopScan(this)
+        barcode2D.close(this)
     }
 }

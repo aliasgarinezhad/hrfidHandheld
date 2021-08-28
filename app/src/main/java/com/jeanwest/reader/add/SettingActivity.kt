@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.add
 
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
@@ -7,7 +7,7 @@ import android.preference.PreferenceManager
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.jeanwest.reader.add.AddProductActivity
+import com.jeanwest.reader.R
 
 class SettingActivity : AppCompatActivity() {
 

@@ -381,4 +381,5 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
         internal var conflicts = JSONObject()
     }
+
 }

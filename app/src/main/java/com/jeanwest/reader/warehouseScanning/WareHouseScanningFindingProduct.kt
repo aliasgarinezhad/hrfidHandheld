@@ -121,7 +121,6 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                         }
                     }
                     numberOfFoundText.text = epcTableFindingMatched.size.toString()
-                    status.text = ""
                     status.text = "در حال جست و جو ..."
                     for ((key) in epcTableFindingMatched) {
                         status.text = "${status.text}" + "\n$key"

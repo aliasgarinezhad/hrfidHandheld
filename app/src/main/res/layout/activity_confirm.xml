@@ -6,67 +6,66 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".warehouseScanning.WarehouseScanningActivity">
+    tools:context=".transference.ConfirmScanningActivity">
 
     <TextView
         android:id="@+id/section_label"
         android:layout_width="0dp"
-        android:layout_height="171dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="8dp"
         android:text="\n\n\n\n\n"
-        android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonReading"
+        android:textAlignment="center"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/circularProgressBar"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1" />
 
     <Button
         android:id="@+id/buttonReading"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
         android:onClick="sendFile"
-        android:text="ارسال به دیتابیس"
+        android:text="بررسی"
         android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/button10"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/section_label"
+        app:layout_constraintStart_toEndOf="@+id/button10"
         app:strokeColor="#FFFFFF" />
 
     <Button
         android:id="@+id/button10"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
         android:onClick="clearAll"
         android:text="پاک کردن"
         android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonReading" />
+        app:layout_constraintBottom_toBottomOf="@+id/buttonReading"
+        app:layout_constraintEnd_toStartOf="@+id/buttonReading"
+        app:layout_constraintStart_toEndOf="@+id/button17"
+        app:layout_constraintTop_toTopOf="@+id/buttonReading"
+        app:layout_constraintVertical_bias="1.0" />
 
     <com.mikhaellopez.circularprogressbar.CircularProgressBar
         android:id="@+id/circularProgressBar"
-        android:layout_width="137dp"
-        android:layout_height="222dp"
-        android:layout_marginStart="244dp"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="8dp"
+        android:layout_width="157dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
         app:cpb_background_progressbar_color="#b6bbd8"
         app:cpb_background_progressbar_width="5dp"
         app:cpb_progress_direction="to_right"
         app:cpb_progressbar_color="#3f51b5"
         app:cpb_progressbar_width="10dp"
         app:cpb_round_border="false"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/section_label"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintHorizontal_bias="0.502"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/readingPowerTextView" />
 
     <TextView
         android:id="@+id/progressText"
@@ -82,11 +81,11 @@
         android:id="@+id/readingPowerSeekBar"
         android:layout_width="244dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:max="25"
-        app:layout_constraintBottom_toTopOf="@+id/circularProgressBar"
         app:layout_constraintEnd_toStartOf="@+id/readingPowerTextView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button10" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/readingPowerTextView"
@@ -98,5 +97,16 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/readingPowerSeekBar"
         app:layout_constraintTop_toTopOf="@+id/readingPowerSeekBar" />
+
+    <Button
+        android:id="@+id/button17"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="confirm"
+        android:text="تایید"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="@+id/button10"
+        app:layout_constraintEnd_toStartOf="@+id/button10"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

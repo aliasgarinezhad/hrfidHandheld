@@ -116,13 +116,9 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
                         }
                     }
                     numberOfFoundText.text = epcTableFindingMatched.size.toString()
-                    status.text = ""
                     status.text = "در حال جست و جو ..."
                     for ((key) in epcTableFindingMatched) {
-                        status.text = """
-                            ${status.text}
-                            $key
-                            """.trimIndent()
+                        status.text = "${status.text}" + "\n$key"
                     }
                     if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
@@ -158,7 +154,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
                         3 -> findingPower = 20
                         4 -> findingPower = 30
                     }
-                    powerText.setText("قدرت سیگنال($findingPower)")
+                    powerText.text = "قدرت سیگنال($findingPower)"
                 } else {
                     rf.stopInventory()
                     when (progress) {
@@ -198,7 +194,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
         try {
 
             if (stuff.getBoolean("status")) {
-                stuffSpec.text = stuff.getString("productName") + "\n" + """"
+                stuffSpec.text = stuff.getString("productName") + "\n" + """
                     کد محصول: ${stuff.getString("K_Bar_Code")}
                     بارکد: ${stuff.getString("KBarCode")}
                    تعداد اضافی:  ${(stuff.getInt("handheldCount") - stuff.getInt("dbCount"))}
@@ -341,7 +337,6 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             return
         }
         updateDatabaseInProgress = true
-        ConfirmScanningActivity.EPCTable.putAll(epcTableFindingMatched)
         ConfirmScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
 
         val queue = Volley.newRequestQueue(this)

@@ -41,10 +41,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
     private lateinit var powerText: TextView
     private lateinit var powerSet: SeekBar
     private lateinit var editOption: CheckBox
-    private lateinit var headerStr: String
-    private lateinit var filterStr: String
-    private lateinit var positionStr: String
-    private lateinit var companynumberStr: String
     private var edit = false
     private var barcodeIsScanning = false
     private var rfIsScanning = false
@@ -103,14 +99,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             isAddNewOK = true
         }
 
-        var tempStr: String = java.lang.Long.toBinaryString(headerNumber.toLong())
-        headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(filterNumber.toLong())
-        filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(partitionNumber.toLong())
-        positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(companyNumber.toLong())
-        companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
         numberOfWritten.text = "تعداد تگ های برنامه ریزی شده: " + (counterValue - counterMinValue)
         numberOfWrittenModified.text = counterValueModified.toString()
         numberOfWrittenModified.text = "مقدار شمارنده: $counterValueModified"
@@ -234,10 +222,8 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
     fun addNewTag() {
 
         var numberOfScanned: Int
-        var tempStr: String?
         var loopVariable: Int
         var collision: Boolean
-        var tempByte: Int
         val epcs: MutableMap<String, Int> = HashMap()
         var isOK = false
         var temp: UHFTAGInfo?
@@ -359,65 +345,23 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
 
         val itemNumber = api.response.toLong() // 32 bit
         val serialNumber = counterValue // 38 bit
-        tempStr = java.lang.Long.toBinaryString(itemNumber)
-        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(serialNumber)
-        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
-        val EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
-        tempByte = EPCStr.substring(0, 8).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC0 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(8, 16).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC1 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(16, 24).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC2 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(24, 32).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC3 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(32, 40).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC4 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(40, 48).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC5 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(48, 56).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC6 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(56, 64).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC7 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(64, 72).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC8 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(72, 80).toInt()
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC9 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(80, 88).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC10 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(88, 96).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC11 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        val New =
-            EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11
-        var k: Int
-        k = 0
+
+        val productEPC = epcGenerator(headerNumber, filterNumber, partitionNumber, companyNumber, itemNumber, serialNumber)
+
+        var k = 0
         while (k < 15) {
-            if (rf.writeData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6, New)) {
+            if (rf.writeData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6, productEPC)) {
                 break
             }
             k++
         }
         lateinit var EPCVerify: String
-        var o: Int
-        o = 0
+        var o = 0
         while (o < 15) {
             try {
                 EPCVerify =
                     rf.readData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6)
-                        .toLowerCase()
+                        .lowercase()
                 break
             } catch (e: NullPointerException) {
             }
@@ -434,7 +378,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
             status.setBackgroundColor(getColor(R.color.Brown))
             return
         }
-        if (New != EPCVerify) {
+        if (productEPC != EPCVerify) {
             status.text = status.text.toString() + "سریال نوشته شده با سریال واقعی تطابق ندارد"
 
             status.text = status.text.toString() + EPCVerify
@@ -456,7 +400,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         status.text = status.text.toString() + "\n" + "Company number: $companyNumber"
         status.text = status.text.toString() + "\n" + "Item number: $itemNumber"
         status.text = status.text.toString() + "\n" + "Serial number: $serialNumber"
-        status.text = status.text.toString() + "\n" + "New EPC: $New"
+        status.text = status.text.toString() + "\n" + "New EPC: $productEPC"
 
         counterValue++
         counterValueModified++
@@ -480,6 +424,31 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
 
     fun changeOption(view: View?) {
         edit = editOption.isChecked
+    }
+
+    private fun epcGenerator(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long) : String {
+
+        var tempStr = java.lang.Long.toBinaryString(header.toLong())
+        val headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(filter.toLong())
+        val filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(partition.toLong())
+        val positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(company.toLong())
+        val companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(item)
+        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(serial)
+        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
+        val EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
+
+        tempStr = EPCStr.substring(0, 64).toULong(2).toString(16)
+        val epc0To64 = String.format("%16s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = EPCStr.substring(64, 96).toULong(2).toString(16)
+        val epc64To96 = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
+
+        return epc0To64 + epc64To96
+
     }
 
     companion object {

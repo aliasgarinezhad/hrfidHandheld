@@ -17,8 +17,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.Barcode2D
+import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
@@ -30,8 +34,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.collections.HashMap
 
-class ConfirmScanningActivity : AppCompatActivity() {
+class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
+    private val barcode2D = Barcode2D(this)
     private var updateDatabaseInProgress = false
     var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     lateinit var rf: RFIDWithUHFUART
@@ -46,11 +51,10 @@ class ConfirmScanningActivity : AppCompatActivity() {
     lateinit var nextActivityIntent: Intent
     var epcLastLength = 0
     var readingPower = 30
-    var temp = ""
     var temp2 = JSONObject()
-    var header = ""
     var allStuffs = 1
     var timerHandler = Handler()
+    var barcodeTable = ArrayList<String>()
 
     private var timerRunnable: Runnable = object : Runnable {
 
@@ -62,15 +66,15 @@ class ConfirmScanningActivity : AppCompatActivity() {
                 var uhfTagInfo: UHFTAGInfo?
                 while (true) {
                     uhfTagInfo = rf.readTagFromBuffer()
-                    if (uhfTagInfo != null) {
-                        EPCTable[uhfTagInfo.epc] = 1
+                    if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
+                        EPCTableValid[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
 
-                showPropertiesToUser(EPCTable.size - epcLastLength, beepMain)
-                epcLastLength = EPCTable.size
+                showPropertiesToUser(EPCTableValid.size - epcLastLength, beepMain)
+                epcLastLength = EPCTableValid.size
 
                 timerHandler.postDelayed(this, 1000)
 
@@ -129,15 +133,24 @@ class ConfirmScanningActivity : AppCompatActivity() {
 
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
-                allStuffs = 0
-                val stuffs = it.getJSONArray("shortage")
-                for (i in 0 until stuffs.length()) {
 
-                    temp2 = stuffs.getJSONObject(i)
-                    allStuffs += temp2.getInt("dbCount")
+                if (it.getJSONArray("shortage").length() > 0 || it.getJSONArray("additional")
+                        .length() > 0
+                ) {
 
+                    allStuffs = 0
+                    val stuffs = it.getJSONArray("shortage")
+                    for (i in 0 until stuffs.length()) {
+
+                        temp2 = stuffs.getJSONObject(i)
+                        allStuffs += temp2.getInt("dbCount")
+
+                    }
+                    showPropertiesToUser(0, beepMain)
+                } else {
+                    Toast.makeText(this, "حواله نامعتبر است!", Toast.LENGTH_LONG).show()
+                    finish()
                 }
-                showPropertiesToUser(0, beepMain)
 
             }, {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
@@ -155,12 +168,13 @@ class ConfirmScanningActivity : AppCompatActivity() {
         }
 
         queue.add(request)
-
     }
 
     @SuppressLint("SetTextI18n")
     override fun onResume() {
         super.onResume()
+
+        open()
 
         while (!rf.setEPCMode()) {
         }
@@ -184,7 +198,10 @@ class ConfirmScanningActivity : AppCompatActivity() {
             return true
         }
 
-        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
+        if (keyCode == 280 || keyCode == 293) {
+
+            Log.e("keycode: ", keyCode.toString())
+
             if (event.repeatCount == 0) {
                 if (!readingInProgress) {
                     while (!rf.setPower(readingPower)) {
@@ -211,17 +228,21 @@ class ConfirmScanningActivity : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
+            close()
             if (readingInProgress) {
                 rf.stopInventory()
                 readingInProgress = false
             }
             finish()
+        } else if (keyCode == 139) {
+            start()
         }
         return true
     }
 
     override fun onPause() {
         super.onPause()
+        close()
         if (readingInProgress) {
             rf.stopInventory()
             readingInProgress = false
@@ -248,6 +269,7 @@ class ConfirmScanningActivity : AppCompatActivity() {
 
             }, {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                showPropertiesToUser(0, beepMain)
             }) {
             override fun getBody(): ByteArray {
 
@@ -273,7 +295,6 @@ class ConfirmScanningActivity : AppCompatActivity() {
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
-            EPCTable.clear()
             EPCTableValid.clear()
             epcLastLength = 0
             showPropertiesToUser(0, beepMain)
@@ -297,7 +318,7 @@ class ConfirmScanningActivity : AppCompatActivity() {
 
         if (!readingInProgress) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTable.size + "/" + allStuffs
+                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
         } else {
             when {
                 speed > 100 -> {
@@ -321,12 +342,79 @@ class ConfirmScanningActivity : AppCompatActivity() {
 
     companion object {
 
-        internal var EPCTable: MutableMap<String, Int> = HashMap()
-
         internal var EPCTableValid: MutableMap<String, Int> = HashMap()
 
         internal var transferID = 0L
 
         internal var conflicts = JSONObject()
     }
+
+    fun confirm(view: View) {
+        if (readingInProgress || processingInProgress) {
+            return
+        }
+
+        updateDatabaseInProgress = true
+
+        val queue = Volley.newRequestQueue(this)
+
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/submit"
+
+        val request = object : StringRequest(Method.POST, url,
+            {
+                Toast.makeText(
+                    this,
+                    "حواله شماره $transferID با موفقیت تایید شد",
+                    Toast.LENGTH_LONG
+                ).show()
+                showPropertiesToUser(0, beepMain)
+                updateDatabaseInProgress = false
+            }, {
+                Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                showPropertiesToUser(0, beepMain)
+                updateDatabaseInProgress = false
+
+            }) {
+            override fun getBody(): ByteArray {
+
+                return JSONArray(EPCTableValid.keys).toString().toByteArray()
+            }
+
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+
+        status.text = "در حال دریافت اطلاعات ..."
+        queue.add(request)
+    }
+
+    override fun getBarcode(barcode: String?) {
+        if (!barcode.isNullOrEmpty()) {
+
+            barcodeTable.add(barcode)
+        }
+    }
+
+    private fun start() {
+
+        barcode2D.startScan(this)
+    }
+
+    fun stop() {
+        barcode2D.stopScan(this)
+    }
+
+    private fun open() {
+        barcode2D.open(this, this)
+    }
+
+    private fun close() {
+        barcode2D.stopScan(this)
+        barcode2D.close(this)
+    }
+
 }

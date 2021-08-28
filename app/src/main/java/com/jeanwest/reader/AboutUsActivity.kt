@@ -5,8 +5,8 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.view.View
 import android.widget.TextView
@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
 
 class AboutUsActivity : AppCompatActivity() {
 
@@ -28,13 +30,14 @@ class AboutUsActivity : AppCompatActivity() {
                     Toast.makeText(this@AboutUsActivity, api.response, Toast.LENGTH_LONG).show()
                 } else {
 
-                    val intent = Intent(Intent.ACTION_VIEW)
-                    intent.setDataAndType(
-                        Uri.fromFile(api.outputFile),
-                        "application/vnd.android.package-archive"
-                    )
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    startActivity(intent)
+                    val updateIntent = Intent(Intent.ACTION_VIEW)
+
+                    updateIntent.setDataAndType(FileProvider.getUriForFile(this@AboutUsActivity,
+                        this@AboutUsActivity.applicationContext.packageName + ".provider",
+                        api.outputFile), "application/vnd.android.package-archive")
+
+                    intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    startActivity(updateIntent)
                 }
             } else {
                 if (!alert.isShowing) {
