@@ -17,7 +17,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -67,14 +66,14 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 while (true) {
                     uhfTagInfo = rf.readTagFromBuffer()
                     if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
-                        EPCTableValid[uhfTagInfo.epc] = 1
+                        epcTableValid[uhfTagInfo.epc] = 1
                     } else {
                         break
                     }
                 }
 
-                showPropertiesToUser(EPCTableValid.size - epcLastLength, beepMain)
-                epcLastLength = EPCTableValid.size
+                showPropertiesToUser(epcTableValid.size - epcLastLength, beepMain)
+                epcLastLength = epcTableValid.size
 
                 timerHandler.postDelayed(this, 1000)
 
@@ -129,7 +128,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/conflicts"
 
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
@@ -156,7 +155,24 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
             }) {
             override fun getBody(): ByteArray {
-                return JSONArray().toString().toByteArray()
+
+                val body = JSONObject()
+
+                val epcArray = JSONArray()
+
+                for(key in epcTableValid) {
+                    epcArray.put(key)
+                }
+
+                body.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeTable.forEach{
+                    barcodeArray.put(it)
+                }
+
+                return body.toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -259,7 +275,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/conflicts"
 
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
@@ -273,7 +289,24 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
             }) {
             override fun getBody(): ByteArray {
 
-                return JSONArray(EPCTableValid.keys).toString().toByteArray()
+
+                val body = JSONObject()
+
+                val epcArray = JSONArray()
+
+                for(key in epcTableValid) {
+                    epcArray.put(key)
+                }
+
+                body.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeTable.forEach{
+                    barcodeArray.put(it)
+                }
+
+                return body.toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -295,8 +328,9 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
-            EPCTableValid.clear()
+            epcTableValid.clear()
             epcLastLength = 0
+            barcodeTable.clear()
             showPropertiesToUser(0, beepMain)
 
         }
@@ -318,7 +352,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         if (!readingInProgress) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
+                status.text.toString() + "تعداد کالا های پیدا شده: " + (epcTableValid.size + barcodeTable.size) + "/" + allStuffs
         } else {
             when {
                 speed > 100 -> {
@@ -336,13 +370,13 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
             }
         }
 
-        circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
-        percentage.text = (EPCTableValid.size * 100 / allStuffs).toFloat().toString() + '%'
+        circularProgressBar.progress = ((epcTableValid.size + barcodeTable.size) * 100 / allStuffs).toFloat()
+        percentage.text = ((epcTableValid.size + barcodeTable.size) * 100 / allStuffs).toFloat().toString() + '%'
     }
 
     companion object {
 
-        internal var EPCTableValid: MutableMap<String, Int> = HashMap()
+        internal var epcTableValid: MutableMap<String, Int> = HashMap()
 
         internal var transferID = 0L
 
@@ -358,7 +392,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/submit"
+        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/submit"
 
         val request = object : StringRequest(Method.POST, url,
             {
@@ -377,7 +411,23 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
             }) {
             override fun getBody(): ByteArray {
 
-                return JSONArray(EPCTableValid.keys).toString().toByteArray()
+                val body = JSONObject()
+
+                val epcArray = JSONArray()
+
+                for(key in epcTableValid) {
+                    epcArray.put(key)
+                }
+
+                body.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeTable.forEach{
+                    barcodeArray.put(it)
+                }
+
+                return body.toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -396,6 +446,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             barcodeTable.add(barcode)
+            showPropertiesToUser(0, beepMain)
         }
     }
 

@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.ArrayAdapter
@@ -18,7 +18,6 @@ import java.util.*
 
 class WarehouseScanningUserLogin : AppCompatActivity() {
     private lateinit var api: WarehouseScanningSendingInformationAPI
-    private lateinit var status: Toast
     private lateinit var departmentInfoIDView: EditText
     private lateinit var wareHouseIDView: Spinner
     private lateinit var nextActivityIntent: Intent
@@ -34,7 +33,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         departmentInfoIDView = findViewById<View>(R.id.DepartmentInfoIDView) as EditText
         wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner)
         nextActivityIntent = Intent(this, WarehouseScanningActivity::class.java)
-        status = Toast.makeText(this, "", Toast.LENGTH_LONG)
         val spinnerString = ArrayList<String>()
         spinnerString.add("فروشگاه")
         spinnerString.add("انبار")
@@ -53,8 +51,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
 
     fun startReading(view: View?) {
         if (departmentInfoIDView.editableText.toString().isEmpty()) {
-            status.setText("\nلطفا کد شعبه را وارد کنید\n")
-            status.show()
+            Toast.makeText(this, "\nلطفا کد شعبه را وارد کنید\n", Toast.LENGTH_LONG).show()
             return
         }
         api = WarehouseScanningSendingInformationAPI()
@@ -67,8 +64,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         api.start()
         while (api.run) {}
         if (!api.status) {
-            status.setText("خطا در دیتابیس")
-            status.show()
+            Toast.makeText(this, "خطا در دیتابیس", Toast.LENGTH_LONG).show()
             return
         }
         warehouseID = api.wareHouseID
@@ -114,7 +110,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         finishWarehouseScanning.start()
         while (finishWarehouseScanning.run) {
         }
-        status.setText(finishWarehouseScanning.response)
-        status.show()
+        Toast.makeText(this, finishWarehouseScanning.response, Toast.LENGTH_LONG).show()
     }
 }

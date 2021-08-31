@@ -3,11 +3,10 @@ package com.jeanwest.reader
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
-import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONObject
@@ -28,11 +27,10 @@ class UserLoginActivity : AppCompatActivity() {
         val password = findViewById<EditText>(R.id.passwordEditText)
 
         val logInRequest = Volley.newRequestQueue(this)
-        val url = "http://rfid-api-0-1.avakatan.ir/login"
+        val url = "http://rfid-api-0-1.avakatan.ir:3100/login"
 
         val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 
-            //Toast.makeText(this, response.getString("accessToken"), Toast.LENGTH_LONG).show()
             editor.putString("accessToken", response.getString("accessToken"))
             editor.putString("username", username.editableText.toString())
             editor.apply()

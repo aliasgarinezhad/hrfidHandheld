@@ -77,12 +77,15 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                 showPropertiesToUser(0, beepMain)
 
-                var url = "http://rfid-api-0-1.avakatan.ir/products/v2?"
+                var url = "http://rfid-api-0-1.avakatan.ir:3100/products/v3?"
                 for (key in epcTableValid) {
                     url += "epc=" + key.key + "&"
                 }
+                barcodeTable.forEach{
+                    url += "KBarCode=$it&"
+                }
 
-                val request = JsonArrayRequest(Request.Method.GET, url, null,  {
+                val request = object : JsonArrayRequest(Method.GET, url, null,  {
                     response ->
 
                     var template: JSONObject
@@ -113,7 +116,14 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                 }, { response ->
                     Toast.makeText(this@TransferenceActivity, response.toString(), Toast.LENGTH_LONG).show()
-                })
+                }) {
+                    override fun getHeaders(): MutableMap<String, String> {
+                        val params = HashMap<String, String>()
+                        params["Content-Type"] = "application/json;charset=UTF-8"
+                        params["Authorization"] = "Bearer " + MainActivity.token
+                        return params
+                    }
+                }
 
                 val queue = Volley.newRequestQueue(this@TransferenceActivity)
                 queue.add(request)
@@ -233,7 +243,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val request = object : StringRequest(Request.Method.POST, "http://rfid-api-0-1.avakatan.ir/stock-drafts",
+        val request = object : StringRequest(Request.Method.POST, "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts",
             { response ->
                 Toast.makeText(this, "حواله با موفقیت ثبت شد" + "\n" + "شماره حواله: "
                         + JSONObject(response).getString("stockDraftId")
@@ -251,12 +261,20 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                 val formattedDate = sdf.format(Date())
                 json.put("CreateDate", formattedDate)
 
-                val temp = JSONArray()
+                val epcArray = JSONArray()
                 for ((key) in epcTableValid) {
-                    temp.put(key)
+                    epcArray.put(key)
                 }
 
-                json.put("epcs", temp)
+                json.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeTable.forEach{
+                    barcodeArray.put(it)
+                }
+
+                json.put("kBarCodes", barcodeArray)
 
                 return json.toString().toByteArray()
             }
@@ -274,6 +292,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     fun clearAll(view: View) {
         epcLastLength = 0
         epcTableValid.clear()
+        barcodeTable.clear()
         showPropertiesToUser(0, beepMain)
         var listAdapter = MyListAdapterTransfer(this@TransferenceActivity, ArrayList<String>(),
             ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>())
@@ -292,7 +311,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
         if (!isScanning) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + epcTableValid.size
+                status.text.toString() + "تعداد کالا های پیدا شده: " + (epcTableValid.size + barcodeTable.size)
         } else {
             when {
                 speed > 100 -> {
@@ -315,6 +334,10 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             barcodeTable.add(barcode)
+            showPropertiesToUser(0, beepMain)
+            processingInProgress = true
+            isScanning = false
+            timerHandler.post(timerRunnable)
         }
     }
 
@@ -323,15 +346,11 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
         barcode2D.startScan(this)
     }
 
-    fun stop() {
-        barcode2D.stopScan(this)
-    }
-
     private fun open() {
         barcode2D.open(this, this)
     }
 
-    fun close() {
+    private fun close() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
     }

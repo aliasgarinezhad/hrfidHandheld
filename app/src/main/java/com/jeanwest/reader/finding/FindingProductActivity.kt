@@ -4,15 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.EditText
 import android.widget.ListView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.Barcode2D
+
 import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.R
 import org.json.JSONException
@@ -22,7 +21,6 @@ import java.util.*
 class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
     private lateinit var barcode2D: Barcode2D
-    lateinit var result: Toast
     lateinit var list: ListView
     var listString = ArrayList<String>()
     var pictureURLList = ArrayList<String>()
@@ -35,9 +33,8 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_finding)
         barcode2D = Barcode2D(this)
-        result = Toast.makeText(this, "", Toast.LENGTH_LONG)
         list = findViewById(R.id.findingListView)
-        kBarCode = findViewById(R.id.K_Bar_CodeView)
+        kBarCode = findViewById(R.id.finding_k_bar_code_text)
         nextActivityIntent = Intent(this, FindingProductSubActivity::class.java)
 
         list.onItemClickListener = OnItemClickListener { _, _, i, _ ->
@@ -79,8 +76,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
             while (api.run) {
             }
             if (!api.status) {
-                result.setText(api.response)
-                result.show()
+                Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
                 return
             }
 
@@ -156,8 +152,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         }
 
         if (!api.status) {
-            result.setText(api.response)
-            result.show()
+            Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
             return
         }
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -192,8 +187,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         while (api.run) {
         }
         if (!api.status) {
-            result.setText(api.response)
-            result.show()
+            Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
             return
         }
         listString.clear()

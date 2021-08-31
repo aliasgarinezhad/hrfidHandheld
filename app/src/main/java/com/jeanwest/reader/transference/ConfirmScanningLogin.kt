@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
 
 class ConfirmScanningLogin : AppCompatActivity() {
-    private lateinit var status: Toast
+
     private lateinit var transferIDView: EditText
     private lateinit var nextActivityIntent: Intent
     private var transferID = 0L
@@ -22,7 +22,6 @@ class ConfirmScanningLogin : AppCompatActivity() {
         setContentView(R.layout.activity_confirm_imformation)
         transferIDView = findViewById<EditText>(R.id.transferIDView)
         nextActivityIntent = Intent(this, ConfirmScanningActivity::class.java)
-        status = Toast.makeText(this, "", Toast.LENGTH_LONG)
 
         transferIDView.setOnEditorActionListener{_, _, _ ->
             startReading(View(this))
@@ -32,8 +31,7 @@ class ConfirmScanningLogin : AppCompatActivity() {
 
     fun startReading(view: View?) {
         if (transferIDView.editableText.toString().isEmpty()) {
-            status.setText("\nلطفا شماره حواله را وارد کنید\n")
-            status.show()
+            Toast.makeText(this, "\nلطفا شماره حواله را وارد کنید\n", Toast.LENGTH_LONG).show()
             return
         }
 

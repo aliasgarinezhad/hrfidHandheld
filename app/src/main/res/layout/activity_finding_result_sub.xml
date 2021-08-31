@@ -49,7 +49,7 @@
         app:layout_constraintTop_toBottomOf="@+id/findingPowerTextView0" />
 
     <Button
-        android:id="@+id/button120"
+        android:id="@+id/finding_sub_clear_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
@@ -78,7 +78,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/result0"
+                android:id="@+id/findingSubProductSpec"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
         </LinearLayout>
@@ -89,7 +89,7 @@
         android:layout_width="0dp"
         android:layout_height="191dp"
         android:layout_marginTop="14dp"
-        app:layout_constraintEnd_toStartOf="@+id/numberOfFoundTextView0"
+        app:layout_constraintEnd_toStartOf="@+id/finding_sub_number_text"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/pictureView0">
 
@@ -99,7 +99,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/section_label0"
+                android:id="@+id/finding_sub_epc_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginTop="17dp"
@@ -111,7 +111,7 @@
     </ScrollView>
 
     <TextView
-        android:id="@+id/numberOfFoundTextView0"
+        android:id="@+id/finding_sub_number_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="69dp"
@@ -135,7 +135,7 @@
         android:text="پیوسته"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/button120"
-        app:layout_constraintTop_toBottomOf="@+id/numberOfFoundTextView0" />
+        app:layout_constraintStart_toEndOf="@+id/finding_sub_clear_button"
+        app:layout_constraintTop_toBottomOf="@+id/finding_sub_number_text" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -8,8 +8,7 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
-import android.preference.PreferenceManager
-import android.util.Log
+import androidx.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
@@ -39,7 +38,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
     lateinit var percentage: TextView
     lateinit var powerText: TextView
     lateinit var powerSeekBar: SeekBar
-    lateinit var response: Toast
     private var readingInProgress = false
     private var processingInProgress = false
     lateinit var button: Button
@@ -108,8 +106,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
                         } else {
                             databaseInProgress = false
-                            response.setText("خطا در دیتابیس " + apiReadingEPC.response)
-                            response.show()
+                            Toast.makeText(this@WarehouseScanningActivity, "خطا در دیتابیس " + apiReadingEPC.response, Toast.LENGTH_LONG).show()
                             showPropertiesToUser(0, beepMain)
                         }
                     }
@@ -128,8 +125,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                             startActivity(nextActivityIntent)
                         } else {
                             databaseInProgress = false
-                            response.setText("خطا در دیتابیس " + apiReadingEPC.response)
-                            response.show()
+                            Toast.makeText(this@WarehouseScanningActivity, "خطا در دیتابیس " + apiReadingEPC.response, Toast.LENGTH_LONG).show()
                             showPropertiesToUser(0, beepMain)
                         }
                     }
@@ -143,7 +139,6 @@ class WarehouseScanningActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reading)
         status = findViewById(R.id.section_label)
-        response = Toast.makeText(this, "", Toast.LENGTH_LONG)
         button = findViewById(R.id.buttonReading)
         nextActivityIntent = Intent(this, WarehouseScanningResultActivity::class.java)
         circularProgressBar = findViewById(R.id.circularProgressBar)

@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.CheckBox
@@ -34,7 +34,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
     private lateinit var tid: String
     private var counterValueModified: Long = 0
     private var isAddNewOK = true
-    private lateinit var warning: Toast
     lateinit var status: TextView
     private lateinit var numberOfWritten: TextView
     private lateinit var numberOfWrittenModified: TextView
@@ -53,7 +52,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_new)
         status = findViewById(R.id.section_label)
-        warning = Toast.makeText(this, "", Toast.LENGTH_LONG)
         numberOfWritten = findViewById(R.id.numberOfWrittenView)
         numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView)
         barcode2D = Barcode2D(this)
@@ -82,8 +80,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         }
 
         if (memory.getLong("value", -1L) == -1L) {
-            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید")
-            warning.show()
+            Toast.makeText(this, "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید", Toast.LENGTH_LONG).show()
             isAddNewOK = false
         } else {
             counterValue = memory.getLong("value", -1L)
@@ -153,8 +150,8 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
 
     fun start() {
         if (!isAddNewOK) {
-            warning.setText("دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید")
-            warning.show()
+            Toast.makeText(this, "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید", Toast.LENGTH_LONG).show()
+            barcodeIsScanning = false
             return
         }
         barcode2D.startScan(this)
@@ -192,6 +189,8 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                     }
                     step2 = false
                 } else {
+
+                    barcodeIsScanning = true
                     start()
                     if (isAddNewOK) {
                         rfIsScanning = true
@@ -200,7 +199,6 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                             }
                         }
                         rf.startInventoryTag(0, 0, 0)
-                        barcodeIsScanning = true
                     }
                 }
             }

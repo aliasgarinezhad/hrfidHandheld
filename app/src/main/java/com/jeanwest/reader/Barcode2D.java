@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.util.Log;
 
 import com.barcode.BarcodeUtility;
+import com.jeanwest.reader.IBarcodeResult;
 
 /**
  * Created by Administrator on 2018-6-28.
@@ -16,7 +17,7 @@ public class Barcode2D {
     String TAG="Scanner_barcodeTest";
     BarcodeUtility barcodeUtility=null;
     BarcodeDataReceiver barcodeDataReceiver=null;
-    com.jeanwest.reader.IBarcodeResult iBarcodeResult=null;
+    IBarcodeResult iBarcodeResult=null;
     Context context;
     public Barcode2D(Context context){
         barcodeUtility= BarcodeUtility.getInstance();
@@ -38,7 +39,7 @@ public class Barcode2D {
     }
 
     //打开
-    public void open(Context context, com.jeanwest.reader.IBarcodeResult iBarcodeResult){
+    public void open(Context context, IBarcodeResult iBarcodeResult){
         if(barcodeUtility!=null) {
             this.iBarcodeResult=iBarcodeResult;
             barcodeUtility.setOutputMode(context, 2);//设置广播接收数据
@@ -109,4 +110,4 @@ public class Barcode2D {
                     //    barCode=StringUtility.bytes2HexString(decodeData);
                     //}
 
-                //} 
+                //}

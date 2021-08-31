@@ -3,7 +3,7 @@ package com.jeanwest.reader.add
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -18,7 +18,6 @@ class SettingActivity : AppCompatActivity() {
     private lateinit var oneStep: RadioButton
     private lateinit var twoStep: RadioButton
     private lateinit var steps: RadioGroup
-    private lateinit var response: Toast
     private lateinit var serialNumberCounterValue: TextView
     private lateinit var counterMin: EditText
     private lateinit var counterMax: EditText
@@ -40,13 +39,11 @@ class SettingActivity : AppCompatActivity() {
         counterMin = findViewById(R.id.counterMinText)
         counterMax = findViewById(R.id.counterMaxText)
         passwordText = findViewById(R.id.passText)
-        response = Toast.makeText(this, " ", Toast.LENGTH_LONG)
         steps = findViewById(R.id.radioGroup)
         memory = PreferenceManager.getDefaultSharedPreferences(this)
         memoryEditor = memory.edit()
         if (memory.getLong("value", -1L) == -1L) {
-            response.setText("دیتای برنامه پاک شده است. جهت استفاده از دستگاه، پارامتر های این صفحه را تنظیم کنید")
-            response.show()
+            Toast.makeText(this, "دیتای برنامه پاک شده است. جهت استفاده از دستگاه، پارامتر های این صفحه را تنظیم کنید", Toast.LENGTH_LONG).show()
         } else {
             AddProductActivity.counterValue = memory.getLong("value", -1L)
             AddProductActivity.counterMaxValue = memory.getLong("max", -1L)

@@ -337,7 +337,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             return
         }
         updateDatabaseInProgress = true
-        ConfirmScanningActivity.EPCTableValid.putAll(epcTableFindingMatched)
+        ConfirmScanningActivity.epcTableValid.putAll(epcTableFindingMatched)
 
         val queue = Volley.newRequestQueue(this)
 
@@ -355,7 +355,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             }) {
             override fun getBody(): ByteArray {
 
-                return JSONArray(ConfirmScanningActivity.EPCTableValid.keys).toString().toByteArray()
+                return JSONArray(ConfirmScanningActivity.epcTableValid.keys).toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {

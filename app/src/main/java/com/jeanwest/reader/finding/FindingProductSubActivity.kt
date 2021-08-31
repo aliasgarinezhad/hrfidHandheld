@@ -15,9 +15,11 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_finding_result_sub.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
@@ -30,7 +32,6 @@ class FindingProductSubActivity : AppCompatActivity() {
     lateinit var status: TextView
     lateinit var powerText: TextView
     lateinit var powerSeekBar: SeekBar
-    lateinit var numberOfFoundText: TextView
     lateinit var stuffSpec: TextView
     private var stuffCode: Long = 0
     lateinit var picture: WebView
@@ -103,7 +104,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                             flag = true
                         }
                     }
-                    numberOfFoundText.text = epcTableFindingMatched.size.toString()
+                    finding_sub_number_text.text = epcTableFindingMatched.size.toString()
 
                     status.text = "در حال جست و جو ..."
                     for ((key) in epcTableFindingMatched) {
@@ -124,12 +125,11 @@ class FindingProductSubActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_finding_result_sub)
-        status = findViewById(R.id.section_label0)
-        stuffSpec = findViewById(R.id.result0)
+        status = findViewById(R.id.finding_sub_epc_text)
+        stuffSpec = findViewById(R.id.findingSubProductSpec)
         picture = findViewById(R.id.pictureView0)
         powerText = findViewById(R.id.findingPowerTextView0)
         powerSeekBar = findViewById(R.id.findingPowerSeekBar0)
-        numberOfFoundText = findViewById(R.id.numberOfFoundTextView0)
         option = findViewById(R.id.checkBox0)
         powerSeekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             @SuppressLint("SetTextI18n")
@@ -216,6 +216,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                     ePCTableFinding.clear()
                     if (!isChecked) {
                         epcTableFindingMatched.clear()
+                        finding_sub_number_text.text = "0"
                     }
                     while (!rf.setPower(findingPower)) {
                     }
@@ -255,7 +256,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                             flag = true
                         }
                     }
-                    numberOfFoundText.text = epcTableFindingMatched.size.toString()
+                    finding_sub_number_text.text = epcTableFindingMatched.size.toString()
                     status.text = ""
                     for ((key) in epcTableFindingMatched) {
                         status.text = "${status.text}" + "\n$key"
@@ -290,7 +291,7 @@ class FindingProductSubActivity : AppCompatActivity() {
         ePCTableFinding.clear()
         epcTableFindingMatched.clear()
         status.text = ""
-        numberOfFoundText.text = "0"
+        finding_sub_number_text.text = "0"
     }
 
     fun optionChange(view: View?) {
