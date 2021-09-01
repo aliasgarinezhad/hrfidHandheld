@@ -7,6 +7,24 @@
     android:background="@color/pagesBackground"
     tools:context=".UserLoginActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/user_login_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="ورود به حساب کاربری"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
+
     <Button
         android:id="@+id/button12"
         android:layout_width="0dp"
@@ -42,7 +60,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/userNameEditText"

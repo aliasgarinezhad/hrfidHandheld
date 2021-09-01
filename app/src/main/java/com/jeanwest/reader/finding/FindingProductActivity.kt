@@ -14,6 +14,7 @@ import com.jeanwest.reader.Barcode2D
 
 import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_finding.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
@@ -47,6 +48,9 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
 
             receive(kBarCode)
             true
+        }
+        finding_toolbar.setNavigationOnClickListener {
+            back()
         }
     }
 
@@ -116,8 +120,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
             start()
         } else if (keyCode == 4) {
-            close()
-            finish()
+            back()
         }
         return true
     }
@@ -216,5 +219,10 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
         list.adapter = findingListAdapter
+    }
+
+    fun back() {
+        close()
+        finish()
     }
 }

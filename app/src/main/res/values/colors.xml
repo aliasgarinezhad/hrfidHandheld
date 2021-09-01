@@ -149,6 +149,15 @@
     <color name="Navy">#000080</color>
     <color name="Black">#000000</color>
 
+
+    <color name="colorPrimary">@color/Teal</color>
+    <color name="colorPrimaryVariant">@color/White</color>
+    <color name="colorOnPrimary">@color/Black</color>
     <color name="pagesBackground">#E6E6FA</color>
+    <color name="colorPrimaryDark">@color/teal_700</color>
+
+    <color name="colorSecondary">@color/teal_200</color>
+    <color name="colorSecondaryVariant">@color/teal_700</color>
+    <color name="colorOnSecondary">@color/white</color>
 
 </resources>

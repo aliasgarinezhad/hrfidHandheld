@@ -7,12 +7,30 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/main_appBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_menu_24"
+            app:title="مدیریت محصولات"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
     <Button
         android:id="@+id/button2"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="40dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="10dp"
         android:backgroundTint="@color/White"
@@ -30,7 +48,7 @@
         app:layout_constraintBottom_toTopOf="@+id/button15"
         app:layout_constraintEnd_toStartOf="@+id/startFindingActivityButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView3" />
+        app:layout_constraintTop_toBottomOf="@+id/main_appBar" />
 
     <Button
         android:id="@+id/addButton"
@@ -62,7 +80,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="10dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="40dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="10dp"
         android:backgroundTint="@color/White"
@@ -80,7 +98,7 @@
         app:layout_constraintBottom_toTopOf="@+id/addButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/button2"
-        app:layout_constraintTop_toBottomOf="@+id/textView3" />
+        app:layout_constraintTop_toBottomOf="@+id/main_appBar" />
 
     <Button
         android:id="@+id/button11"
@@ -202,18 +220,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/accountButtonView"
         app:layout_constraintTop_toBottomOf="@+id/addButton" />
-
-    <TextView
-        android:id="@+id/textView3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingTop="15dp"
-        android:paddingBottom="10dp"
-        android:text="مدیریت محصولات"
-        android:textColor="@color/Primary"
-        android:textSize="30sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

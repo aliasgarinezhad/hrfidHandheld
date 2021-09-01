@@ -8,6 +8,24 @@
     android:background="@color/pagesBackground"
     tools:context=".add.AddProductActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/login_setting_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="جست و جو"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
+
     <TextView
         android:id="@+id/section_label"
         android:layout_width="0dp"

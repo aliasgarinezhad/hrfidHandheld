@@ -19,7 +19,7 @@ import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 //import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
-import kotlinx.android.synthetic.main.activity_finding_result_sub.*
+import kotlinx.android.synthetic.main.activity_finding_sub.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
@@ -124,7 +124,7 @@ class FindingProductSubActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_finding_result_sub)
+        setContentView(R.layout.activity_finding_sub)
         status = findViewById(R.id.finding_sub_epc_text)
         stuffSpec = findViewById(R.id.findingSubProductSpec)
         picture = findViewById(R.id.pictureView0)
@@ -167,6 +167,9 @@ class FindingProductSubActivity : AppCompatActivity() {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
+        finding_sub_toolbar.setNavigationOnClickListener {
+            back()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -175,7 +178,7 @@ class FindingProductSubActivity : AppCompatActivity() {
         while (!rf.setPower(findingPower)) {
         }
         try {
-            stuff = JSONObject(intent.getStringExtra("product"))
+            stuff = JSONObject(intent.getStringExtra("product")!!)
             stuffSpec.text = """
                 ${stuff.getString("productName")}
                 کد محصول: ${stuff.getString("K_Bar_Code")}
@@ -268,13 +271,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
-            if (readEnable) {
-                rf.stopInventory()
-                readEnable = false
-            }
-            findingInProgress = false
-            databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
-            finish()
+            back()
         }
         return true
     }
@@ -296,6 +293,16 @@ class FindingProductSubActivity : AppCompatActivity() {
 
     fun optionChange(view: View?) {
         isChecked = option.isChecked
+    }
+
+    private fun back() {
+        if (readEnable) {
+            rf.stopInventory()
+            readEnable = false
+        }
+        findingInProgress = false
+        databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
+        finish()
     }
 
     companion object {

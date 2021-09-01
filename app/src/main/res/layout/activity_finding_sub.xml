@@ -8,6 +8,24 @@
     android:background="@color/pagesBackground"
     tools:context=".finding.FindingProductSubActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/finding_sub_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="جست و جو"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
+
     <SeekBar
         android:id="@+id/findingPowerSeekBar0"
         style="@style/Widget.AppCompat.SeekBar.Discrete"
@@ -20,7 +38,7 @@
         app:layout_constraintBottom_toTopOf="@+id/scrollView20"
         app:layout_constraintEnd_toStartOf="@+id/findingPowerTextView0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout"/>
 
     <TextView
         android:id="@+id/findingPowerTextView0"
@@ -34,7 +52,7 @@
         app:layout_constraintBottom_toTopOf="@+id/pictureView0"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/findingPowerSeekBar0"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
 
     <WebView
         android:id="@+id/pictureView0"
@@ -52,13 +70,12 @@
         android:id="@+id/finding_sub_clear_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
         android:layout_marginTop="14dp"
-        android:layout_marginEnd="31dp"
         android:layout_marginBottom="23dp"
         android:onClick="clearEPCs"
         android:text="پاک کردن"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/checkBox0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/scrollView40" />
 
@@ -86,8 +103,8 @@
 
     <ScrollView
         android:id="@+id/scrollView40"
-        android:layout_width="0dp"
-        android:layout_height="191dp"
+        android:layout_width="217dp"
+        android:layout_height="167dp"
         android:layout_marginTop="14dp"
         app:layout_constraintEnd_toStartOf="@+id/finding_sub_number_text"
         app:layout_constraintStart_toStartOf="parent"
@@ -128,14 +145,11 @@
         android:id="@+id/checkBox0"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="80dp"
-        android:layout_marginEnd="68dp"
-        android:layout_marginBottom="23dp"
+        android:layout_marginStart="50dp"
         android:onClick="optionChange"
         android:text="پیوسته"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/finding_sub_clear_button"
-        app:layout_constraintTop_toBottomOf="@+id/finding_sub_number_text" />
+        app:layout_constraintTop_toTopOf="@+id/finding_sub_clear_button" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

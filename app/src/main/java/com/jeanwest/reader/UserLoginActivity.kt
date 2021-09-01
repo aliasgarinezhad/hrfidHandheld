@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.Toast
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import kotlinx.android.synthetic.main.activity_user_login.*
 import org.json.JSONObject
 
 class UserLoginActivity : AppCompatActivity() {
@@ -16,6 +17,9 @@ class UserLoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_login)
+        user_login_toolbar.setNavigationOnClickListener {
+            finish()
+        }
     }
 
     fun signIn(view: View) {
