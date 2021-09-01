@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.transfer
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -7,11 +7,16 @@ import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_transfer_login.*
 
 class TransferenceActivityLogIn : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_transference_login)
+        setContentView(R.layout.activity_transfer_login)
+
+        transfer_login_toolbar.setNavigationOnClickListener {
+            finish()
+        }
     }
 
     fun startTransfer(view: View) {

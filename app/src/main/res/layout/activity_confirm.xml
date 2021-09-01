@@ -6,7 +6,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".transference.ConfirmScanningActivity">
+    tools:context=".confirm.ConfirmScanningActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/confirm_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="@string/confirmText"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <TextView
         android:id="@+id/section_label"
@@ -31,11 +49,12 @@
         android:layout_marginBottom="16dp"
         android:onClick="sendFile"
         android:text="بررسی"
-        android:textSize="24sp"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/button10"
-        app:strokeColor="#FFFFFF" />
+        app:strokeColor="#FFFFFF"
+        android:textColor="@color/colorOnSecondary"/>
 
     <Button
         android:id="@+id/button10"
@@ -43,12 +62,13 @@
         android:layout_height="wrap_content"
         android:onClick="clearAll"
         android:text="پاک کردن"
-        android:textSize="24sp"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/buttonReading"
         app:layout_constraintEnd_toStartOf="@+id/buttonReading"
         app:layout_constraintStart_toEndOf="@+id/button17"
         app:layout_constraintTop_toTopOf="@+id/buttonReading"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="1.0"
+        android:textColor="@color/colorOnSecondary"/>
 
     <com.mikhaellopez.circularprogressbar.CircularProgressBar
         android:id="@+id/circularProgressBar"
@@ -85,7 +105,7 @@
         android:max="25"
         app:layout_constraintEnd_toStartOf="@+id/readingPowerTextView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
 
     <TextView
         android:id="@+id/readingPowerTextView"
@@ -104,9 +124,10 @@
         android:layout_height="wrap_content"
         android:onClick="confirm"
         android:text="تایید"
-        android:textSize="24sp"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/button10"
         app:layout_constraintEnd_toStartOf="@+id/button10"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:textColor="@color/colorOnSecondary"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

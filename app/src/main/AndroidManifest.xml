@@ -17,22 +17,22 @@
         android:fullBackupContent="true"
         android:allowBackup="true">
 
-        <activity android:name=".transference.ConfirmScanningLogin"
+        <activity android:name=".confirm.ConfirmScanningLogin"
             android:parentActivityName=".MainActivity"/>
 
-        <activity android:name=".transference.ConfirmScanningActivity"
-            android:parentActivityName=".transference.ConfirmScanningLogin"/>
+        <activity android:name=".confirm.ConfirmScanningActivity"
+            android:parentActivityName=".confirm.ConfirmScanningLogin"/>
 
-        <activity android:name=".transference.ConfirmScanningResultActivity"
-            android:parentActivityName=".transference.ConfirmScanningActivity"/>
+        <activity android:name=".confirm.ConfirmScanningResultActivity"
+            android:parentActivityName=".confirm.ConfirmScanningActivity"/>
 
-        <activity android:name=".transference.ConfirmScanningFindingProduct"
-            android:parentActivityName=".transference.ConfirmScanningResultActivity"/>
+        <activity android:name=".confirm.ConfirmScanningFindingProduct"
+            android:parentActivityName=".confirm.ConfirmScanningResultActivity"/>
 
-        <activity android:name=".transference.TransferenceActivity"
-            android:parentActivityName=".transference.TransferenceActivityLogIn"/>
+        <activity android:name=".transfer.TransferenceActivity"
+            android:parentActivityName=".transfer.TransferenceActivityLogIn"/>
 
-        <activity android:name=".transference.TransferenceActivityLogIn"
+        <activity android:name=".transfer.TransferenceActivityLogIn"
             android:parentActivityName=".MainActivity"/>
         <activity android:name=".UserLoginActivity"
             android:parentActivityName=".MainActivity"/>
@@ -55,7 +55,7 @@
             android:name=".warehouseScanning.WarehouseScanningUserLogin"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".LoginToSettingActivity"
+            android:name=".add.LoginToSettingActivity"
             android:parentActivityName=".AboutUsActivity" />
         <activity
             android:name=".AboutUsActivity"

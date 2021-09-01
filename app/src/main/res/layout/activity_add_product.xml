@@ -81,7 +81,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/numberOfWrittenModifiedView"
         app:layout_constraintStart_toEndOf="@+id/checkBox2"
-        app:layout_constraintTop_toBottomOf="@+id/numberOfWrittenView" />
+        app:layout_constraintTop_toBottomOf="@+id/numberOfWrittenView"
+        android:textColor="@color/colorOnSecondary"/>
 
     <CheckBox
         android:id="@+id/checkBox2"

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.confirm
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -7,9 +7,9 @@ import android.widget.AdapterView.OnItemClickListener
 import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_confirm_result.*
 import org.json.JSONException
 import org.json.JSONObject
-import java.util.*
 import kotlin.collections.ArrayList
 
 class ConfirmScanningResultActivity : AppCompatActivity() {
@@ -19,6 +19,9 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_confirm_result)
         subResult = findViewById(R.id.subResultView)
+        confirm_result_toolbar.setNavigationOnClickListener {
+            finish()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -37,8 +40,18 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         val pictureURL = ArrayList<String>()
         val productRFIDCodes = ArrayList<String>()
 
-        var products = ConfirmScanningActivity.conflicts.getJSONArray("shortage")
+        var products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("shortage")
+
         var product: JSONObject
+
+        for (i in 0 until products.length()) {
+
+            product = products.getJSONObject(i)
+            shortageScanned += product.getInt("handheldCount")
+            shortageAll += product.getInt("dbCount")
+        }
+
+        products = ConfirmScanningActivity.conflicts.getJSONObject("KBarCodes").getJSONArray("shortage")
 
         for (i in 0 until products.length()) {
 
@@ -55,6 +68,8 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         pictureURL.add("null")
         productRFIDCodes.add("null")
 
+        products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("shortage")
+
         for (i in 0 until products.length()) {
             try {
                 product = products.getJSONObject(i)
@@ -64,6 +79,7 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
                     """
                         کد محصول: ${product.getString("K_Bar_Code")}
                         بارکد: ${product.getString("KBarCode")}
+                        اسکن شده با RF
                         """.trimIndent()
                 )
                 notScanned.add("تعداد اسکن نشده: " +
@@ -78,7 +94,47 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
             }
         }
 
-        products = ConfirmScanningActivity.conflicts.getJSONArray("additional")
+        products = ConfirmScanningActivity.conflicts.getJSONObject("KBarCodes").getJSONArray("shortage")
+
+        for (i in 0 until products.length()) {
+            try {
+                product = products.getJSONObject(i)
+
+                titles.add(product.getString("productName"))
+                specs.add(
+                    """
+                        کد محصول: ${product.getString("K_Bar_Code")}
+                        بارکد: ${product.getString("KBarCode")}
+                        اسکن شده با بارکد
+                        """.trimIndent()
+                )
+                notScanned.add("تعداد اسکن نشده: " +
+                        (product.getInt("dbCount") - product.getInt("handheldCount")))
+                scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
+                all.add("تعداد کل: " + product.getString("dbCount"))
+                pictureURL.add(product.getString("ImgUrl"))
+                productRFIDCodes.add(product.getString("RFID"))
+
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        }
+
+        products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("additional")
+
+        for (i in 0 until products.length()) {
+            try {
+                product = products.getJSONObject(i)
+                additionalScanned += product.getInt("handheldCount")
+                additionalAll += product.getInt("dbCount")
+
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        }
+
+        products = ConfirmScanningActivity.conflicts.getJSONObject("KBarCodes").getJSONArray("additional")
+
         for (i in 0 until products.length()) {
             try {
                 product = products.getJSONObject(i)
@@ -98,6 +154,8 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         pictureURL.add("null")
         productRFIDCodes.add("null")
 
+        products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("additional")
+
         for (i in 0 until products.length()) {
             try {
                 product = products.getJSONObject(i)
@@ -107,6 +165,7 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
                     """
                         کد محصول: ${product.getString("K_Bar_Code")}
                         بارکد: ${product.getString("KBarCode")}
+                        اسکن شده با RF
                         """.trimIndent()
                 )
                 notScanned.add("تعداد اضافی: " +
@@ -120,8 +179,35 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+
+        products = ConfirmScanningActivity.conflicts.getJSONObject("KBarCodes").getJSONArray("additional")
+
+        for (i in 0 until products.length()) {
+            try {
+                product = products.getJSONObject(i)
+
+                titles.add(product.getString("productName"))
+                specs.add(
+                    """
+                        کد محصول: ${product.getString("K_Bar_Code")}
+                        بارکد: ${product.getString("KBarCode")}
+                        اسکن شده با بارکد
+                        """.trimIndent()
+                )
+                notScanned.add("تعداد اضافی: " +
+                        (product.getInt("handheldCount") - product.getInt("dbCount")))
+                scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
+                all.add("تعداد کل: " + product.getString("dbCount"))
+                pictureURL.add(product.getString("ImgUrl"))
+                productRFIDCodes.add(product.getString("RFID"))
+
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        }
+
         val listAdapter =
-            MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL)
+            MyListAdapterConfirm(this, titles, specs, scanned, all, notScanned, pictureURL)
         subResult.adapter = listAdapter
 
         subResult.onItemClickListener = OnItemClickListener { _, _, i, _ ->

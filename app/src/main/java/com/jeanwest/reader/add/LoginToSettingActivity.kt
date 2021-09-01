@@ -1,11 +1,11 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.add
 
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jeanwest.reader.add.SettingActivity
+import com.jeanwest.reader.R
 import kotlinx.android.synthetic.main.activity_add_product_login_setting.*
 
 class LoginToSettingActivity : AppCompatActivity() {
@@ -24,7 +24,7 @@ class LoginToSettingActivity : AppCompatActivity() {
             val intent = Intent(this, SettingActivity::class.java)
             startActivity(intent)
         } else {
-            Toast.makeText(this, "رمز عبور اشتباه است", Toast.LENGTH_LONG)
+            Toast.makeText(this, "رمز عبور اشتباه است", Toast.LENGTH_LONG).show()
         }
     }
 }

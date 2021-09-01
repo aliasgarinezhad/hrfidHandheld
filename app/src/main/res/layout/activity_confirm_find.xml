@@ -6,7 +6,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".warehouseScanning.WareHouseScanningFindingProduct">
+    tools:context=".confirm.ConfirmScanningFindingProduct">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/confirm_find_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="@string/confirmText"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <SeekBar
         android:id="@+id/findingPowerSeekBar"
@@ -20,7 +38,7 @@
         app:layout_constraintBottom_toTopOf="@+id/scrollView2"
         app:layout_constraintEnd_toStartOf="@+id/findingPowerTextView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
 
     <TextView
         android:id="@+id/findingPowerTextView"
@@ -34,7 +52,7 @@
         app:layout_constraintBottom_toTopOf="@+id/pictureView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/findingPowerSeekBar"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
 
     <WebView
         android:id="@+id/pictureView"
@@ -61,7 +79,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/finding_sub_clear_button"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintTop_toBottomOf="@+id/scrollView4"
+        android:textColor="@color/colorOnSecondary"/>
 
     <Button
         android:id="@+id/finding_sub_clear_button"
@@ -75,7 +94,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/checkBox"
         app:layout_constraintStart_toEndOf="@+id/updateButton"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintTop_toBottomOf="@+id/scrollView4"
+        android:textColor="@color/colorOnSecondary"/>
 
     <ScrollView
         android:id="@+id/scrollView2"

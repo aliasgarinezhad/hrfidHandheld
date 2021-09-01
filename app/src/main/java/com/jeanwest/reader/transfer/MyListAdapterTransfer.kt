@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.transfer
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -12,7 +12,7 @@ import android.widget.Toast
 import com.jeanwest.reader.R
 import java.util.*
 
-class MyListAdapterSub(
+class MyListAdapterTransfer(
     private val context: Activity,
     private val title: ArrayList<String>,
     private val spec: ArrayList<String>,
@@ -45,11 +45,7 @@ class MyListAdapterSub(
             webSettings.useWideViewPort = true
             webSettings.loadWithOverviewMode = true
             picture.isFocusable = false
-            if (title[position] == "کالاهای اسکن نشده" || title[position] == "کالاهای اضافی") {
-                picture.visibility = View.INVISIBLE
-                specText.text = ""
-                specText.visibility = View.INVISIBLE
-            }
+
         } catch (e: ArrayIndexOutOfBoundsException) {
             Toast.makeText(
                 context,

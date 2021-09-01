@@ -1,14 +1,14 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.confirm
 
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_confirm_information.*
 
 class ConfirmScanningLogin : AppCompatActivity() {
 
@@ -19,13 +19,16 @@ class ConfirmScanningLogin : AppCompatActivity() {
     @SuppressLint("SetTextI18n", "CommitPrefEdits")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_confirm_imformation)
+        setContentView(R.layout.activity_confirm_information)
         transferIDView = findViewById<EditText>(R.id.transferIDView)
         nextActivityIntent = Intent(this, ConfirmScanningActivity::class.java)
 
         transferIDView.setOnEditorActionListener{_, _, _ ->
             startReading(View(this))
             true
+        }
+        confirm_information_toolbar.setNavigationOnClickListener {
+            finish()
         }
     }
 

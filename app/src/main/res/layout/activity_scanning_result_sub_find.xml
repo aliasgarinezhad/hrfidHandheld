@@ -79,7 +79,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/finding_sub_clear_button"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintTop_toBottomOf="@+id/scrollView4"
+        android:textColor="@color/colorOnSecondary"/>
 
     <Button
         android:id="@+id/finding_sub_clear_button"
@@ -93,7 +94,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/checkBox"
         app:layout_constraintStart_toEndOf="@+id/updateButton"
-        app:layout_constraintTop_toBottomOf="@+id/scrollView4" />
+        app:layout_constraintTop_toBottomOf="@+id/scrollView4"
+        android:textColor="@color/colorOnSecondary"/>
 
     <ScrollView
         android:id="@+id/scrollView2"

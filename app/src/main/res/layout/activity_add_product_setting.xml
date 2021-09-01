@@ -15,7 +15,6 @@
         android:layout_marginEnd="8dp"
         android:ems="10"
         android:inputType="numberDecimal"
-        android:numeric="decimal"
         android:text="0"
         app:layout_constraintBottom_toBottomOf="@+id/headerButton"
         app:layout_constraintEnd_toEndOf="parent"
@@ -34,7 +33,8 @@
         app:layout_constraintBottom_toTopOf="@+id/filterSpinner"
         app:layout_constraintEnd_toStartOf="@+id/header"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:textColor="@color/colorOnSecondary"/>
 
     <EditText
         android:id="@+id/company"
@@ -45,7 +45,6 @@
         android:layout_marginBottom="51dp"
         android:ems="10"
         android:inputType="numberDecimal"
-        android:numeric="decimal"
         android:text="0"
         app:layout_constraintBottom_toTopOf="@+id/button8"
         app:layout_constraintEnd_toEndOf="parent"
@@ -62,7 +61,8 @@
         app:layout_constraintBottom_toBottomOf="@+id/company"
         app:layout_constraintEnd_toStartOf="@+id/company"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/company" />
+        app:layout_constraintTop_toTopOf="@+id/company"
+        android:textColor="@color/colorOnSecondary"/>
 
     <TextView
         android:id="@+id/serialNumberText"
@@ -102,7 +102,8 @@
         app:layout_constraintBottom_toBottomOf="@+id/passText"
         app:layout_constraintEnd_toStartOf="@+id/passText"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/passText" />
+        app:layout_constraintTop_toTopOf="@+id/passText"
+        android:textColor="@color/colorOnSecondary"/>
 
     <EditText
         android:id="@+id/counterMaxText"
@@ -126,7 +127,8 @@
         app:layout_constraintBottom_toTopOf="@+id/button9"
         app:layout_constraintEnd_toStartOf="@+id/counterMaxText"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/company" />
+        app:layout_constraintTop_toBottomOf="@+id/company"
+        android:textColor="@color/colorOnSecondary"/>
 
     <EditText
         android:id="@+id/counterMinText"

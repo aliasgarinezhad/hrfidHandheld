@@ -12,12 +12,13 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.add.AddProductActivity
+import com.jeanwest.reader.add.LoginToSettingActivity
 import com.jeanwest.reader.finding.FindingProductActivity
-import com.jeanwest.reader.transference.TransferenceActivityLogIn
+import com.jeanwest.reader.transfer.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
-import com.jeanwest.reader.transference.ConfirmScanningLogin
+import com.jeanwest.reader.confirm.ConfirmScanningLogin
 
 class MainActivity : AppCompatActivity() {
     

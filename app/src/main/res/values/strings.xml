@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">RFID</string>
     <string name="colorPrimary">#008080</string>
+    <string name="transferText">ثبت حواله</string>
+    <string name="confirmText">تایید حواله</string>
 
 </resources>

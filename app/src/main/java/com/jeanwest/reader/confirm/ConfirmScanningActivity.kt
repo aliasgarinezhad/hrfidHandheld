@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.confirm
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -29,6 +29,7 @@ import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirectio
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_confirm.*
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.collections.HashMap
@@ -133,18 +134,28 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
 
-                if (it.getJSONArray("shortage").length() > 0 || it.getJSONArray("additional")
-                        .length() > 0
+                if (it.getJSONObject("epcs").getJSONArray("shortage").length() > 0 ||
+                    it.getJSONObject("KBarCodes").getJSONArray("shortage").length() > 0
                 ) {
 
                     allStuffs = 0
-                    val stuffs = it.getJSONArray("shortage")
+                    var stuffs = it.getJSONObject("epcs").getJSONArray("shortage")
                     for (i in 0 until stuffs.length()) {
 
                         temp2 = stuffs.getJSONObject(i)
                         allStuffs += temp2.getInt("dbCount")
 
                     }
+
+                    stuffs = it.getJSONObject("KBarCodes").getJSONArray("shortage")
+                    //Toast.makeText(this, stuffs.toString(), Toast.LENGTH_LONG).show()
+                    for (i in 0 until stuffs.length()) {
+
+                        temp2 = stuffs.getJSONObject(i)
+                        allStuffs += temp2.getInt("dbCount")
+
+                    }
+
                     showPropertiesToUser(0, beepMain)
                 } else {
                     Toast.makeText(this, "حواله نامعتبر است!", Toast.LENGTH_LONG).show()
@@ -172,6 +183,8 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                     barcodeArray.put(it)
                 }
 
+                body.put("KBarCodes", barcodeArray)
+
                 return body.toString().toByteArray()
             }
 
@@ -184,6 +197,19 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         }
 
         queue.add(request)
+
+        confirm_toolbar.setNavigationOnClickListener {
+            back()
+        }
+    }
+
+    private fun back() {
+        close()
+        if (readingInProgress) {
+            rf.stopInventory()
+            readingInProgress = false
+        }
+        finish()
     }
 
     @SuppressLint("SetTextI18n")
@@ -244,12 +270,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 }
             }
         } else if (keyCode == 4) {
-            close()
-            if (readingInProgress) {
-                rf.stopInventory()
-                readingInProgress = false
-            }
-            finish()
+            back()
         } else if (keyCode == 139) {
             start()
         }
@@ -289,7 +310,6 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
             }) {
             override fun getBody(): ByteArray {
 
-
                 val body = JSONObject()
 
                 val epcArray = JSONArray()
@@ -305,6 +325,8 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 barcodeTable.forEach{
                     barcodeArray.put(it)
                 }
+
+                body.put("KBarCodes", barcodeArray)
 
                 return body.toString().toByteArray()
             }
@@ -427,6 +449,8 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                     barcodeArray.put(it)
                 }
 
+                body.put("KBarCodes", barcodeArray)
+
                 return body.toString().toByteArray()
             }
 
@@ -453,10 +477,6 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
     private fun start() {
 
         barcode2D.startScan(this)
-    }
-
-    fun stop() {
-        barcode2D.stopScan(this)
     }
 
     private fun open() {

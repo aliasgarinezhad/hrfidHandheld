@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.confirm
 
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
@@ -22,6 +22,7 @@ import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_confirm_find.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -181,6 +182,19 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
         }
         table = PreferenceManager.getDefaultSharedPreferences(this)
         tableEditor = table.edit()
+        confirm_find_toolbar.setNavigationOnClickListener {
+            back()
+        }
+    }
+
+    private fun back() {
+        if (readEnable) {
+            rf.stopInventory()
+            readEnable = false
+        }
+        findingInProgress = false
+        databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
+        finish()
     }
 
     @SuppressLint("SetTextI18n")
@@ -305,13 +319,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
-            if (readEnable) {
-                rf.stopInventory()
-                readEnable = false
-            }
-            findingInProgress = false
-            databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
-            finish()
+            back()
         }
         return true
     }

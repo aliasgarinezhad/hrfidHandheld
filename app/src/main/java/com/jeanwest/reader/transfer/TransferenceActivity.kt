@@ -1,4 +1,4 @@
-package com.jeanwest.reader.transference
+package com.jeanwest.reader.transfer
 
 import android.annotation.SuppressLint
 import android.graphics.Color
@@ -13,9 +13,11 @@ import android.view.View
 import android.widget.*
 import com.android.volley.Request
 import com.android.volley.toolbox.JsonArrayRequest
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 
 import com.android.volley.toolbox.Volley
+import com.google.gson.JsonObject
 import com.jeanwest.reader.Barcode2D
 import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.MainActivity
@@ -23,6 +25,7 @@ import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_transfer.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -85,8 +88,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                     url += "KBarCode=$it&"
                 }
 
-                val request = object : JsonArrayRequest(Method.GET, url, null,  {
-                    response ->
+                val request = object : JsonObjectRequest(Method.GET, url, null,  {
 
                     var template: JSONObject
                     val titles = ArrayList<String>()
@@ -96,6 +98,8 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                     val scannedNumber = ArrayList<String>()
                     val pictureURL = ArrayList<String>()
 
+                    var response = it.getJSONArray("epcs")
+
                     for(i in 0 until response.length()) {
                         try {
                             template = response.getJSONObject(i)
@@ -104,7 +108,24 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                             color.add("رنگ: " + template.getString("Color"))
                             scannedNumber.add("تعداد: " + template.getString("handheldCount"))
                             pictureURL.add(template.getString("ImgUrl"))
-                            specs.add("کد محصول: " + template.getString("KBarCode"))
+                            specs.add("کد محصول: " + template.getString("KBarCode") + "\n" + "اسکن شده با RF")
+
+                        } catch (ignored: JSONException) {
+
+                        }
+                    }
+
+                    response = it.getJSONArray("KBarCodes")
+
+                    for (i in 0 until response.length()) {
+                        try {
+                            template = response.getJSONObject(i)
+                            titles.add(template.getString("productName"))
+                            size.add("اندازه: " + template.getString("Size"))
+                            color.add("رنگ: " + template.getString("Color"))
+                            scannedNumber.add("تعداد: " + template.getString("handheldCount"))
+                            pictureURL.add(template.getString("ImgUrl"))
+                            specs.add("کد محصول: " + template.getString("KBarCode") + "\n" + "اسکن شده با بارکد")
 
                         } catch (ignored: JSONException) {
 
@@ -138,7 +159,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_transference)
+        setContentView(R.layout.activity_transfer)
 
         val powerText = findViewById<TextView>(R.id.readingPowerTextViewT)
         val powerSeekBar = findViewById<SeekBar>(R.id.readingPowerSeekBarT)
@@ -188,16 +209,24 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
         powerText.text = "اندازه توان($power)"
         powerSeekBar.progress = power - 5
 
+        transfer_toolbar.setNavigationOnClickListener {
+            back()
+        }
+
+    }
+
+    private fun back() {
+        close()
+        if (isScanning) {
+            rf.stopInventory()
+            isScanning = false
+        }
+        finish()
     }
 
     override fun onResume() {
         super.onResume()
         open()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        close()
     }
 
     @SuppressLint("SetTextI18n")
@@ -227,12 +256,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                 }
             }
         } else if (keyCode == 4) {
-            close()
-            if (isScanning) {
-                rf.stopInventory()
-                isScanning = false
-            }
-            finish()
+            back()
         } else if (keyCode == 139) {
             start()
         }
@@ -243,7 +267,8 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val request = object : StringRequest(Request.Method.POST, "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts",
+        val request = object : StringRequest(
+            Method.POST, "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts",
             { response ->
                 Toast.makeText(this, "حواله با موفقیت ثبت شد" + "\n" + "شماره حواله: "
                         + JSONObject(response).getString("stockDraftId")
@@ -274,7 +299,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                     barcodeArray.put(it)
                 }
 
-                json.put("kBarCodes", barcodeArray)
+                json.put("KBarCodes", barcodeArray)
 
                 return json.toString().toByteArray()
             }

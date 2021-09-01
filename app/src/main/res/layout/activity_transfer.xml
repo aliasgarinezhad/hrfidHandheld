@@ -6,7 +6,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pagesBackground"
-    tools:context=".transference.TransferenceActivity">
+    tools:context=".transfer.TransferenceActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/transfer_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
+            app:title="@string/transferText"
+            app:titleCentered="true"
+            app:titleTextColor="@color/colorOnSecondary" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <TextView
         android:id="@+id/section_labelT"
@@ -18,7 +36,7 @@
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1" />
 
@@ -35,7 +53,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/button10T"
         app:layout_constraintTop_toBottomOf="@+id/section_labelT"
-        app:strokeColor="#FFFFFF" />
+        app:strokeColor="#FFFFFF"
+        android:textColor="@color/colorOnSecondary"/>
 
     <Button
         android:id="@+id/button10T"
@@ -49,7 +68,8 @@
         android:textSize="20sp"
         app:layout_constraintEnd_toStartOf="@+id/buttonReadingT"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/section_labelT" />
+        app:layout_constraintTop_toBottomOf="@+id/section_labelT"
+        android:textColor="@color/colorOnSecondary"/>
 
     <SeekBar
         android:id="@+id/readingPowerSeekBarT"
