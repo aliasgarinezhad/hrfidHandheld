@@ -7,6 +7,7 @@ import android.widget.AdapterView.OnItemClickListener
 import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_scanning_result_sub.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -35,9 +36,12 @@ class WarehouseScanningSubResultActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reading_result_sub)
+        setContentView(R.layout.activity_scanning_result_sub)
         subResult = findViewById(R.id.subResultView)
         nextActivityIntent = Intent(this, WareHouseScanningFindingProduct::class.java)
+        scanning_result_sub_toolbar.setNavigationOnClickListener {
+            finish()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -163,6 +167,7 @@ class WarehouseScanningSubResultActivity : AppCompatActivity() {
 
     companion object {
         var indexNumberSub = 0
+
         @JvmField
         var subIndex = 0
     }

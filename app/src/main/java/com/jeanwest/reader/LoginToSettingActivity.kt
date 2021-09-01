@@ -6,14 +6,14 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.add.SettingActivity
-import kotlinx.android.synthetic.main.activity_login_setting.*
+import kotlinx.android.synthetic.main.activity_add_product_login_setting.*
 
 class LoginToSettingActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login_setting)
+        setContentView(R.layout.activity_add_product_login_setting)
         login_setting_toolbar.setNavigationOnClickListener {
             finish()
         }

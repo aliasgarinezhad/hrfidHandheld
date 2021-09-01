@@ -22,6 +22,7 @@ import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_scanning_result_sub_find.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -197,7 +198,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reading_result_sub_sub)
+        setContentView(R.layout.activity_scanning_result_sub_find)
         status = findViewById(R.id.section_label)
         stuffSpec = findViewById(R.id.result)
         picture = findViewById(R.id.pictureView)
@@ -217,7 +218,7 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                         3 -> findingPower = 20
                         4 -> findingPower = 30
                     }
-                    powerText.setText("قدرت سیگنال($findingPower)")
+                    powerText.text = "قدرت سیگنال($findingPower)"
                 } else {
                     rf.stopInventory()
                     when (progress) {
@@ -244,6 +245,20 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
         }
         table = PreferenceManager.getDefaultSharedPreferences(this)
         tableEditor = table.edit()
+
+        scanning_result_sub_find_toolbar.setNavigationOnClickListener {
+            back()
+        }
+    }
+
+    private fun back() {
+        if (readEnable) {
+            rf.stopInventory()
+            readEnable = false
+        }
+        findingInProgress = false
+        databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
+        finish()
     }
 
     @SuppressLint("SetTextI18n")
@@ -377,23 +392,9 @@ class WareHouseScanningFindingProduct : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
-            if (readEnable) {
-                rf.stopInventory()
-                readEnable = false
-            }
-            findingInProgress = false
-            databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
-            finish()
+            back()
         }
         return true
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (readEnable) {
-            rf.stopInventory()
-            readEnable = false
-        }
     }
 
     fun clearEPCs(view: View?) {

@@ -221,7 +221,7 @@ class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
         list.adapter = findingListAdapter
     }
 
-    fun back() {
+    private fun back() {
         close()
         finish()
     }

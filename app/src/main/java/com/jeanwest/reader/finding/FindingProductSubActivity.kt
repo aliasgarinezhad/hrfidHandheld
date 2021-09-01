@@ -142,7 +142,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                         3 -> findingPower = 20
                         4 -> findingPower = 30
                     }
-                    powerText.setText("قدرت سیگنال($findingPower)")
+                    powerText.text = "قدرت سیگنال($findingPower)"
                 } else {
                     rf.stopInventory()
                     when (progress) {
@@ -152,7 +152,7 @@ class FindingProductSubActivity : AppCompatActivity() {
                         3 -> findingPower = 20
                         4 -> findingPower = 30
                     }
-                    powerText.setText("قدرت سیگنال($findingPower)")
+                    powerText.text = "قدرت سیگنال($findingPower)"
                     while (!rf.setPower(findingPower)) {
                     }
                     rf.startInventoryTag(0, 0, 0)

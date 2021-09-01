@@ -28,7 +28,7 @@ class SettingActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n", "CommitPrefEdits")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_new_setting)
+        setContentView(R.layout.activity_add_product_setting)
         filterSpinner = findViewById(R.id.filterSpinner)
         partitionSpinner = findViewById(R.id.partitionSpinner)
         headerEditText = findViewById(R.id.header)

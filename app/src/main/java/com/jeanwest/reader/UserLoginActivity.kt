@@ -31,7 +31,7 @@ class UserLoginActivity : AppCompatActivity() {
         val password = findViewById<EditText>(R.id.passwordEditText)
 
         val logInRequest = Volley.newRequestQueue(this)
-        val url = "http://rfid-api-0-1.avakatan.ir:3100/login"
+        val url = "http://rfid-api-0-1.avakatan.ir/login"
 
         val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 

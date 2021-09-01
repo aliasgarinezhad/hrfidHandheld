@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
+import kotlinx.android.synthetic.main.activity_add_product_login_setting.*
+import kotlinx.android.synthetic.main.activity_scanning_login.*
 import java.util.*
 
 class WarehouseScanningUserLogin : AppCompatActivity() {
@@ -29,7 +31,7 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
     @SuppressLint("SetTextI18n", "CommitPrefEdits")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_user_spec)
+        setContentView(R.layout.activity_scanning_login)
         departmentInfoIDView = findViewById<View>(R.id.DepartmentInfoIDView) as EditText
         wareHouseIDView = findViewById(R.id.WareHouseIDViewSpinner)
         nextActivityIntent = Intent(this, WarehouseScanningActivity::class.java)
@@ -40,6 +42,9 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         wareHouseIDView.adapter = spinnerAdapter
         memory = PreferenceManager.getDefaultSharedPreferences(this)
         editor = memory.edit()
+        scanning_login_toolbar.setNavigationOnClickListener {
+            finish()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -73,13 +78,6 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         nextActivityIntent.putExtra("departmentInfoID", departmentInfoID)
         nextActivityIntent.putExtra("warehouseID", warehouseID)
         startActivity(nextActivityIntent)
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == 4) {
-            finish()
-        }
-        return true
     }
 
     fun sendFileWithClearing(view: View?) {

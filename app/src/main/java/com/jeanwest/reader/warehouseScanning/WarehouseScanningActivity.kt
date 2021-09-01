@@ -25,6 +25,7 @@ import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirectio
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.android.synthetic.main.activity_scanning.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -137,7 +138,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n", "CommitPrefEdits")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reading)
+        setContentView(R.layout.activity_scanning)
         status = findViewById(R.id.section_label)
         button = findViewById(R.id.buttonReading)
         nextActivityIntent = Intent(this, WarehouseScanningResultActivity::class.java)
@@ -198,6 +199,19 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+
+        scanning_toolbar.setNavigationOnClickListener {
+            back()
+        }
+
+    }
+
+    private fun back() {
+        if (readingInProgress) {
+            rf.stopInventory()
+            readingInProgress = false
+        }
+        finish()
     }
 
     @SuppressLint("SetTextI18n")
@@ -270,11 +284,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
                 }
             }
         } else if (keyCode == 4) {
-            if (readingInProgress) {
-                rf.stopInventory()
-                readingInProgress = false
-            }
-            finish()
+            back()
         }
         return true
     }

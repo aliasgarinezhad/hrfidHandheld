@@ -21,6 +21,7 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
+import kotlinx.android.synthetic.main.activity_add_product.*
 import java.util.*
 
 class AddProductActivity : AppCompatActivity(), IBarcodeResult {
@@ -50,7 +51,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_new)
+        setContentView(R.layout.activity_add_product)
         status = findViewById(R.id.section_label)
         numberOfWritten = findViewById(R.id.numberOfWrittenView)
         numberOfWrittenModified = findViewById(R.id.numberOfWrittenModifiedView)
@@ -65,6 +66,20 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
         }
         memory = PreferenceManager.getDefaultSharedPreferences(this)
         memoryEditor = memory.edit()
+
+        add_product_toolbar.setNavigationOnClickListener {
+            back()
+        }
+    }
+
+    private fun back() {
+        close()
+        step2 = false
+        if (barcodeIsScanning || rfIsScanning) {
+            barcodeIsScanning = false
+            rf.stopInventory()
+        }
+        finish()
     }
 
     @SuppressLint("SetTextI18n")
@@ -115,12 +130,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
 
     override fun onPause() {
         super.onPause()
-        close()
-        step2 = false
-        if (barcodeIsScanning || rfIsScanning) {
-            barcodeIsScanning = false
-            rf.stopInventory()
-        }
+        back()
     }
 
     @SuppressLint("SetTextI18n")
@@ -203,14 +213,7 @@ class AddProductActivity : AppCompatActivity(), IBarcodeResult {
                 }
             }
         } else if (keyCode == 4) {
-
-            close()
-            step2 = false
-            if (barcodeIsScanning || rfIsScanning) {
-                barcodeIsScanning = false
-                rf.stopInventory()
-            }
-            finish()
+            back()
         }
         return true
     }

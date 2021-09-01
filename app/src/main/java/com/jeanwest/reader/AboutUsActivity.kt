@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import kotlinx.android.synthetic.main.activity_about_us.*
 
 class AboutUsActivity : AppCompatActivity() {
 
@@ -49,7 +50,7 @@ class AboutUsActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_setting)
+        setContentView(R.layout.activity_about_us)
         versionName = findViewById(R.id.versionNameView)
         try {
             versionName.text = "ورژن: " + packageManager.getPackageInfo(packageName, 0).versionName
@@ -75,6 +76,9 @@ class AboutUsActivity : AppCompatActivity() {
         alert.setOnShowListener {
             alert.window!!.decorView.layoutDirection =
                 View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
+        }
+        about_us_toolbar.setNavigationOnClickListener {
+            finish()
         }
     }
 
