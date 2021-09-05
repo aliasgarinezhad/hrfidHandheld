@@ -3,10 +3,17 @@ package com.jeanwest.reader
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
+import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -15,6 +22,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import kotlinx.android.synthetic.main.activity_about_us.*
+import java.io.File
 
 class AboutUsActivity : AppCompatActivity() {
 
@@ -29,15 +37,28 @@ class AboutUsActivity : AppCompatActivity() {
                     Toast.makeText(this@AboutUsActivity, api.response, Toast.LENGTH_LONG).show()
                 } else {
 
-                    val updateIntent = Intent(Intent.ACTION_VIEW)
+                    val path = Environment.getExternalStorageDirectory().toString() + "/" + "app.apk"
 
-                    updateIntent.setDataAndType(FileProvider.getUriForFile(this@AboutUsActivity,
-                        this@AboutUsActivity.applicationContext.packageName + ".provider",
-                        api.outputFile), "application/vnd.android.package-archive")
-
-                    intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    startActivity(updateIntent)
+                    val file = File(path)
+                    if(file.exists()) {
+                        val intent = Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(uriFromFile(applicationContext, File(path)), "application/vnd.android.package-archive");
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        try {
+                            applicationContext.startActivity(intent);
+                        } catch (e : ActivityNotFoundException) {
+                            e.printStackTrace();
+                            Log.e("TAG", "Error in opening the file!");
+                        }
+                    }else{
+                        Toast.makeText(applicationContext,"Error",Toast.LENGTH_LONG).show();
+                    }
+                    if (alert.isShowing) {
+                        alert.hide()
+                    }
                 }
+
             } else {
                 if (!alert.isShowing) {
                     alert.show()
@@ -69,6 +90,26 @@ class AboutUsActivity : AppCompatActivity() {
                 0
             )
         }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                1
+            )
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if(!packageManager.canRequestPackageInstalls()){
+                startActivityForResult(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                    .setData(Uri.parse(String.format("package:%s", packageName))), 2)
+            }
+        }
+
         val alertBuilder = AlertDialog.Builder(api.context)
         alertBuilder.setMessage("لطفا منتظر بمانید ...")
         alertBuilder.setTitle("در حال دانلود نسخه به روز")
@@ -87,6 +128,7 @@ class AboutUsActivity : AppCompatActivity() {
         alertBuilder.setMessage("نرم افزار به روز رسانی شود؟")
         alertBuilder.setTitle("به روز رسانی نرم افزار")
         alertBuilder.setPositiveButton("بله") { _, _ ->
+            api = UpdateAPI()
             api.start()
             handler.postDelayed(thread, 1000)
         }
@@ -97,5 +139,16 @@ class AboutUsActivity : AppCompatActivity() {
                 View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
         }
         alertUpdatePermit.show()
+    }
+
+    fun uriFromFile(context: Context, file: File): Uri {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            FileProvider.getUriForFile(
+                context, BuildConfig.APPLICATION_ID + ".provider",
+                file
+            )
+        } else {
+            Uri.fromFile(file)
+        }
     }
 }

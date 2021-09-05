@@ -27,7 +27,7 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <TextView
-        android:id="@+id/section_label"
+        android:id="@+id/confirm_properties_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -43,7 +43,7 @@
         tools:layout_constraintTop_creator="1" />
 
     <Button
-        android:id="@+id/buttonReading"
+        android:id="@+id/confirm_check_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
@@ -63,10 +63,10 @@
         android:onClick="clearAll"
         android:text="پاک کردن"
         android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="@+id/buttonReading"
-        app:layout_constraintEnd_toStartOf="@+id/buttonReading"
+        app:layout_constraintBottom_toBottomOf="@+id/confirm_check_button"
+        app:layout_constraintEnd_toStartOf="@+id/confirm_check_button"
         app:layout_constraintStart_toEndOf="@+id/button17"
-        app:layout_constraintTop_toTopOf="@+id/buttonReading"
+        app:layout_constraintTop_toTopOf="@+id/confirm_check_button"
         app:layout_constraintVertical_bias="1.0"
         android:textColor="@color/colorOnSecondary"/>
 

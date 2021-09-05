@@ -8,7 +8,7 @@ class AddProductActivityTest {
     fun epcGeneratorTest() {
         for (i in 0L until 1000000L) {
 
-            val epc = epcGeneratorBug((i % 256).toInt(), (i % 8).toInt(), (i % 8).toInt(), (i % 4096).toInt(), (i % 4294967296), i)
+            val epc = epcGenerator((i % 256).toInt(), (i % 8).toInt(), (i % 8).toInt(), (i % 4096).toInt(), (i % 4294967296), i)
             val decodedEPC = epcDecoder(epc)
             assert(decodedEPC.header == (i % 256).toInt())
             assert(decodedEPC.filter == (i % 8).toInt())
@@ -21,6 +21,7 @@ class AddProductActivityTest {
             }
             assert(decodedEPC.serial == i)
         }
+        //println(epcGenerator(48, 0, 6, 100, 119952347L, 152L))
     }
 
     private fun epcGenerator(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long) : String {
@@ -41,61 +42,6 @@ class AddProductActivityTest {
         return epc0To64 + epc64To96
     }
 
-    private fun epcGeneratorBug(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long): String {
-
-        var tempStr: String = java.lang.Long.toBinaryString(header.toLong())
-        val headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(filter.toLong())
-        val filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(partition.toLong())
-        val positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(company.toLong())
-        val companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(item)
-        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(serial)
-        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
-
-        val EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
-
-        var tempByte = EPCStr.substring(0, 8).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC0 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(8, 16).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC1 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(16, 24).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC2 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(24, 32).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC3 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(32, 40).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC4 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(40, 48).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC5 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(48, 56).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC6 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(56, 64).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC7 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(64, 72).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC8 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(72, 80).toInt()
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC9 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(80, 88).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC10 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        tempByte = EPCStr.substring(88, 96).toInt(2)
-        tempStr = Integer.toString(tempByte, 16)
-        val EPC11 = String.format("%2s", tempStr).replace(" ".toRegex(), "0")
-        return EPC0 + EPC1 + EPC2 + EPC3 + EPC4 + EPC5 + EPC6 + EPC7 + EPC8 + EPC9 + EPC10 + EPC11
-    }
     private fun epcDecoder(epc: String) : EPC {
 
         val binaryEPC =

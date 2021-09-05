@@ -41,7 +41,7 @@
         tools:layout_constraintTop_creator="1" />
 
     <Button
-        android:id="@+id/buttonReadingT"
+        android:id="@+id/transfer_send_button"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -66,7 +66,7 @@
         android:onClick="clearAll"
         android:text="پاک کردن"
         android:textSize="20sp"
-        app:layout_constraintEnd_toStartOf="@+id/buttonReadingT"
+        app:layout_constraintEnd_toStartOf="@+id/transfer_send_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/section_labelT"
         android:textColor="@color/colorOnSecondary"/>
@@ -79,7 +79,7 @@
         android:max="25"
         app:layout_constraintEnd_toStartOf="@+id/readingPowerTextViewT"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonReadingT" />
+        app:layout_constraintTop_toBottomOf="@+id/transfer_send_button" />
 
     <TextView
         android:id="@+id/readingPowerTextViewT"
@@ -93,7 +93,7 @@
         app:layout_constraintTop_toTopOf="@+id/readingPowerSeekBarT" />
 
     <ListView
-        android:id="@+id/listViewT"
+        android:id="@+id/confirm_list"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="8dp"
@@ -102,7 +102,9 @@
         android:layout_marginBottom="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/readingPowerSeekBarT" />
+        app:layout_constraintTop_toBottomOf="@+id/readingPowerSeekBarT"
+        app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

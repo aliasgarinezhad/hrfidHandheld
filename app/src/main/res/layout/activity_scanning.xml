@@ -34,7 +34,7 @@
         android:layout_marginEnd="8dp"
         android:text="\n\n\n\n\n"
         android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonReading"
+        app:layout_constraintBottom_toTopOf="@+id/confirm_check_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
@@ -42,7 +42,7 @@
         tools:layout_constraintTop_creator="1" />
 
     <Button
-        android:id="@+id/buttonReading"
+        android:id="@+id/confirm_check_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -68,7 +68,7 @@
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonReading"
+        app:layout_constraintTop_toBottomOf="@+id/confirm_check_button"
         android:textColor="@color/colorOnSecondary"/>
 
     <com.mikhaellopez.circularprogressbar.CircularProgressBar

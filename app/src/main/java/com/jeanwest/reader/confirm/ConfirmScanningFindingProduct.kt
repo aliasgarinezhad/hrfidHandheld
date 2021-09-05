@@ -228,7 +228,8 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             stuffPrimaryCode = stuff.getString("BarcodeMain_ID")
 
         } catch (e: JSONException) {
-            e.printStackTrace()
+            Toast.makeText(this, "امکان جست و جوی خودکار وجود ندارد", Toast.LENGTH_LONG).show()
+            finish()
         }
 
         setting = picture.settings
@@ -349,7 +350,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/${ConfirmScanningActivity.transferID}/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/${ConfirmScanningActivity.transferID}/conflicts"
 
         val request = object : JsonObjectRequest(
             Method.POST, url, null,
@@ -363,7 +364,25 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             }) {
             override fun getBody(): ByteArray {
 
-                return JSONArray(ConfirmScanningActivity.epcTableValid.keys).toString().toByteArray()
+                val body = JSONObject()
+
+                val epcArray = JSONArray()
+
+                for((key) in ConfirmScanningActivity.epcTableValid) {
+                    epcArray.put(key)
+                }
+
+                body.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                ConfirmScanningActivity.barcodeTable.forEach{
+                    barcodeArray.put(it)
+                }
+
+                body.put("KBarCodes", barcodeArray)
+
+                return body.toString().toByteArray()
             }
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -385,7 +404,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
 
     private fun getProduct(productRFIDCode : String) : JSONObject {
 
-        var products = ConfirmScanningActivity.conflicts.getJSONArray("shortage")
+        var products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("shortage")
         var product : JSONObject
         for(i in 0 until products.length()) {
 
@@ -396,7 +415,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
             }
         }
 
-        products = ConfirmScanningActivity.conflicts.getJSONArray("additional")
+        products = ConfirmScanningActivity.conflicts.getJSONObject("epcs").getJSONArray("additional")
         for (i in 0 until products.length()) {
 
             product = products.getJSONObject(i)

@@ -140,7 +140,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
         status = findViewById(R.id.section_label)
-        button = findViewById(R.id.buttonReading)
+        button = findViewById(R.id.confirm_check_button)
         nextActivityIntent = Intent(this, WarehouseScanningResultActivity::class.java)
         circularProgressBar = findViewById(R.id.circularProgressBar)
         percentage = findViewById(R.id.progressText)

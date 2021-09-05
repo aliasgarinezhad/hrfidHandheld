@@ -17,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -26,7 +27,8 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirection
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_confirm.*
@@ -53,8 +55,8 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
     var readingPower = 30
     var temp2 = JSONObject()
     var allStuffs = 1
+    val apiTimeout = 20000
     var timerHandler = Handler()
-    var barcodeTable = ArrayList<String>()
 
     private var timerRunnable: Runnable = object : Runnable {
 
@@ -92,8 +94,8 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_confirm)
-        status = findViewById(R.id.section_label)
-        button = findViewById(R.id.buttonReading)
+        status = findViewById(R.id.confirm_properties_text)
+        button = findViewById(R.id.confirm_check_button)
         nextActivityIntent = Intent(this, ConfirmScanningResultActivity::class.java)
         circularProgressBar = findViewById(R.id.circularProgressBar)
         percentage = findViewById(R.id.progressText)
@@ -171,7 +173,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
                 val epcArray = JSONArray()
 
-                for(key in epcTableValid) {
+                for((key) in epcTableValid) {
                     epcArray.put(key)
                 }
 
@@ -195,6 +197,11 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 return params
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
 
         queue.add(request)
 
@@ -314,7 +321,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
                 val epcArray = JSONArray()
 
-                for(key in epcTableValid) {
+                for((key) in epcTableValid) {
                     epcArray.put(key)
                 }
 
@@ -338,6 +345,11 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
                 return params
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
 
         status.text = "در حال دریافت اطلاعات ..."
         queue.add(request)
@@ -403,6 +415,9 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         internal var transferID = 0L
 
         internal var conflicts = JSONObject()
+
+        internal var barcodeTable = ArrayList<String>()
+
     }
 
     fun confirm(view: View) {
@@ -437,7 +452,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
                 val epcArray = JSONArray()
 
-                for(key in epcTableValid) {
+                for((key) in epcTableValid) {
                     epcArray.put(key)
                 }
 
@@ -463,6 +478,11 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         }
 
         status.text = "در حال دریافت اطلاعات ..."
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
+
         queue.add(request)
     }
 

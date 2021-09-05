@@ -21,7 +21,7 @@ class MyListAdapterConfirm(
     private val notScanned: ArrayList<String>,
     private val pictureURL: ArrayList<String>
 ) : ArrayAdapter<String>(
-    context, R.layout.list, title
+    context, R.layout.list_sub, title
 ) {
     private lateinit var webSettings: WebSettings
     @SuppressLint("DefaultLocale")

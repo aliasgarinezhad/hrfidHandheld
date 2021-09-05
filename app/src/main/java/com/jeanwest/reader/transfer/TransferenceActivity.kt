@@ -11,18 +11,16 @@ import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
 import android.widget.*
-import com.android.volley.Request
-import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 
 import com.android.volley.toolbox.Volley
-import com.google.gson.JsonObject
 import com.jeanwest.reader.Barcode2D
 import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_transfer.*
@@ -33,6 +31,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import com.android.volley.DefaultRetryPolicy
+
 
 class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
@@ -51,6 +51,8 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     var des = 0;
     var explanation = ""
     var barcodeTable = ArrayList<String>()
+
+    val apiTimeout = 20000
 
     lateinit var result: ListView
 
@@ -80,15 +82,9 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                 showPropertiesToUser(0, beepMain)
 
-                var url = "http://rfid-api-0-1.avakatan.ir:3100/products/v3?"
-                for (key in epcTableValid) {
-                    url += "epc=" + key.key + "&"
-                }
-                barcodeTable.forEach{
-                    url += "KBarCode=$it&"
-                }
+                var url = "http://rfid-api-0-1.avakatan.ir:3100/products/v3"
 
-                val request = object : JsonObjectRequest(Method.GET, url, null,  {
+                val request = object : JsonObjectRequest(Method.POST, url, null,  {
 
                     var template: JSONObject
                     val titles = ArrayList<String>()
@@ -144,7 +140,35 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                         params["Authorization"] = "Bearer " + MainActivity.token
                         return params
                     }
+
+                    override fun getBody(): ByteArray {
+                        val json = JSONObject()
+
+                        val epcArray = JSONArray()
+                        for ((key) in epcTableValid) {
+                            epcArray.put(key)
+                        }
+
+                        json.put("epcs", epcArray)
+
+                        val barcodeArray = JSONArray()
+
+                        barcodeTable.forEach{
+                            barcodeArray.put(it)
+                        }
+
+                        json.put("KBarCodes", barcodeArray)
+
+                        return json.toString().toByteArray()
+                    }
+
                 }
+
+                request.retryPolicy = DefaultRetryPolicy(
+                    apiTimeout,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+                )
 
                 val queue = Volley.newRequestQueue(this@TransferenceActivity)
                 queue.add(request)
@@ -163,9 +187,9 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
         val powerText = findViewById<TextView>(R.id.readingPowerTextViewT)
         val powerSeekBar = findViewById<SeekBar>(R.id.readingPowerSeekBarT)
-        button = findViewById(R.id.buttonReadingT)
+        button = findViewById(R.id.transfer_send_button)
         status = findViewById(R.id.section_labelT)
-        result = findViewById(R.id.listViewT)
+        result = findViewById(R.id.confirm_list)
 
         powerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
 
@@ -311,6 +335,11 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                 return params
             }
         }
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
         queue.add(request)
 
     }

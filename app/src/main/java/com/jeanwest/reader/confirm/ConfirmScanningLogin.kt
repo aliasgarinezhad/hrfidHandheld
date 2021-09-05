@@ -20,7 +20,7 @@ class ConfirmScanningLogin : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_confirm_information)
-        transferIDView = findViewById<EditText>(R.id.transferIDView)
+        transferIDView = findViewById<EditText>(R.id.confirm_id_text)
         nextActivityIntent = Intent(this, ConfirmScanningActivity::class.java)
 
         transferIDView.setOnEditorActionListener{_, _, _ ->

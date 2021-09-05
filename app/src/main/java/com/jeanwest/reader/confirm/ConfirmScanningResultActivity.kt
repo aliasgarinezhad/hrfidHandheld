@@ -18,7 +18,7 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_confirm_result)
-        subResult = findViewById(R.id.subResultView)
+        subResult = findViewById(R.id.confirm_result_view)
         confirm_result_toolbar.setNavigationOnClickListener {
             finish()
         }

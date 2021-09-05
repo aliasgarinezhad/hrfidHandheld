@@ -45,7 +45,7 @@
         app:icon="@drawable/ic_baseline_add_circle_outline_24"
         app:iconGravity="top"
         app:iconTint="@color/Brown"
-        app:layout_constraintBottom_toTopOf="@+id/button15"
+        app:layout_constraintBottom_toTopOf="@+id/startTransferActivityButton"
         app:layout_constraintEnd_toStartOf="@+id/startFindingActivityButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/main_appBar" />
@@ -70,9 +70,9 @@
         app:icon="@drawable/ic_baseline_format_list_bulleted_24"
         app:iconGravity="top"
         app:iconTint="@color/Purple"
-        app:layout_constraintBottom_toTopOf="@+id/button16"
+        app:layout_constraintBottom_toTopOf="@+id/startConfirmActivityButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/button15"
+        app:layout_constraintStart_toEndOf="@+id/startTransferActivityButton"
         app:layout_constraintTop_toBottomOf="@+id/startFindingActivityButton" />
 
     <Button
@@ -148,7 +148,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/button11"
-        app:layout_constraintTop_toBottomOf="@+id/button16" />
+        app:layout_constraintTop_toBottomOf="@+id/startConfirmActivityButton" />
 
     <Button
         android:id="@+id/accountButtonView"
@@ -169,12 +169,12 @@
         app:iconGravity="top"
         app:iconTint="@color/MediumAquamarine"
         app:layout_constraintBottom_toTopOf="@+id/button11"
-        app:layout_constraintEnd_toStartOf="@+id/button16"
+        app:layout_constraintEnd_toStartOf="@+id/startConfirmActivityButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button15" />
+        app:layout_constraintTop_toBottomOf="@+id/startTransferActivityButton" />
 
     <Button
-        android:id="@+id/button15"
+        android:id="@+id/startTransferActivityButton"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="20dp"
@@ -199,7 +199,7 @@
         app:layout_constraintTop_toBottomOf="@+id/button2" />
 
     <Button
-        android:id="@+id/button16"
+        android:id="@+id/startConfirmActivityButton"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="10dp"
