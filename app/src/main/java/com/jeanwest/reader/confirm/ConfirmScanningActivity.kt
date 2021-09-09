@@ -27,8 +27,8 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirection
-//import com.rscja.deviceapi.RFIDWithUHFUART
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_confirm.*
@@ -55,7 +55,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
     var readingPower = 30
     var temp2 = JSONObject()
     var allStuffs = 1
-    val apiTimeout = 20000
+    private val apiTimeout = 20000
     var timerHandler = Handler()
 
     private var timerRunnable: Runnable = object : Runnable {
@@ -131,7 +131,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/conflicts"
 
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
@@ -294,16 +294,20 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
     }
 
     @SuppressLint("SetTextI18n")
-    fun sendFile(view: View?) {
+    fun check(view: View?) {
         if (readingInProgress || processingInProgress) {
             return
+        }
+
+        epcTableValid.keys.forEach {
+            Log.e("epcs", it)
         }
 
         updateDatabaseInProgress = true
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/conflicts"
 
         val request = object : JsonObjectRequest(Method.POST, url, null,
             {
@@ -361,14 +365,14 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
         val alertBuilder = AlertDialog.Builder(this)
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
-        alertBuilder.setPositiveButton("بله") { dialog, which ->
+        alertBuilder.setPositiveButton("بله") { _, _ ->
             epcTableValid.clear()
             epcLastLength = 0
             barcodeTable.clear()
             showPropertiesToUser(0, beepMain)
 
         }
-        alertBuilder.setNegativeButton("خیر") { dialog, which -> }
+        alertBuilder.setNegativeButton("خیر") { _, _ -> }
         alertDialog = alertBuilder.create()
         alertDialog.setOnShowListener {
             alertDialog.window!!.decorView.layoutDirection =
@@ -429,7 +433,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/$transferID/submit"
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/$transferID/submit"
 
         val request = object : StringRequest(Method.POST, url,
             {
@@ -491,6 +495,7 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
 
             barcodeTable.add(barcode)
             showPropertiesToUser(0, beepMain)
+            beepMain.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
         }
     }
 

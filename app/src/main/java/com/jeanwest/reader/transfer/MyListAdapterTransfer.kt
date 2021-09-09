@@ -21,7 +21,7 @@ class MyListAdapterTransfer(
     private val notScanned: ArrayList<String>,
     private val pictureURL: ArrayList<String>
 ) : ArrayAdapter<String>(
-    context, R.layout.list, title
+    context, R.layout.list_sub, title
 ) {
     private lateinit var webSettings: WebSettings
     @SuppressLint("DefaultLocale")
@@ -45,6 +45,10 @@ class MyListAdapterTransfer(
             webSettings.useWideViewPort = true
             webSettings.loadWithOverviewMode = true
             picture.isFocusable = false
+
+            if (pictureURL[position] == " ") {
+                picture.visibility = View.INVISIBLE
+            }
 
         } catch (e: ArrayIndexOutOfBoundsException) {
             Toast.makeText(

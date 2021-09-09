@@ -12,10 +12,10 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import org.junit.Assert.*
-import org.junit.Test
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
+import org.junit.Assert.*
+import org.junit.Test
 import org.hamcrest.CoreMatchers.*
 
 class FindingProductSubActivityTest{

@@ -15,8 +15,8 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
-//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
+//import import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_finding_sub.*

@@ -1,9 +1,7 @@
 package com.jeanwest.reader.confirm
 
-import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Assert.*
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.*
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.typeText
@@ -14,8 +12,9 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import org.junit.Test
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.entity.UHFTAGInfo
+import org.junit.Test
 import org.hamcrest.CoreMatchers.*
 
 class ConfirmScanningActivityTest {
@@ -26,48 +25,49 @@ class ConfirmScanningActivityTest {
     fun firstTest() {
         ActivityScenario.launch(MainActivity::class.java)
         onView(withId(R.id.startConfirmActivityButton)).perform(click())
-        onView(withId(R.id.confirm_id_text)).perform(typeText("114000014911"))
+        onView(withId(R.id.confirm_id_text)).perform(typeText("114000014948"))
         onView(withId(R.id.confirm_id_text)).perform(pressImeActionButton())
 
         RFIDWithUHFUART.uhfTagInfo.clear()
 
-        for (i in 0 until 2000) {
+        for (i in 1 until 11) {
 
             val uhfTagInfo = UHFTAGInfo()
             uhfTagInfo.epc = epcs[i]
             RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+            //Log.e("epcs", RFIDWithUHFUART.uhfTagInfo[i].epc)
         }
 
         Thread.sleep(10000)
 
-        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("114000014911"))))
-        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("1993"))))
+        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("114000014948"))))
+        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("5"))))
 
         onView(withId(R.id.confirm_properties_text)).perform(pressKey(280))
         Thread.sleep(2000)
         onView(withId(R.id.confirm_properties_text)).perform(pressKey(280))
         Thread.sleep(2000)
 
-        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("2000/1993"))))
+        onView(withId(R.id.confirm_properties_text)).check(matches(withText(containsString("10/5"))))
 
         onView(withId(R.id.confirm_check_button)).perform(click())
 
         Thread.sleep(20000)
 
-        onData(anything()).inAdapterView(withId(R.id.confirm_result_view)).atPosition(0)
-            .onChildView(withId(R.id.notScannedViewSub))
-            .check(matches(withText(containsString("0"))))
-
-        onData(anything()).inAdapterView(withId(R.id.confirm_result_view)).atPosition(0)
-            .onChildView(withId(R.id.scannedViewSub))
-            .check(matches(withText(containsString("0"))))
-
-        onData(anything()).inAdapterView(withId(R.id.confirm_result_view)).atPosition(0)
+        /*onData(anything()).inAdapterView(withId(R.id.confirm_result_view)).atPosition(0)
             .onChildView(withId(R.id.extraViewSub))
-            .check(matches(withText(containsString("0"))))
+            .check(matches(withText(containsString("0"))))*/
     }
 
     private val epcs = arrayOf("30C0194000E889800001C2DB",
+
+        "30C0194000C764800001AE8F",
+        "30C0194000C764800001AE8E",
+        "30C0194000C764800001AE86",
+        "30C0194000C764800001AE88",
+        "30C0194000C764800001AE84",
+        "30C0194000C764800001AE85",
+
         "30C01901C973170000007253",
         "30C01901C96FC28000007A54",
         "30C0194000D9AA000001C1FC",

@@ -49,15 +49,15 @@
         android:layout_marginEnd="8dp"
         android:onClick="sendFile"
         android:text="ارسال حواله"
+        android:textColor="@color/colorOnSecondary"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/button10T"
+        app:layout_constraintStart_toEndOf="@+id/transfer_clear_epcs"
         app:layout_constraintTop_toBottomOf="@+id/section_labelT"
-        app:strokeColor="#FFFFFF"
-        android:textColor="@color/colorOnSecondary"/>
+        app:strokeColor="#FFFFFF" />
 
     <Button
-        android:id="@+id/button10T"
+        android:id="@+id/transfer_clear_epcs"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"

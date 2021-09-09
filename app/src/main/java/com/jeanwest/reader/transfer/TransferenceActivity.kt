@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.*
@@ -19,8 +20,8 @@ import com.jeanwest.reader.Barcode2D
 import com.jeanwest.reader.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
-//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_transfer.*
@@ -53,6 +54,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     var barcodeTable = ArrayList<String>()
 
     val apiTimeout = 20000
+    var sum = 0
 
     lateinit var result: ListView
 
@@ -82,7 +84,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                 showPropertiesToUser(0, beepMain)
 
-                var url = "http://rfid-api-0-1.avakatan.ir:3100/products/v3"
+                val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
 
                 val request = object : JsonObjectRequest(Method.POST, url, null,  {
 
@@ -96,6 +98,8 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                     var response = it.getJSONArray("epcs")
 
+                    sum = 0
+
                     for(i in 0 until response.length()) {
                         try {
                             template = response.getJSONObject(i)
@@ -105,6 +109,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                             scannedNumber.add("تعداد: " + template.getString("handheldCount"))
                             pictureURL.add(template.getString("ImgUrl"))
                             specs.add("کد محصول: " + template.getString("KBarCode") + "\n" + "اسکن شده با RF")
+                            sum += template.getString("handheldCount").toInt()
 
                         } catch (ignored: JSONException) {
 
@@ -122,11 +127,19 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
                             scannedNumber.add("تعداد: " + template.getString("handheldCount"))
                             pictureURL.add(template.getString("ImgUrl"))
                             specs.add("کد محصول: " + template.getString("KBarCode") + "\n" + "اسکن شده با بارکد")
+                            sum += template.getString("handheldCount").toInt()
 
                         } catch (ignored: JSONException) {
 
                         }
                     }
+
+                    titles.add(0, "نتایج")
+                    size.add(0, "مجموع اجناس: $sum")
+                    color.add(0, " ")
+                    specs.add(0, " ")
+                    pictureURL.add(0, " ")
+                    scannedNumber.add(0, "مجموع تگ های خراب: " + (epcTableValid.size + barcodeTable.size - sum))
 
                     val listAdapter = MyListAdapterTransfer(this@TransferenceActivity, titles, specs, size, color, scannedNumber, pictureURL)
                     result.adapter = listAdapter
@@ -161,7 +174,6 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
                         return json.toString().toByteArray()
                     }
-
                 }
 
                 request.retryPolicy = DefaultRetryPolicy(
@@ -289,10 +301,20 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
     fun sendFile(view: View) {
 
+        epcTableValid.keys.forEach {
+            Log.e("epcs", it)
+        }
+
+        if((epcTableValid.size + barcodeTable.size) != sum)
+        {
+            Toast.makeText(this, "تعدادی تگ خراب در حواله وجود دارد", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val queue = Volley.newRequestQueue(this)
 
         val request = object : StringRequest(
-            Method.POST, "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts",
+            Method.POST, "http://rfid-api-0-1.avakatan.ir/stock-drafts",
             { response ->
                 Toast.makeText(this, "حواله با موفقیت ثبت شد" + "\n" + "شماره حواله: "
                         + JSONObject(response).getString("stockDraftId")
@@ -389,6 +411,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
 
             barcodeTable.add(barcode)
             showPropertiesToUser(0, beepMain)
+            beepMain.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             processingInProgress = true
             isScanning = false
             timerHandler.post(timerRunnable)

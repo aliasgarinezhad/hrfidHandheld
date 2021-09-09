@@ -47,7 +47,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:onClick="sendFile"
+        android:onClick="check"
         android:text="بررسی"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"

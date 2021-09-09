@@ -1,7 +1,6 @@
 package com.jeanwest.reader.transfer
 
-import com.rscja.deviceapi.entity.UHFTAGInfo
-import org.junit.Assert.*
+
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
@@ -9,13 +8,14 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.action.ViewActions.pressKey
 import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.matcher.ViewMatchers.*
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import org.junit.Test
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import org.junit.Test
+import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.hamcrest.CoreMatchers.*
+
 
 class TransferenceActivityTest {
 
@@ -61,6 +61,248 @@ class TransferenceActivityTest {
 
         Thread.sleep(20000)
     }
+
+    //Scan one product and check results
+    @Test
+    fun secondTest() {
+        ActivityScenario.launch(MainActivity::class.java)
+        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
+        onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
+        onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
+
+        onView(withId(R.id.loginToTransfer)).perform(click())
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+
+        for (i in 0 until 1) {
+
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = epcs[i]
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1706"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("test"))))
+
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(1000)
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(1000)
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1"))))
+    }
+
+    //Check whether previous result replaced by new one
+    @Test
+    fun thirdTest() {
+
+        ActivityScenario.launch(MainActivity::class.java)
+        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
+        onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
+        onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
+
+        onView(withId(R.id.loginToTransfer)).perform(click())
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+
+        for (i in 0 until 5) {
+
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = epcs[i]
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1706"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("test"))))
+
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(1000)
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(1000)
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("5"))))
+
+        Thread.sleep(5000)
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+
+        for (i in 5 until 10) {
+
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = epcs[i]
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1706"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("test"))))
+
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(2000)
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(2000)
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("10"))))
+
+        Thread.sleep(5000)
+
+        Espresso.onData(anything()).inAdapterView(withId(R.id.confirm_list)).atPosition(7)
+            .perform(click())
+    }
+
+    //Check clear button function
+    @Test
+    fun fourthTest() {
+
+        ActivityScenario.launch(MainActivity::class.java)
+        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
+        onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
+        onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
+
+        onView(withId(R.id.loginToTransfer)).perform(click())
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+
+        for (i in 0 until 5) {
+
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = test2Epcs[i]
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("1706"))))
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("test"))))
+
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(2000)
+        onView(withId(R.id.section_labelT)).perform(pressKey(280))
+        Thread.sleep(2000)
+
+        onView(withId(R.id.section_labelT)).check(matches(withText(containsString("10"))))
+
+        Espresso.onData(anything()).inAdapterView(withId(R.id.confirm_list)).atPosition(0)
+            .onChildView(withId(R.id.scannedViewSub))
+            .check(matches(withText(containsString("10"))))
+
+
+        Espresso.onData(anything()).inAdapterView(withId(R.id.confirm_list)).atPosition(0)
+            .onChildView(withId(R.id.extraViewSub))
+            .check(matches(withText(containsString("0"))))
+
+        Thread.sleep(20000)
+
+    }
+
+
+
+    private val test2Epcs = arrayOf("30C0194000EC13C0000A71C1",
+        "30C0194000C764800001AE8F",
+        "30C0194000C763C00001A2A7",
+        "30C0194000C764400001B3EF",
+        "30C0194000E28E400001B1E3",
+        "30C01901C90CE00000007805",
+        "30C0194000C765C00001AE02",
+        "30C019002DC422C000000323",
+        "30C0194000EC14C0000A7D0A",
+        "30C01901C96F6140000001B9",
+        "30C0194000EC1740000A74A2",
+        "30C019002DC66480000077CE",
+        "30C0194000C764800001AE93",
+        "30C0194000EDD640000A6728",
+        "30C0194000ED5280000A7793",
+        "30C0194000ED9A80000A7756",
+        "30C0194000C055C0000A7351",
+        "30C0194000EDBA40000A7776",
+        "30C0194000C761C0000A733C",
+        "30C0194000E409000001B16A",
+        "30C0194000E2D680000A6936",
+        "30C019002DC4230000000317",
+        "30C0194000C764400001B345",
+        "30C0194000C76440000A6149",
+        "30C0194000C769000001C311",
+        "30C0194000C75F40000A6935",
+        "30C0194000F0A600000A7856",
+        "30C0194000DC54C00001295D",
+        "30C0194000EC12C0000A7221",
+        "30C01900244EF7000000B200",
+        "30C0194000C7684000017788",
+        "30C0194000E28E00000A78E0",
+        "30C0194000DC20400001AE84",
+        "30C0194000C75F4000012D92",
+        "30C0194000EC2200000A5FAC",
+        "30C0194000E8E600000A7D33",
+        "30C0194000C76440000A68C4",
+        "30C0194000C76440000A6150",
+        "30C0194000BEC200000A6124",
+        "30C0194000E297800001B3C9",
+        "30C0194000D819400001BE52",
+        "30C0194000EC1880000A7D9D",
+        "30C0194000EC2040000A60AA",
+        "30C0194000DC558000017D2D",
+        "30C0194000C763C0000A790B",
+        "30C0194000EC1300000A7224",
+        "30C41901C8AE5B800000B25E",
+        "30C0194000C75F4000014F03",
+        "30C0194000ED824000017885",
+        "30C0194000E8D880000A792D",
+        "30C0194000C764800001C120",
+        "30C0194000C764400001251C",
+        "30C0194000C75F4000012554",
+        "30C0194000E286C0000A7225",
+        "30C0194000E7D2C0000A6CE3",
+        "30C0194000EC1240000A7214",
+        "30C0194000EDE9C0000A6928",
+        "30C0194000DC2600000178A1",
+        "30C0194000EC1480000A71AB",
+        "30C0194000C75F40000A5F53",
+        "30C0194000C764800001C050",
+        "30C0194000C76440000A714B",
+        "30C0194000C764800001BA25",
+        "30C0194000D93AC0000A6AC4",
+        "30C019002DC422C000000250",
+        "30C0194000EC2600000A74B9",
+        "30C0194000C765C000017A1E",
+        "30C01901C96F65C000000162",
+        "30C0194000C764400001B715",
+        "30C0194000C763C00001B33B",
+        "30C019002DC422C00000756C",
+        "30C0194000EDABC0000A787F",
+        "30C0194000C763C0000A98F2",
+        "30C0194000EC1300000A7D24",
+        "30C0194000EC23C0000A7B3B",
+        "30C41901C973198000000C86",
+        "30C0194000F0A640000A7854",
+        "30C0190003A79540000070E8",
+        "30C0194000E28BC0000A5F73",
+        "30C41901C995670000000CAD",
+        "30C0194000E92B00000A6C4A",
+        "30C0194000ED9F00000A77AD",
+        "30C0194000C766400001C126",
+        "30C0194000CBE780000178F8",
+        "30C0194000EC2140000A5FA2",
+        "30C0194000E299000001AF6E",
+        "30C0194000EF4100000A702C",
+        "30C01901C96F6340000001CF",
+        "30C0194000F0A680000A784E",
+        "30C0194000EC2180000A5F94",
+        "30C0194000BCB3C00001C0CB",
+        "30C0194000C764800001BE82",
+        "30C0194000ED5380000A77D7",
+        "30C0194000E87A40000A7541",
+        "30C41901C973174000000C8C",
+        "30C0194000C763C00001B40D",
+        "30C01901C96F6340000001D2",
+        "30C0194000DC54C000017A05",
+        "30C0194000E7CF80000A704F",
+        "30C0194000E289800001C0C0"
+    )
+
 
     private val epcs = arrayOf("30C0194000E889800001C2DB",
         "30C01901C973170000007253",

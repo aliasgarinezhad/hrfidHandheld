@@ -63,8 +63,10 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         titles.add("کالاهای اسکن نشده")
         notScanned.add("تعداد اسکن نشده: " + (shortageAll-shortageScanned))
         specs.add("ناموجود در انبار، موجود در سرور")
-        scanned.add("تعداد اسکن شده: $shortageScanned")
-        all.add("تعداد کل: $shortageAll")
+        //scanned.add("تعداد اسکن شده: $shortageScanned")
+        //all.add("تعداد کل: $shortageAll")
+        scanned.add(" ")
+        all.add(" ")
         pictureURL.add("null")
         productRFIDCodes.add("null")
 
@@ -82,8 +84,13 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
                         اسکن شده با RF
                         """.trimIndent()
                 )
-                notScanned.add("تعداد اسکن نشده: " +
-                        (product.getInt("dbCount") - product.getInt("handheldCount")))
+
+                if((product.getInt("dbCount") - product.getInt("handheldCount")) <= 0) {
+                    notScanned.add("کالا جایگزین شده است (خطا)")
+                } else {
+                    notScanned.add("تعداد اسکن نشده: " +
+                            (product.getInt("dbCount") - product.getInt("handheldCount")))
+                }
                 scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
                 all.add("تعداد کل: " + product.getString("dbCount"))
                 pictureURL.add(product.getString("ImgUrl"))
@@ -149,8 +156,10 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
         titles.add("کالاهای اضافی")
         specs.add("ناموجود در سرور، موجود در انبار")
         notScanned.add("تعداد اضافی: " + (additionalScanned - additionalAll))
-        scanned.add("تعداد اسکن شده: $additionalScanned")
-        all.add("تعداد کل: $additionalAll")
+        //scanned.add("تعداد اسکن شده: $additionalScanned")
+        //all.add("تعداد کل: $additionalAll")
+        scanned.add(" ")
+        all.add(" ")
         pictureURL.add("null")
         productRFIDCodes.add("null")
 
@@ -168,8 +177,13 @@ class ConfirmScanningResultActivity : AppCompatActivity() {
                         اسکن شده با RF
                         """.trimIndent()
                 )
-                notScanned.add("تعداد اضافی: " +
-                        (product.getInt("handheldCount") - product.getInt("dbCount")))
+
+                if(product.getInt("dbCount") - product.getInt("handheldCount") == 0) {
+                    notScanned.add("کالا جایگزین شده است (خطا)")
+                } else {
+                    notScanned.add("تعداد اضافی: " +
+                            (product.getInt("handheldCount") - product.getInt("dbCount")))
+                }
                 scanned.add("تعداد اسکن شده: " + product.getString("handheldCount"))
                 all.add("تعداد کل: " + product.getString("dbCount"))
                 pictureURL.add(product.getString("ImgUrl"))

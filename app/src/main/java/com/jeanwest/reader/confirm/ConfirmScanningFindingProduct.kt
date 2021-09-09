@@ -7,7 +7,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
-import android.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.webkit.WebSettings
@@ -180,8 +179,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        table = PreferenceManager.getDefaultSharedPreferences(this)
-        tableEditor = table.edit()
+
         confirm_find_toolbar.setNavigationOnClickListener {
             back()
         }
@@ -350,7 +348,7 @@ class ConfirmScanningFindingProduct : AppCompatActivity() {
 
         val queue = Volley.newRequestQueue(this)
 
-        val url = "http://rfid-api-0-1.avakatan.ir:3100/stock-drafts/${ConfirmScanningActivity.transferID}/conflicts"
+        val url = "http://rfid-api-0-1.avakatan.ir/stock-drafts/${ConfirmScanningActivity.transferID}/conflicts"
 
         val request = object : JsonObjectRequest(
             Method.POST, url, null,

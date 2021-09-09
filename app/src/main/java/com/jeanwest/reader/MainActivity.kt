@@ -20,6 +20,7 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
 
+
 class MainActivity : AppCompatActivity() {
     
     lateinit var rf: RFIDWithUHFUART

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 public class RFIDWithUHFUART{
 
-    public static ArrayList<UHFTAGInfo> uhfTagInfo = new ArrayList<>(100);
+    public static ArrayList<UHFTAGInfo> uhfTagInfo = new ArrayList<>(2100);
 
     int i = 0;
 
@@ -65,6 +65,7 @@ public class RFIDWithUHFUART{
         } else {
             result = null;
             i = 0;
+            uhfTagInfo.clear();
         }
 
         return result;
@@ -85,12 +86,10 @@ public class RFIDWithUHFUART{
 
         } else {
             result = null;
+            i=0;
+            uhfTagInfo.clear();
         }
 
-        i++;
-        if (i > 100) {
-            i = 0;
-        }
         return result;
     }
 
@@ -118,6 +117,9 @@ public class RFIDWithUHFUART{
     }
 
     public synchronized boolean setEPCAndTIDMode() {
+        return true;
+    }
+    public synchronized boolean setRFLink(int link) {
         return true;
     }
 
