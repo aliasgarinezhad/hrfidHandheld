@@ -1,6 +1,7 @@
 package com.jeanwest.reader.add
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -465,5 +466,10 @@ class AddProductActivity : AppCompatActivity(),
         var partitionNumber = 6 // 3bit
         var headerNumber = 48 // 8bit
         var companyNumber = 101 // 12bit
+    }
+
+    fun advanceSettingButton(view: android.view.View) {
+        val nextActivityIntent = Intent(this, LoginToSettingActivity::class.java)
+        startActivity(nextActivityIntent)
     }
 }

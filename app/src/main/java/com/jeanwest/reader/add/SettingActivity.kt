@@ -3,6 +3,7 @@ package com.jeanwest.reader.add
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import android.view.View
 import android.widget.*
@@ -151,5 +152,16 @@ class SettingActivity : AppCompatActivity() {
         }
         memoryEditor.putLong("counterModified", 0L)
         memoryEditor.commit()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if(keyCode == 4) {
+            back()
+        }
+        return true
+    }
+
+    private fun back() {
+        finish()
     }
 }

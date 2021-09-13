@@ -1,7 +1,8 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.aboutUs
 
 import android.content.Context
 import android.os.Environment
+import com.jeanwest.reader.MainActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException

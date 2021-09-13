@@ -26,8 +26,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
+import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.add.AddProductActivity
-import com.jeanwest.reader.add.LoginToSettingActivity
+import com.jeanwest.reader.fileAttachment.FileAttachment
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
 import com.jeanwest.reader.finding.FindingProductActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -192,7 +193,7 @@ class MainActivity : ComponentActivity() {
                                     .weight(1F)
                                     .fillMaxSize(),
                             ) {
-                                AddProductSettingButton()
+                                FileAttachment()
                             }
 
                             Box(
@@ -229,7 +230,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun AddProductSettingButton() {
+    fun FileAttachment() {
         Button(
             onClick = {
                 if (memory.getString("username", "empty") == "") {
@@ -239,7 +240,7 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, LoginToSettingActivity::class.java)
+                    val intent = Intent(this, FileAttachment::class.java)
                     startActivity(intent)
                 }
             },
@@ -251,7 +252,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.weight(0.5F))
 
                 Icon(
-                    painter = painterResource(R.drawable.ic_baseline_settings_24),
+                    painter = painterResource(R.drawable.ic_baseline_attach_file_24),
                     tint = colorResource(id = R.color.OrangeRed),
                     contentDescription = "",
                     modifier = Modifier
@@ -260,7 +261,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Spacer(modifier = Modifier.weight(0.5F))
                 Text(
-                    "تنظیمات",
+                    "پیوست فایل",
                     modifier = Modifier
                         .weight(2F)
                         .fillMaxSize(),

@@ -3,5 +3,6 @@
     <string name="colorPrimary">#008080</string>
     <string name="transferText">ثبت حواله</string>
     <string name="confirmText">تایید حواله</string>
+    <string name="title_activity_file_attachment">FileAttachment</string>
 
 </resources>

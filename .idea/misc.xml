@@ -5,10 +5,11 @@
       <map>
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_add_circle_outline_24.xml" value="0.33046875" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_directions_transit_24.xml" value="0.20555555555555555" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_settings_24.xml" value="0.32290076335877865" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_about_us.xml" value="0.1" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_new.xml" value="0.2388888888888889" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_new_setting.xml" value="0.1" />
-        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_product.xml" value="0.1" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_product.xml" value="0.33" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_product_login_setting.xml" value="0.30625" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_add_product_setting.xml" value="0.2388888888888889" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_confirm.xml" value="0.33" />

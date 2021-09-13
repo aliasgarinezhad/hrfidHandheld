@@ -10,7 +10,6 @@ import kotlinx.android.synthetic.main.activity_add_product_login_setting.*
 
 class LoginToSettingActivity : AppCompatActivity() {
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_product_login_setting)

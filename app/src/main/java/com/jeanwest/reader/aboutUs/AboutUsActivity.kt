@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.aboutUs
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.jeanwest.reader.BuildConfig
+import com.jeanwest.reader.R
 import kotlinx.android.synthetic.main.activity_about_us.*
 import java.io.File
 

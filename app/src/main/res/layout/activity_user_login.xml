@@ -27,17 +27,14 @@
 
     <Button
         android:id="@+id/button12"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="50dp"
         android:onClick="signIn"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
         android:text="ورود"
         android:textColor="@color/colorOnSecondary"
-        android:textSize="20sp"
         app:cornerRadius="50dp"
         app:layout_constraintEnd_toEndOf="@+id/textInputLayout3"
         app:layout_constraintStart_toStartOf="@+id/textInputLayout3"

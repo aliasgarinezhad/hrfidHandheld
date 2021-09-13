@@ -14,8 +14,11 @@ android {
         minSdkVersion 23
         targetSdkVersion 31
         versionCode 1
-        versionName "2.2.2"
+        versionName "2.2.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
     }
 
     apply plugin: 'kotlin-kapt'
