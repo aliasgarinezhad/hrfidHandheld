@@ -6,8 +6,8 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,7 +38,7 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.launch
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences

@@ -85,14 +85,14 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         val alertBuilder = AlertDialog.Builder(this)
         alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود")
         alertBuilder.setMessage("آیا ادامه می دهید؟")
-        alertBuilder.setPositiveButton("بله") { dialog, which ->
+        alertBuilder.setPositiveButton("بله") { _, _ ->
             WarehouseScanningActivity.EPCTableValid.clear()
             editor.putString("1", "")
             editor.putString("2", "")
             editor.commit()
             startReading(view)
         }
-        alertBuilder.setNegativeButton("خیر") { dialog, which -> }
+        alertBuilder.setNegativeButton("خیر") { _, _ -> }
         alertDialog = alertBuilder.create()
         alertDialog.setOnShowListener {
             alertDialog.window!!.decorView.layoutDirection =

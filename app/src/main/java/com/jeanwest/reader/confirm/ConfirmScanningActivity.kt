@@ -21,8 +21,8 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.Barcode2D
-import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
@@ -36,7 +36,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.collections.HashMap
 
-class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
+class ConfirmScanningActivity : AppCompatActivity(),
+    IBarcodeResult {
 
     private val barcode2D = Barcode2D(this)
     private var updateDatabaseInProgress = false
@@ -247,39 +248,42 @@ class ConfirmScanningActivity : AppCompatActivity(), IBarcodeResult {
             return true
         }
 
-        if (keyCode == 280 || keyCode == 293) {
+        if (keyCode == 280 || keyCode == 293 || keyCode == 139) {
 
-            Log.e("keycode: ", keyCode.toString())
+            if (!confirm_scanning_switch.isChecked) {
 
-            if (event.repeatCount == 0) {
-                if (!readingInProgress) {
-                    while (!rf.setPower(readingPower)) {
+                Log.e("keycode: ", keyCode.toString())
+
+                if (event.repeatCount == 0) {
+                    if (!readingInProgress) {
+                        while (!rf.setPower(readingPower)) {
+                        }
+                        processingInProgress = false
+                        readingInProgress = true
+                        button.setBackgroundColor(Color.GRAY)
+                        rf.startInventoryTag(0, 0, 0)
+                        val params = window.attributes
+                        params.screenBrightness = 0f
+                        window.attributes = params
+                        timerHandler.post(timerRunnable)
+                    } else {
+                        timerHandler.removeCallbacks(timerRunnable)
+                        rf.stopInventory()
+                        val params = window.attributes
+                        params.screenBrightness = -10f
+                        window.attributes = params
+                        readingInProgress = false
+                        processingInProgress = true
+                        status.text = "در حال پردازش ..."
+
+                        timerHandler.postDelayed(timerRunnable, 500)
                     }
-                    processingInProgress = false
-                    readingInProgress = true
-                    button.setBackgroundColor(Color.GRAY)
-                    rf.startInventoryTag(0, 0, 0)
-                    val params = window.attributes
-                    params.screenBrightness = 0f
-                    window.attributes = params
-                    timerHandler.post(timerRunnable)
-                } else {
-                    timerHandler.removeCallbacks(timerRunnable)
-                    rf.stopInventory()
-                    val params = window.attributes
-                    params.screenBrightness = -10f
-                    window.attributes = params
-                    readingInProgress = false
-                    processingInProgress = true
-                    status.text = "در حال پردازش ..."
-
-                    timerHandler.postDelayed(timerRunnable, 500)
                 }
+            }else {
+                start()
             }
         } else if (keyCode == 4) {
             back()
-        } else if (keyCode == 139) {
-            start()
         }
         return true
     }

@@ -8,7 +8,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
-import androidx.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
@@ -18,7 +17,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceManager
 import com.google.gson.Gson
+import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirection
@@ -29,10 +31,11 @@ import kotlinx.android.synthetic.main.activity_scanning.*
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import kotlin.collections.HashMap
 
-class WarehouseScanningActivity : AppCompatActivity() {
+class WarehouseScanningActivity : AppCompatActivity(),
+    IBarcodeResult {
 
+    private val barcode2D = Barcode2D(this)
     var beepMain = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     lateinit var rf: RFIDWithUHFUART
     lateinit var status: TextView
@@ -107,7 +110,11 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
                         } else {
                             databaseInProgress = false
-                            Toast.makeText(this@WarehouseScanningActivity, "خطا در دیتابیس " + apiReadingEPC.response, Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                this@WarehouseScanningActivity,
+                                "خطا در دیتابیس " + apiReadingEPC.response,
+                                Toast.LENGTH_LONG
+                            ).show()
                             showPropertiesToUser(0, beepMain)
                         }
                     }
@@ -126,7 +133,11 @@ class WarehouseScanningActivity : AppCompatActivity() {
                             startActivity(nextActivityIntent)
                         } else {
                             databaseInProgress = false
-                            Toast.makeText(this@WarehouseScanningActivity, "خطا در دیتابیس " + apiReadingEPC.response, Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                this@WarehouseScanningActivity,
+                                "خطا در دیتابیس " + apiReadingEPC.response,
+                                Toast.LENGTH_LONG
+                            ).show()
                             showPropertiesToUser(0, beepMain)
                         }
                     }
@@ -207,6 +218,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
     }
 
     private fun back() {
+        close()
         if (readingInProgress) {
             rf.stopInventory()
             readingInProgress = false
@@ -234,6 +246,17 @@ class WarehouseScanningActivity : AppCompatActivity() {
             }
 
         epcLastLength = EPCTableValid.size
+
+        barcodeTable = if(table.getString(warehouseID.toString() + "barcodes", "").isNullOrEmpty()) {
+            ArrayList<String>()
+        } else {
+
+            Gson().fromJson(
+                table.getString(warehouseID.toString() + "barcodes", ""),
+                barcodeTable.javaClass
+            )
+        }
+
         while (!rf.setEPCMode()) {
         }
         if (rf.power != readingPower) {
@@ -248,11 +271,14 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
         powerText.text = "اندازه توان($readingPower)"
         powerSeekBar.progress = readingPower - 5
+
+        open()
+
     }
 
     @SuppressLint("SetTextI18n")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
+        if (keyCode == 280 || keyCode == 293) {
             if (event.repeatCount == 0) {
                 if (!readingInProgress) {
                     while (!rf.setPower(readingPower)) {
@@ -278,6 +304,8 @@ class WarehouseScanningActivity : AppCompatActivity() {
                     status.text = "در حال پردازش ..."
                     val tableJson = JSONObject(EPCTableValid as Map<*, *>)
                     tableEditor.putString(warehouseID.toString(), tableJson.toString())
+                    val barcodesJson = JSONArray(barcodeTable)
+                    tableEditor.putString(warehouseID.toString() + "barcodes", barcodesJson.toString())
                     tableEditor.putInt(departmentInfoID.toString() + warehouseID, ID)
                     tableEditor.commit()
                     timerHandler.postDelayed(timerRunnable, 500)
@@ -285,18 +313,23 @@ class WarehouseScanningActivity : AppCompatActivity() {
             }
         } else if (keyCode == 4) {
             back()
+        } else if (keyCode == 139) {
+            start()
         }
         return true
     }
 
     override fun onPause() {
         super.onPause()
+        close()
         if (readingInProgress) {
             rf.stopInventory()
             readingInProgress = false
         }
         val tableJson = JSONObject(EPCTableValid as Map<*, *>)
         tableEditor.putString(warehouseID.toString(), tableJson.toString())
+        val barcodesJson = JSONArray(barcodeTable)
+        tableEditor.putString(warehouseID.toString() + "barcodes", barcodesJson.toString())
         tableEditor.putInt(departmentInfoID.toString() + warehouseID, ID)
         tableEditor.commit()
     }
@@ -325,14 +358,16 @@ class WarehouseScanningActivity : AppCompatActivity() {
         alertBuilder.setMessage("آیا ادامه می دهید؟")
         alertBuilder.setPositiveButton("بله") { dialog, which ->
             EPCTableValid.clear()
+            barcodeTable.clear()
             tableEditor.putString(warehouseID.toString(), "")
+            tableEditor.putString(warehouseID.toString() + "barcodes", "")
             tableEditor.putInt(departmentInfoID.toString() + departmentInfoID, ID)
             tableEditor.commit()
             epcLastLength = 0
             showPropertiesToUser(0, beepMain)
 
         }
-        alertBuilder.setNegativeButton("خیر") { dialog, which -> }
+        alertBuilder.setNegativeButton("خیر") { _, _ -> }
         alertDialog = alertBuilder.create()
         alertDialog.setOnShowListener {
             alertDialog.window!!.decorView.layoutDirection =
@@ -355,7 +390,7 @@ class WarehouseScanningActivity : AppCompatActivity() {
 
         if (!readingInProgress) {
             status.text =
-                status.text.toString() + "تعداد کالا های پیدا شده: " + EPCTableValid.size + "/" + allStuffs
+                status.text.toString() + "تعداد کالا های پیدا شده: " + (EPCTableValid.size + barcodeTable.size) + "/" + allStuffs
         } else {
             when {
                 speed > 100 -> {
@@ -373,18 +408,39 @@ class WarehouseScanningActivity : AppCompatActivity() {
             }
         }
 
-        circularProgressBar.progress = (EPCTableValid.size * 100 / allStuffs).toFloat()
-        percentage.text = (EPCTableValid.size * 100 / allStuffs).toFloat().toString() + '%'
+        circularProgressBar.progress = ((EPCTableValid.size + barcodeTable.size) * 100 / allStuffs).toFloat()
+        percentage.text = ((EPCTableValid.size + barcodeTable.size) * 100 / allStuffs).toFloat().toString() + '%'
     }
 
     companion object {
         internal var EPCTableValid: MutableMap<String, Int> = HashMap()
-
         internal var ID: Int = 0
-
         internal var warehouseID = 2
-
         internal var conflicts = JSONObject()
+        internal var barcodeTable = ArrayList<String>()
+    }
+
+    override fun getBarcode(barcode: String?) {
+        if (!barcode.isNullOrEmpty()) {
+
+            barcodeTable.add(barcode)
+            showPropertiesToUser(0, beepMain)
+            beepMain.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+        }
+    }
+
+    private fun start() {
+
+        barcode2D.startScan(this)
+    }
+
+    private fun open() {
+        barcode2D.open(this, this)
+    }
+
+    private fun close() {
+        barcode2D.stopScan(this)
+        barcode2D.close(this)
     }
 
 }

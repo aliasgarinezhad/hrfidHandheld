@@ -10,16 +10,17 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jeanwest.reader.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
 
-import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.R
 import kotlinx.android.synthetic.main.activity_finding.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
-class FindingProductActivity : AppCompatActivity(), IBarcodeResult {
+class FindingProductActivity : AppCompatActivity(),
+    IBarcodeResult {
 
     private lateinit var barcode2D: Barcode2D
     lateinit var list: ListView

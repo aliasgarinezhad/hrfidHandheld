@@ -16,8 +16,8 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.Barcode2D
-import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -35,7 +35,8 @@ import kotlin.collections.HashMap
 import com.android.volley.DefaultRetryPolicy
 
 
-class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
+class TransferenceActivity : AppCompatActivity(),
+    IBarcodeResult {
 
     private val barcode2D = Barcode2D(this)
     var power = 30
@@ -48,8 +49,8 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     private var processingInProgress = false
     lateinit var button: Button
     lateinit var status : TextView
-    var source = 0;
-    var des = 0;
+    var source = 0
+    var des = 0
     var explanation = ""
     var barcodeTable = ArrayList<String>()
 
@@ -268,33 +269,35 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
     @SuppressLint("SetTextI18n")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
-        if (keyCode == 280 || keyCode == 293) {
+        if (keyCode == 280 || keyCode == 293 || keyCode == 139) {
 
-            if (event.repeatCount == 0) {
-                if (!isScanning) {
-                    while (!rf.setPower(power)) {
+            if(!transfer_scanning_switch.isChecked) {
+                if (event.repeatCount == 0) {
+                    if (!isScanning) {
+                        while (!rf.setPower(power)) {
+                        }
+                        processingInProgress = false
+                        isScanning = true
+                        button.setBackgroundColor(Color.GRAY)
+                        rf.startInventoryTag(0, 0, 0)
+                        timerHandler.post(timerRunnable)
+                    } else {
+                        timerHandler.removeCallbacks(timerRunnable)
+                        rf.stopInventory()
+
+                        isScanning = false
+                        processingInProgress = true
+
+                        status.text = "در حال پردازش ..."
+
+                        timerHandler.postDelayed(timerRunnable, 500)
                     }
-                    processingInProgress = false
-                    isScanning = true
-                    button.setBackgroundColor(Color.GRAY)
-                    rf.startInventoryTag(0, 0, 0)
-                    timerHandler.post(timerRunnable)
-                } else {
-                    timerHandler.removeCallbacks(timerRunnable)
-                    rf.stopInventory()
-
-                    isScanning = false
-                    processingInProgress = true
-
-                    status.text = "در حال پردازش ..."
-
-                    timerHandler.postDelayed(timerRunnable, 500)
                 }
+            } else {
+                start()
             }
         } else if (keyCode == 4) {
             back()
-        } else if (keyCode == 139) {
-            start()
         }
         return true
     }
@@ -370,7 +373,7 @@ class TransferenceActivity : AppCompatActivity(), IBarcodeResult {
         epcTableValid.clear()
         barcodeTable.clear()
         showPropertiesToUser(0, beepMain)
-        var listAdapter = MyListAdapterTransfer(this@TransferenceActivity, ArrayList<String>(),
+        val listAdapter = MyListAdapterTransfer(this@TransferenceActivity, ArrayList<String>(),
             ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>(), ArrayList<String>())
         result.adapter = listAdapter
 

@@ -1,13 +1,8 @@
 package com.jeanwest.reader.testClasses;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.util.Log;
 
-import com.barcode.BarcodeUtility;
-import com.jeanwest.reader.IBarcodeResult;
+import com.jeanwest.reader.hardware.IBarcodeResult;
 
 /**
  * Created by Administrator on 2018-6-28.

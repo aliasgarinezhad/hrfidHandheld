@@ -14,8 +14,8 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jeanwest.reader.Barcode2D
-import com.jeanwest.reader.IBarcodeResult
+import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -24,7 +24,8 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.android.synthetic.main.activity_add_product.*
 import java.util.*
 
-class AddProductActivity : AppCompatActivity(), IBarcodeResult {
+class AddProductActivity : AppCompatActivity(),
+    IBarcodeResult {
     
     private lateinit var barcode2D: Barcode2D
     private lateinit var barcodeID: String

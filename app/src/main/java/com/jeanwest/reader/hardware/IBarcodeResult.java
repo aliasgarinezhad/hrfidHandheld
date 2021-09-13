@@ -1,4 +1,4 @@
-package com.jeanwest.reader;
+package com.jeanwest.reader.hardware;
 
 /**
  * Created by Administrator on 2018-6-28.

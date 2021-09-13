@@ -30,12 +30,11 @@
         android:id="@+id/section_labelT"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:text="\n\n\n\n\n"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/transfer_scanning_switch"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1" />
@@ -106,5 +105,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/readingPowerSeekBarT"
         app:layout_constraintVertical_bias="0.0" />
+
+    <Switch
+        android:id="@+id/transfer_scanning_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="false"
+        android:text="بارکد"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/section_labelT"
+        tools:checked="false" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
