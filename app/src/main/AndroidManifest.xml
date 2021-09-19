@@ -17,9 +17,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld" >
+
         <activity
             android:name=".fileAttachment.FileAttachment"
-            android:exported="true" />
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            </intent-filter>
+        </activity>
+
         <activity android:name=".confirm.ConfirmScanningLogin" />
         <activity android:name=".confirm.ConfirmScanningActivity" />
         <activity android:name=".confirm.ConfirmScanningResultActivity" />
@@ -47,6 +55,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <provider

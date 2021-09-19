@@ -21,7 +21,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import com.jeanwest.reader.BuildConfig
 import com.jeanwest.reader.R
 import kotlinx.android.synthetic.main.activity_about_us.*
 import java.io.File
@@ -146,7 +145,7 @@ class AboutUsActivity : AppCompatActivity() {
     fun uriFromFile(context: Context, file: File): Uri {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             FileProvider.getUriForFile(
-                context, BuildConfig.APPLICATION_ID + ".provider",
+                context, this.packageName + ".provider",
                 file
             )
         } else {
