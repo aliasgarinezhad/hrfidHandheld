@@ -1,6 +1,5 @@
 package com.jeanwest.reader.fileAttachment
 
-import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -17,6 +16,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,7 +32,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
@@ -64,7 +63,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
     private var isScanning = false
     lateinit var rf: RFIDWithUHFUART
-    var rfPower = 30
+    private var rfPower = 30
     var epcTable: MutableMap<String, Int> = HashMap()
     var epcTablePreviousSize = 0
     var barcodeTable = ArrayList<String>()
@@ -74,6 +73,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
     private val apiTimeout = 20000
     private var fileJsonArray = JSONArray()
+    private var scannedJsonArray = JSONArray()
+    private var conflictJsonObject = JSONObject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -123,8 +124,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         while (!rf.setEPCMode()) {
         }
-        clear()
-        isScanning = false
+        conflictJsonObject = comparison(fileJsonArray, scannedJsonArray)
         refreshUI(0)
         open()
     }
@@ -145,7 +145,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
                 } else {
                     isScanning = false // cause scanning routine loop to stop
-                    syncToServer()
+                    syncScannedItemsToServer()
                 }
             }
         } else if (keyCode == 4) {
@@ -188,72 +188,17 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    private fun syncToServer() {
+    private fun syncScannedItemsToServer() {
         val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
-            var template: JSONObject
             val response = it.getJSONArray("epcs")
             for (i in 0 until it.getJSONArray("KBarCodes").length()) {
                 response.put(it.getJSONArray("KBarCodes")[i])
             }
-
-            uiParameters = UIParameters()
-
-            uiParameters.sum = 0
-            for (i in 0 until response.length()) {
-                uiParameters.sum += response.getJSONObject(i).getInt("handheldCount")
-            }
-
-            var difference = 0
-            val fileJSONArrayCopy = fileJsonArray
-
-            for (i in 0 until response.length()) {
-                template = response.getJSONObject(i)
-                for (j in 0 until fileJSONArrayCopy.length()) {
-                    if (template.getString("KBarCode") == fileJSONArrayCopy.getJSONObject(j).getString("KBarCode")) {
-                        difference = template.getInt("handheldCount") - fileJSONArrayCopy.getJSONObject(j).getInt("handheldCount")
-                        if (difference > 0) {
-                            uiParameters.titles[i] = (template.getString("productName"))
-                            uiParameters.size[i] = ("اندازه: " + template.getString("Size"))
-                            uiParameters.color[i] = ("رنگ: " + template.getString("Color"))
-                            uiParameters.scannedNumber[i] = ("تعداد: " + difference)
-                            uiParameters.pictureURL[i] = (template.getString("ImgUrl"))
-                            uiParameters.specs[i] = ("کد: " + template.getString("KBarCode") + "\n" + "اضافی")
-                        } else if (difference < 0) {
-                            uiParameters.titles[i] = (template.getString("productName"))
-                            uiParameters.size[i] = ("اندازه: " + template.getString("Size"))
-                            uiParameters.color[i] = ("رنگ: " + template.getString("Color"))
-                            uiParameters.scannedNumber[i] = ("تعداد: " + -difference)
-                            uiParameters.pictureURL[i] = (template.getString("ImgUrl"))
-                            uiParameters.specs[i] = ("کد: " + template.getString("KBarCode") + "\n" + "کسری")
-                        }
-                        response.remove(i)
-                        fileJSONArrayCopy.remove(i)
-                    }
-                }
-            }
-
-            for (i in 0 until fileJSONArrayCopy.length()) {
-                template = fileJSONArrayCopy.getJSONObject(i)
-                uiParameters.titles.add(template.getString("productName"))
-                uiParameters.size.add("اندازه: " + template.getString("Size"))
-                uiParameters.color.add("رنگ: " + template.getString("Color"))
-                uiParameters.scannedNumber.add("تعداد: " + template.getString("handheldCount"))
-                uiParameters.pictureURL.add(template.getString("ImgUrl"))
-                uiParameters.specs.add("کد: " + template.getString("KBarCode") + "\n" + "کسری")
-            }
-
-            for (i in 0 until response.length()) {
-                template = response.getJSONObject(i)
-                uiParameters.titles.add(template.getString("productName"))
-                uiParameters.size.add("اندازه: " + template.getString("Size"))
-                uiParameters.color.add("رنگ: " + template.getString("Color"))
-                uiParameters.scannedNumber.add("تعداد: " + template.getString("handheldCount"))
-                uiParameters.pictureURL.add(template.getString("ImgUrl"))
-                uiParameters.specs.add("کد: " + template.getString("KBarCode") + "\n" + "اضافی")
-            }
+            scannedJsonArray = response
+            conflictJsonObject = comparison(fileJsonArray, scannedJsonArray)
 
             refreshUI(0)
 
@@ -316,13 +261,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         for (i in 1 until sheet.physicalNumberOfRows) {
-            if (sheet.getRow(i).getCell(1) == null) {
+            if (sheet.getRow(i).getCell(0) == null) {
                 break
             } else {
-                excelBarcodes.add(sheet.getRow(i).getCell(1).stringCellValue)
+                excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
             }
         }
-        Toast.makeText(this, excelBarcodes.toString(), Toast.LENGTH_LONG).show()
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
 
@@ -370,14 +314,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
     private fun refreshUI(speed: Int) {
 
-        uiParameters.text = "سرعت اسکن (تگ بر ثانیه): " + speed + "\n"
-        uiParameters.text += "تعداد کالا های پیدا شده: " + (epcTable.size + barcodeTable.size) + "\n"
+        uiParameters.text = "تعداد اسکن شده: " + (epcTable.size + barcodeTable.size)
 
-        if (!isScanning) {
-            uiParameters.text += "مجموع اجناس: " + uiParameters.sum + "\n"
-            uiParameters.text += "تعداد تگ های خراب: " + (epcTable.size + barcodeTable.size - uiParameters.sum)
-        } else {
-
+        if (isScanning) {
             when {
                 speed > 100 -> {
                     uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
@@ -402,14 +341,79 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             barcodeTable.add(barcode)
             refreshUI(0)
             uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            syncToServer()
+            syncScannedItemsToServer()
         }
+    }
+
+    private fun comparison(fileJSONArray: JSONArray, scannedJSONArray: JSONArray): JSONObject {
+
+        val result = JSONObject()
+        val matched = JSONArray()
+        val shortage = JSONArray()
+        val additional = JSONArray()
+
+        var template: JSONObject
+        uiParameters = UIParameters()
+
+        var difference = 0
+        val fileJSONArrayCopy = JSONArray()
+        val responseCopy = JSONArray()
+
+        for (i in 0 until fileJSONArray.length()) {
+            fileJSONArrayCopy.put(fileJSONArray.getJSONObject(i))
+        }
+        for (i in 0 until scannedJSONArray.length()) {
+            responseCopy.put(scannedJSONArray.getJSONObject(i))
+        }
+
+        for (i in 0 until scannedJSONArray.length()) {
+            template = scannedJSONArray.getJSONObject(i)
+            for (j in 0 until fileJSONArray.length()) {
+                if (template.getString("KBarCode") == fileJSONArray.getJSONObject(j).getString("KBarCode")) {
+                    difference = template.getInt("handheldCount") - fileJSONArray.getJSONObject(j).getInt("handheldCount")
+                    when {
+                        difference > 0 -> {
+                            template.put("additionalNumber", difference)
+                            additional.put(template)
+                        }
+                        difference < 0 -> {
+                            template.put("shortageNumber", difference)
+                            shortage.put(template)
+                        }
+                        else -> {
+                            template.put("matchedNumber", template.getInt("handheldCount"))
+                            matched.put(template)
+                        }
+                    }
+                    responseCopy.remove(i)
+                    fileJSONArrayCopy.remove(j)
+                }
+            }
+        }
+
+        for (i in 0 until fileJSONArrayCopy.length()) {
+            template = fileJSONArrayCopy.getJSONObject(i)
+            template.put("shortageNumber", template.getInt("handheldCount"))
+            shortage.put(template)
+        }
+
+        for (i in 0 until responseCopy.length()) {
+            template = scannedJSONArray.getJSONObject(i)
+            template.put("additionalNumber", template.getInt("handheldCount"))
+            additional.put(template)
+        }
+        result.put("additional", additional)
+        result.put("shortage", shortage)
+        result.put("matched", matched)
+        return result
     }
 
     private fun clear() {
         barcodeTable.clear()
         epcTable.clear()
         epcTablePreviousSize = 0
+        conflictJsonObject = comparison(fileJSONArray = fileJsonArray, scannedJSONArray = JSONArray())
+        fileJsonArray = JSONArray()
         uiParameters = UIParameters()
         refreshUI(0)
     }
@@ -437,6 +441,13 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     private fun exportFile() {
         val workbook = XSSFWorkbook()
         val sheet = workbook.createSheet("AMAR")
+
+        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
+        val headerCell = headerRow.createCell(0)
+        headerCell.setCellValue("کد جست و جو")
+        val headerCell2 = headerRow.createCell(1)
+        headerCell2.setCellValue("تعداد")
+
         barcodeTable.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
@@ -462,17 +473,11 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(outFile.absolutePath))
         shareIntent.type = "application/octet-stream"
         applicationContext.startActivity(shareIntent)
+        Toast.makeText(this, "فایل در روت حافظه ذخیره شد", Toast.LENGTH_LONG).show()
     }
 
-    //for decoding items JSON
     data class UIParameters(
-            val titles: ArrayList<String> = ArrayList(),
-            val specs: ArrayList<String> = ArrayList(),
-            val size: ArrayList<String> = ArrayList(),
-            val color: ArrayList<String> = ArrayList(),
-            val scannedNumber: ArrayList<String> = ArrayList(),
-            val pictureURL: ArrayList<String> = ArrayList(),
-            var sum: Int = 0,
+            var filter: Int = 2,
             var text: String = "",
             var beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100),
     )
@@ -499,7 +504,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                                 contentDescription = ""
                         )
                     }
-                    IconButton(onClick = {  }) {
+                    IconButton(onClick = { }) {
                         Icon(
                                 painter = painterResource(id = R.drawable.ic_baseline_check_box_outline_blank_24),
                                 contentDescription = ""
@@ -548,99 +553,131 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
             Column {
 
-                Row() {
+                Column(modifier = Modifier
+                        .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                        .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(10.dp))
+                        .fillMaxWidth()) {
 
-                    Text(
-                            text = "اندازه توان(" + slideValue.value.toInt() + ")",
-                            modifier = Modifier
-                                    .wrapContentSize()
-                                    .padding(start = 8.dp, end = 8.dp)
-                                    .align(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center
-                    )
+                    Row() {
 
-                    Slider(
-                            value = slideValue.value,
-                            onValueChange = {
-                                slideValue.value = it
-                                rfPower = it.toInt()
-                            },
-                            enabled = true,
-                            valueRange = 5f..30f,
-                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                    )
+                        Text(
+                                text = "اندازه توان(" + slideValue.value.toInt() + ")",
+                                modifier = Modifier
+                                        .wrapContentSize()
+                                        .padding(start = 8.dp, end = 8.dp)
+                                        .align(Alignment.CenterVertically),
+                                textAlign = TextAlign.Center
+                        )
+
+                        Slider(
+                                value = slideValue.value,
+                                onValueChange = {
+                                    slideValue.value = it
+                                    rfPower = it.toInt()
+                                },
+                                enabled = true,
+                                valueRange = 5f..30f,
+                                modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        )
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+
+                        Text(
+                                text = uiParameters.text,
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier
+                                        .padding(horizontal = 8.dp),
+                        )
+
+                        Row {
+                            Text(
+                                    text = "بارکد",
+                                    modifier = Modifier
+                                            .padding(end = 4.dp, bottom = 10.dp)
+                                            .align(Alignment.CenterVertically),
+                            )
+
+                            Switch(
+                                    checked = switchValue.value,
+                                    onCheckedChange = {
+                                        barcodeIsEnabled = it
+                                        switchValue.value = it
+                                    },
+                                    modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
+                            )
+                        }
+                    }
+
+                    if (isScanning) {
+                        Row(modifier = Modifier
+                                .padding(32.dp)
+                                .fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                            CircularProgressIndicator(color = MaterialTheme.colors.primary)
+                        }
+                    }
                 }
 
-                Row() {
+                LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
-                    Text(
-                            text = "بارکد",
-                            modifier = Modifier
-                                    .padding(horizontal = 8.dp)
-                                    .align(Alignment.CenterVertically),
-                    )
-
-                    Switch(
-                            checked = switchValue.value,
-                            onCheckedChange = {
-                                barcodeIsEnabled = it
-                                switchValue.value = it
-                            },
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                }
-
-                Text(
-                        text = uiParameters.text,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                                .padding(top = 10.dp, start = 8.dp)
-                                .fillMaxWidth(),
-                )
-
-                LazyColumn(modifier = Modifier.padding(top = 10.dp)) {
-
-                    items(uiParameters.titles.size) { i ->
+                    items(when (uiParameters.filter) {
+                        0 -> conflictJsonObject.getJSONArray("matched").length()
+                        1 -> conflictJsonObject.getJSONArray("additional").length()
+                        2 -> conflictJsonObject.getJSONArray("shortage").length()
+                        else -> 0
+                    }) { i ->
                         Row(horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier
-                                        .padding(2.dp)
-                                        .background(MaterialTheme.colors.onPrimary)
+                                        .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                                        .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(10.dp))
                                         .fillMaxWidth()
                         ) {
                             Column {
-                                Text(text = uiParameters.titles[i],
+                                Text(text = when (uiParameters.filter) {
+                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("productName")
+                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("productName")
+                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("productName")
+                                    else -> ""
+                                },
                                         fontSize = 20.sp,
                                         textAlign = TextAlign.Right,
-                                        modifier = modifier)
-                                Text(text = uiParameters.specs[i],
-                                        fontSize = 18.sp,
-                                        textAlign = TextAlign.Right,
-                                        modifier = modifier)
-                                Text(text = uiParameters.size[i],
+                                        modifier = modifier,
+                                        color = colorResource(id = R.color.Brown))
+
+                                Text(text = when (uiParameters.filter) {
+                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("KBarCode")
+                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("KBarCode")
+                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("KBarCode")
+                                    else -> ""
+                                },
                                         fontSize = 18.sp,
                                         textAlign = TextAlign.Right,
                                         modifier = modifier,
                                         color = colorResource(id = R.color.DarkGreen)
                                 )
-                                Text(text = uiParameters.color[i],
+
+                                Text(text = when (uiParameters.filter) {
+                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("matchedNumber")
+                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("additionalNumber")
+                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("shortageNumber")
+                                    else -> ""
+                                },
                                         fontSize = 18.sp,
                                         textAlign = TextAlign.Right,
                                         modifier = modifier,
-                                        color = colorResource(id = R.color.Brown)
-                                )
-                                Text(text = uiParameters.scannedNumber[i],
-                                        fontSize = 18.sp,
-                                        textAlign = TextAlign.Right,
-                                        modifier = modifier,
-                                        color = colorResource(id = R.color.Goldenrod)
-                                )
+                                        color = colorResource(id = R.color.Goldenrod))
                             }
 
                             Image(
-                                    painter = rememberImagePainter(uiParameters.pictureURL[i]),
+                                    painter = rememberImagePainter(when (uiParameters.filter) {
+                                        0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("ImgUrl")
+                                        1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("ImgUrl")
+                                        2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("ImgUrl")
+                                        else -> ""
+                                    }),
                                     contentDescription = "",
                                     modifier = Modifier
-                                            .height(200.dp)
+                                            .height(128.dp)
                                             .padding(vertical = 4.dp, horizontal = 8.dp)
                             )
 

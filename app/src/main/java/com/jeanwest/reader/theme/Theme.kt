@@ -20,7 +20,7 @@ private val LightColorPalette = lightColors(
     /* Other default colors to override*/
     //background = Color(0xFFF2F2F2),
     background = Lavender,
-    surface = Color.White,
+    surface = Lavender,
     onPrimary = Color.White,
     onSecondary = Color.Black,
     onBackground = Color.Black,
