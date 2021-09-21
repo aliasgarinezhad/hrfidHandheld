@@ -14,10 +14,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
@@ -47,10 +51,8 @@ import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -74,10 +76,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     private val apiTimeout = 20000
     private var fileJsonArray = JSONArray()
     private var scannedJsonArray = JSONArray()
-    private var conflictJsonObject = JSONObject()
+    var beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        open()
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -94,7 +98,11 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     MainActivity.username = memory.getString("username", "empty")!!
                     MainActivity.token = memory.getString("accessToken", "empty")!!
                 } else {
-                    Toast.makeText(this, "لطفا ابتدا به حساب کاربری خود وارد شوید", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this,
+                        "لطفا ابتدا به حساب کاربری خود وارد شوید",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
 
                 while (!rf.init()) {
@@ -112,21 +120,23 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 while (!rf.setRFLink(2)) {
                     rf.free()
                 }
+                while (!rf.setEPCMode()) {
+                }
+
                 val uri = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
                 readFile(uri)
 
             } else {
-
+                while (!rf.setEPCMode()) {
+                }
+                refreshUI(0)
                 Toast.makeText(this, "فرمت فایل باید اکسل باشد", Toast.LENGTH_LONG).show()
-                return
             }
+        } else {
+            while (!rf.setEPCMode()) {
+            }
+            refreshUI(0)
         }
-
-        while (!rf.setEPCMode()) {
-        }
-        conflictJsonObject = comparison(fileJsonArray, scannedJsonArray)
-        refreshUI(0)
-        open()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -174,31 +184,55 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     break
                 }
             }
-            withContext(Main) {
-                refreshUI(epcTable.size - epcTablePreviousSize)
-            }
+            refreshUI(epcTable.size - epcTablePreviousSize)
+
             epcTablePreviousSize = epcTable.size
 
             delay(1000)
         }
 
         rf.stopInventory()
-        withContext(Main) {
-            refreshUI(0)
-        }
+
+        refreshUI(0)
     }
 
     private fun syncScannedItemsToServer() {
+
+        if ((epcTable.size + barcodeTable.size) == 0) {
+            Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             val response = it.getJSONArray("epcs")
+
+            for (i in 0 until it.getJSONArray("KBarCodes").length()) {
+
+                val jsonObject = it.getJSONArray("KBarCodes").getJSONObject(i)
+
+                for (j in 0 until response.length()) {
+
+                    if (jsonObject.getString("KBarCode") == response.getJSONObject(j)
+                            .getString("KBarCode")
+                    ) {
+                        response.getJSONObject(j).put(
+                            "handheldCount",
+                            response.getJSONObject(j)
+                                .getInt("handheldCount") + jsonObject.getInt("handheldCount")
+                        )
+                        it.getJSONArray("KBarCodes").remove(i)
+                    }
+                }
+            }
             for (i in 0 until it.getJSONArray("KBarCodes").length()) {
                 response.put(it.getJSONArray("KBarCodes")[i])
             }
+
             scannedJsonArray = response
-            conflictJsonObject = comparison(fileJsonArray, scannedJsonArray)
+            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
 
             refreshUI(0)
 
@@ -234,9 +268,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         request.retryPolicy = DefaultRetryPolicy(
-                apiTimeout,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
         val queue = Volley.newRequestQueue(this@FileAttachment)
@@ -261,10 +295,13 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         for (i in 1 until sheet.physicalNumberOfRows) {
-            if (sheet.getRow(i).getCell(0) == null) {
+            if (sheet.getRow(i).getCell(0) == null || sheet.getRow(i).getCell(1) == null) {
                 break
             } else {
-                excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
+
+                repeat(sheet.getRow(i).getCell(1).numericCellValue.toInt()) {
+                    excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
+                }
             }
         }
 
@@ -273,6 +310,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             fileJsonArray = it.getJSONArray("KBarCodes")
+            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
+            refreshUI(0)
 
         }, { response ->
             Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
@@ -303,36 +342,13 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         request.retryPolicy = DefaultRetryPolicy(
-                apiTimeout,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
         val queue = Volley.newRequestQueue(this@FileAttachment)
         queue.add(request)
-    }
-
-    private fun refreshUI(speed: Int) {
-
-        uiParameters.text = "تعداد اسکن شده: " + (epcTable.size + barcodeTable.size)
-
-        if (isScanning) {
-            when {
-                speed > 100 -> {
-                    uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
-                }
-                speed > 30 -> {
-                    uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                }
-                speed > 10 -> {
-                    uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                }
-                speed > 0 -> {
-                    uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                }
-            }
-        }
-        setContent { Page() }
     }
 
     override fun getBarcode(barcode: String?) {
@@ -340,22 +356,25 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
             barcodeTable.add(barcode)
             refreshUI(0)
-            uiParameters.beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             syncScannedItemsToServer()
         }
     }
 
-    private fun comparison(fileJSONArray: JSONArray, scannedJSONArray: JSONArray): JSONObject {
+    data class ConflictLists(
+        var additional: JSONArray = JSONArray(),
+        var shortage: JSONArray = JSONArray(),
+        var all: JSONArray = JSONArray(),
+        var matched: JSONArray = JSONArray(),
+    )
 
-        val result = JSONObject()
-        val matched = JSONArray()
-        val shortage = JSONArray()
-        val additional = JSONArray()
+    private fun comparison(fileJSONArray: JSONArray, scannedJSONArray: JSONArray): ConflictLists {
+
+        val result = ConflictLists()
 
         var template: JSONObject
-        uiParameters = UIParameters()
 
-        var difference = 0
+        var difference: Int
         val fileJSONArrayCopy = JSONArray()
         val responseCopy = JSONArray()
 
@@ -369,20 +388,32 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         for (i in 0 until scannedJSONArray.length()) {
             template = scannedJSONArray.getJSONObject(i)
             for (j in 0 until fileJSONArray.length()) {
-                if (template.getString("KBarCode") == fileJSONArray.getJSONObject(j).getString("KBarCode")) {
-                    difference = template.getInt("handheldCount") - fileJSONArray.getJSONObject(j).getInt("handheldCount")
+                if (template.getString("KBarCode") == fileJSONArray.getJSONObject(j)
+                        .getString("KBarCode")
+                ) {
+                    difference = template.getInt("handheldCount") - fileJSONArray.getJSONObject(j)
+                        .getInt("handheldCount")
                     when {
                         difference > 0 -> {
-                            template.put("additionalNumber", difference)
-                            additional.put(template)
+                            template.put("numberWithExplanation", "تعداد اضافی: " + difference)
+                            template.put("number", difference)
+                            result.additional.put(template)
+                            result.all.put(template)
                         }
                         difference < 0 -> {
-                            template.put("shortageNumber", difference)
-                            shortage.put(template)
+                            template.put("numberWithExplanation", "تعداد کسری: " + difference)
+                            template.put("number", difference)
+                            result.shortage.put(template)
+                            result.all.put(template)
                         }
                         else -> {
-                            template.put("matchedNumber", template.getInt("handheldCount"))
-                            matched.put(template)
+                            template.put(
+                                "numberWithExplanation",
+                                "تعداد تایید شده" + template.getInt("handheldCount")
+                            )
+                            template.put("number", template.getInt("handheldCount"))
+                            result.matched.put(template)
+                            result.all.put(template)
                         }
                     }
                     responseCopy.remove(i)
@@ -393,18 +424,23 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         for (i in 0 until fileJSONArrayCopy.length()) {
             template = fileJSONArrayCopy.getJSONObject(i)
-            template.put("shortageNumber", template.getInt("handheldCount"))
-            shortage.put(template)
+            template.put("numberWithExplanation", "تعداد کسری: " + template.getInt("handheldCount"))
+            template.put("number", template.getInt("handheldCount"))
+            result.shortage.put(template)
+            result.all.put(template)
         }
 
         for (i in 0 until responseCopy.length()) {
             template = scannedJSONArray.getJSONObject(i)
-            template.put("additionalNumber", template.getInt("handheldCount"))
-            additional.put(template)
+            template.put(
+                "numberWithExplanation",
+                "تعداد اضافی: " + template.getInt("handheldCount")
+            )
+            template.put("number", template.getInt("handheldCount"))
+            result.additional.put(template)
+            result.all.put(template)
         }
-        result.put("additional", additional)
-        result.put("shortage", shortage)
-        result.put("matched", matched)
+
         return result
     }
 
@@ -412,9 +448,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         barcodeTable.clear()
         epcTable.clear()
         epcTablePreviousSize = 0
-        conflictJsonObject = comparison(fileJSONArray = fileJsonArray, scannedJSONArray = JSONArray())
         fileJsonArray = JSONArray()
         uiParameters = UIParameters()
+        uiParameters.resultLists.value =
+            comparison(fileJSONArray = fileJsonArray, scannedJSONArray = JSONArray())
         refreshUI(0)
     }
 
@@ -438,7 +475,35 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
+    private fun refreshUI(speed: Int) {
+
+        uiParameters.number.value = epcTable.size + barcodeTable.size
+
+        if (isScanning) {
+            when {
+                speed > 100 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+                }
+                speed > 30 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                }
+                speed > 10 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
+                }
+                speed > 0 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                }
+            }
+        }
+
+        setContent {
+            Page()
+        }
+
+    }
+
     private fun exportFile() {
+
         val workbook = XSSFWorkbook()
         val sheet = workbook.createSheet("AMAR")
 
@@ -447,22 +512,42 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         headerCell.setCellValue("کد جست و جو")
         val headerCell2 = headerRow.createCell(1)
         headerCell2.setCellValue("تعداد")
+        val headerCell3 = headerRow.createCell(2)
+        headerCell3.setCellValue("کسری")
+        val headerCell4 = headerRow.createCell(3)
+        headerCell4.setCellValue("اضافی")
 
-        barcodeTable.forEach {
+        for (i in 0 until uiParameters.resultLists.value.matched.length()) {
+            val template = uiParameters.resultLists.value.matched.getJSONObject(i)
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
-            cell.setCellValue(it)
+            cell.setCellValue(template.getString("KBarCode"))
             val cell2 = row.createCell(1)
-            cell2.setCellValue(1.0)
+            cell2.setCellValue(template.getInt("handheldCount").toDouble())
         }
 
-        epcTable.keys.forEach {
+        for (i in 0 until uiParameters.resultLists.value.shortage.length()) {
+            val template = uiParameters.resultLists.value.shortage.getJSONObject(i)
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
-            cell.setCellValue(it)
+            cell.setCellValue(template.getString("KBarCode"))
             val cell2 = row.createCell(1)
-            cell2.setCellValue(1.0)
+            cell2.setCellValue(template.getInt("handheldCount").toDouble())
+            val cell3 = row.createCell(2)
+            cell3.setCellValue(template.getInt("number").toDouble())
         }
+
+        for (i in 0 until uiParameters.resultLists.value.additional.length()) {
+            val template = uiParameters.resultLists.value.additional.getJSONObject(i)
+            val row = sheet.createRow(sheet.physicalNumberOfRows)
+            val cell = row.createCell(0)
+            cell.setCellValue(template.getString("KBarCode"))
+            val cell2 = row.createCell(1)
+            cell2.setCellValue(template.getInt("handheldCount").toDouble())
+            val cell3 = row.createCell(3)
+            cell3.setCellValue(template.getInt("number").toDouble())
+        }
+
         val outFile = File(Environment.getExternalStorageDirectory(), "output.xlsx")
         val outputStream = FileOutputStream(outFile.absolutePath)
         workbook.write(outputStream)
@@ -476,18 +561,18 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         Toast.makeText(this, "فایل در روت حافظه ذخیره شد", Toast.LENGTH_LONG).show()
     }
 
-    data class UIParameters(
-            var filter: Int = 2,
-            var text: String = "",
-            var beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100),
-    )
+    class UIParameters : ViewModel() {
+        var resultLists = mutableStateOf(ConflictLists())
+        var number = mutableStateOf(0)
+        var filter = mutableStateOf(0)
+    }
 
     @Composable
     fun Page() {
         MyApplicationTheme() {
             Scaffold(
-                    topBar = { AppBar() },
-                    content = { Content() },
+                topBar = { AppBar() },
+                content = { Content() },
             )
         }
     }
@@ -497,46 +582,46 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         TopAppBar(
 
-                navigationIcon = {
-                    IconButton(onClick = { back() }) {
-                        Icon(
-                                painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
-                                contentDescription = ""
-                        )
-                    }
-                    IconButton(onClick = { }) {
-                        Icon(
-                                painter = painterResource(id = R.drawable.ic_baseline_check_box_outline_blank_24),
-                                contentDescription = ""
-                        )
-                    }
-
-                },
-
-                actions = {
-                    IconButton(onClick = { exportFile() }) {
-                        Icon(
-                                painter = painterResource(id = R.drawable.ic_baseline_share_24),
-                                contentDescription = ""
-                        )
-                    }
-                    IconButton(onClick = { clear() }) {
-                        Icon(
-                                painter = painterResource(id = R.drawable.ic_baseline_delete_24),
-                                contentDescription = ""
-                        )
-                    }
-                },
-
-                title = {
-                    Text(
-                            text = "پیوست فایل",
-                            modifier = Modifier
-                                    .fillMaxSize()
-                                    .wrapContentSize(),
-                            textAlign = TextAlign.Center,
+            navigationIcon = {
+                IconButton(onClick = { back() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                        contentDescription = ""
                     )
                 }
+                IconButton(onClick = { }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_check_box_outline_blank_24),
+                        contentDescription = ""
+                    )
+                }
+
+            },
+
+            actions = {
+                IconButton(onClick = { exportFile() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_share_24),
+                        contentDescription = ""
+                    )
+                }
+                IconButton(onClick = { clear() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
+                        contentDescription = ""
+                    )
+                }
+            },
+
+            title = {
+                Text(
+                    text = "پیوست فایل",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(),
+                    textAlign = TextAlign.Center,
+                )
+            }
         )
     }
 
@@ -546,73 +631,85 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val slideValue = rememberSaveable { mutableStateOf(30F) }
         val switchValue = rememberSaveable { mutableStateOf(false) }
         val modifier = Modifier
-                .padding(vertical = 4.dp, horizontal = 8.dp)
-                .wrapContentWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .wrapContentWidth()
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
 
             Column {
 
-                Column(modifier = Modifier
+                Column(
+                    modifier = Modifier
                         .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                        .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(10.dp))
-                        .fillMaxWidth()) {
+                        .background(
+                            MaterialTheme.colors.onPrimary,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .fillMaxWidth()
+                ) {
 
                     Row() {
 
                         Text(
-                                text = "اندازه توان(" + slideValue.value.toInt() + ")",
-                                modifier = Modifier
-                                        .wrapContentSize()
-                                        .padding(start = 8.dp, end = 8.dp)
-                                        .align(Alignment.CenterVertically),
-                                textAlign = TextAlign.Center
+                            text = "اندازه توان(" + slideValue.value.toInt() + ")",
+                            modifier = Modifier
+                                .wrapContentSize()
+                                .padding(start = 8.dp, end = 8.dp)
+                                .align(Alignment.CenterVertically),
+                            textAlign = TextAlign.Center
                         )
 
                         Slider(
-                                value = slideValue.value,
-                                onValueChange = {
-                                    slideValue.value = it
-                                    rfPower = it.toInt()
-                                },
-                                enabled = true,
-                                valueRange = 5f..30f,
-                                modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                            value = slideValue.value,
+                            onValueChange = {
+                                slideValue.value = it
+                                rfPower = it.toInt()
+                            },
+                            enabled = true,
+                            valueRange = 5f..30f,
+                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
                         )
                     }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
 
                         Text(
-                                text = uiParameters.text,
-                                textAlign = TextAlign.Right,
-                                modifier = Modifier
-                                        .padding(horizontal = 8.dp),
+                            text = "تعداد اسکن شده: " + uiParameters.number.value,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp),
                         )
+
+                        DropDownList()
 
                         Row {
                             Text(
-                                    text = "بارکد",
-                                    modifier = Modifier
-                                            .padding(end = 4.dp, bottom = 10.dp)
-                                            .align(Alignment.CenterVertically),
+                                text = "بارکد",
+                                modifier = Modifier
+                                    .padding(end = 4.dp, bottom = 10.dp)
+                                    .align(Alignment.CenterVertically),
                             )
 
                             Switch(
-                                    checked = switchValue.value,
-                                    onCheckedChange = {
-                                        barcodeIsEnabled = it
-                                        switchValue.value = it
-                                    },
-                                    modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
+                                checked = switchValue.value,
+                                onCheckedChange = {
+                                    barcodeIsEnabled = it
+                                    switchValue.value = it
+                                },
+                                modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
                             )
                         }
                     }
 
                     if (isScanning) {
-                        Row(modifier = Modifier
+                        Row(
+                            modifier = Modifier
                                 .padding(32.dp)
-                                .fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+                        ) {
                             CircularProgressIndicator(color = MaterialTheme.colors.primary)
                         }
                     }
@@ -620,69 +717,114 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
                 LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
-                    items(when (uiParameters.filter) {
-                        0 -> conflictJsonObject.getJSONArray("matched").length()
-                        1 -> conflictJsonObject.getJSONArray("additional").length()
-                        2 -> conflictJsonObject.getJSONArray("shortage").length()
-                        else -> 0
-                    }) { i ->
-                        Row(horizontalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier
-                                        .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                                        .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(10.dp))
-                                        .fillMaxWidth()
+                    val jsonArray = when (uiParameters.filter.value) {
+                        0 -> uiParameters.resultLists.value.all
+                        1 -> uiParameters.resultLists.value.matched
+                        2 -> uiParameters.resultLists.value.additional
+                        else -> uiParameters.resultLists.value.shortage
+                    }
+
+                    items(jsonArray.length()) { i ->
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier
+                                .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                                .background(
+                                    MaterialTheme.colors.onPrimary,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .fillMaxWidth()
                         ) {
                             Column {
-                                Text(text = when (uiParameters.filter) {
-                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("productName")
-                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("productName")
-                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("productName")
-                                    else -> ""
-                                },
-                                        fontSize = 20.sp,
-                                        textAlign = TextAlign.Right,
-                                        modifier = modifier,
-                                        color = colorResource(id = R.color.Brown))
-
-                                Text(text = when (uiParameters.filter) {
-                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("KBarCode")
-                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("KBarCode")
-                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("KBarCode")
-                                    else -> ""
-                                },
-                                        fontSize = 18.sp,
-                                        textAlign = TextAlign.Right,
-                                        modifier = modifier,
-                                        color = colorResource(id = R.color.DarkGreen)
+                                Text(
+                                    text = jsonArray.getJSONObject(i)
+                                        .getString("productName"),
+                                    fontSize = 20.sp,
+                                    textAlign = TextAlign.Right,
+                                    modifier = modifier,
+                                    color = colorResource(id = R.color.Brown)
                                 )
 
-                                Text(text = when (uiParameters.filter) {
-                                    0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("matchedNumber")
-                                    1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("additionalNumber")
-                                    2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("shortageNumber")
-                                    else -> ""
-                                },
-                                        fontSize = 18.sp,
-                                        textAlign = TextAlign.Right,
-                                        modifier = modifier,
-                                        color = colorResource(id = R.color.Goldenrod))
+                                Text(
+                                    text = jsonArray.getJSONObject(i)
+                                        .getString("KBarCode"),
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Right,
+                                    modifier = modifier,
+                                    color = colorResource(id = R.color.DarkGreen)
+                                )
+
+                                Text(
+                                    text = jsonArray.getJSONObject(i)
+                                        .getString("numberWithExplanation"),
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Right,
+                                    modifier = modifier,
+                                    color = colorResource(id = R.color.Goldenrod)
+                                )
                             }
 
                             Image(
-                                    painter = rememberImagePainter(when (uiParameters.filter) {
-                                        0 -> conflictJsonObject.getJSONArray("matched").getJSONObject(i).getString("ImgUrl")
-                                        1 -> conflictJsonObject.getJSONArray("additional").getJSONObject(i).getString("ImgUrl")
-                                        2 -> conflictJsonObject.getJSONArray("shortage").getJSONObject(i).getString("ImgUrl")
-                                        else -> ""
-                                    }),
-                                    contentDescription = "",
-                                    modifier = Modifier
-                                            .height(128.dp)
-                                            .padding(vertical = 4.dp, horizontal = 8.dp)
+                                painter = rememberImagePainter(
+                                    jsonArray.getJSONObject(i)
+                                        .getString("ImgUrl"),
+                                ),
+                                contentDescription = "",
+                                modifier = Modifier
+                                    .height(100.dp)
+                                    .padding(vertical = 4.dp, horizontal = 8.dp)
                             )
 
                         }
                     }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun DropDownList() {
+
+        val list = arrayListOf("همه", "تایید شده", "اضافی", "کسری")
+        val expanded = rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded.value = true }) {
+                Text(text = list[uiParameters.filter.value])
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded.value,
+                onDismissRequest = { expanded.value = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                DropdownMenuItem(onClick = {
+                    uiParameters.filter.value = 0
+                    expanded.value = false
+                }) {
+                    Text(text = list[0])
+                }
+                DropdownMenuItem(onClick = {
+                    uiParameters.filter.value = 1
+                    expanded.value = false
+                }) {
+                    Text(text = list[1])
+                }
+                DropdownMenuItem(onClick = {
+                    uiParameters.filter.value = 2
+                    expanded.value = false
+                }) {
+                    Text(text = list[2])
+                }
+                DropdownMenuItem(onClick = {
+                    uiParameters.filter.value = 3
+                    expanded.value = false
+                }) {
+                    Text(text = list[3])
                 }
             }
         }
