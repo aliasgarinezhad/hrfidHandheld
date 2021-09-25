@@ -24,7 +24,7 @@ class FindingProductSubActivityTest{
     @Test
     fun firstTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startFindingActivityButton)).perform(click())
+        //onView(withId(R.id.startFindingActivityButton)).perform(click())
         onView(withId(R.id.finding_k_bar_code_text)).perform(typeText("64822109"))
         onView(withId(R.id.finding_k_bar_code_text)).perform(pressImeActionButton())
         onData(anything()).inAdapterView(withId(R.id.findingListView)).atPosition(0).perform(click())
@@ -52,7 +52,7 @@ class FindingProductSubActivityTest{
     @Test
     fun secondTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startFindingActivityButton)).perform(click())
+        //onView(withId(R.id.startFindingActivityButton)).perform(click())
         onView(withId(R.id.finding_k_bar_code_text)).perform(typeText("64822109"))
         onView(withId(R.id.finding_k_bar_code_text)).perform(pressImeActionButton())
         onData(anything()).inAdapterView(withId(R.id.findingListView)).atPosition(0).perform(click())
@@ -97,7 +97,7 @@ class FindingProductSubActivityTest{
     @Test
     fun thirdTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startFindingActivityButton)).perform(click())
+        //onView(withId(R.id.startFindingActivityButton)).perform(click())
         onView(withId(R.id.finding_k_bar_code_text)).perform(typeText("64822109"))
         onView(withId(R.id.finding_k_bar_code_text)).perform(pressImeActionButton())
         onData(anything()).inAdapterView(withId(R.id.findingListView)).atPosition(0).perform(click())

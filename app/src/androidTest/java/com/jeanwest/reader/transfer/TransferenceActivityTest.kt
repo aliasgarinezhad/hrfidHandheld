@@ -25,7 +25,7 @@ class TransferenceActivityTest {
     fun firstTest() {
 
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        //onView(withId(R.id.startTransferActivityButton)).perform(click())
         onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
         onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
         onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
@@ -66,7 +66,7 @@ class TransferenceActivityTest {
     @Test
     fun secondTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        //onView(withId(R.id.startTransferActivityButton)).perform(click())
         onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
         onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
         onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
@@ -99,7 +99,7 @@ class TransferenceActivityTest {
     fun thirdTest() {
 
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        //onView(withId(R.id.startTransferActivityButton)).perform(click())
         onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
         onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
         onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))
@@ -159,7 +159,7 @@ class TransferenceActivityTest {
     fun fourthTest() {
 
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startTransferActivityButton)).perform(click())
+        //onView(withId(R.id.startTransferActivityButton)).perform(click())
         onView(withId(R.id.sourceWareHouseTextView)).perform(typeText("1"))
         onView(withId(R.id.desWareHouseTextView)).perform(typeText("1706"))
         onView(withId(R.id.transferExplainationTV)).perform(typeText("test"))

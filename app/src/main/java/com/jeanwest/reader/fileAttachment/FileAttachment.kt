@@ -35,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
 import coil.compose.rememberImagePainter
@@ -53,6 +54,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -90,7 +92,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         if (intent.action == Intent.ACTION_SEND) {
-            if ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" == intent.type) {
+            if ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" == intent.type
+                || "application/vnd.ms-excel" == intent.type
+            ) {
 
                 val memory = PreferenceManager.getDefaultSharedPreferences(this)
                 if (memory.getString("username", "empty") != "") {
@@ -124,7 +128,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 }
 
                 val uri = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
-                readFile(uri)
+
+                if (intent.type == "application/vnd.ms-excel") {
+                    readXLSFile(uri)
+                } else if (intent.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                    readXLSXFile(uri)
+                }
 
             } else {
                 while (!rf.setEPCMode()) {
@@ -208,27 +217,32 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             val response = it.getJSONArray("epcs")
+            val barcodes = it.getJSONArray("KBarCodes")
+            val similarIndexes = arrayListOf<Int>()
 
-            for (i in 0 until it.getJSONArray("KBarCodes").length()) {
-
-                val jsonObject = it.getJSONArray("KBarCodes").getJSONObject(i)
+            for (i in 0 until barcodes.length()) {
 
                 for (j in 0 until response.length()) {
 
-                    if (jsonObject.getString("KBarCode") == response.getJSONObject(j)
+                    if (barcodes.getJSONObject(i).getString("KBarCode") == response.getJSONObject(j)
                             .getString("KBarCode")
                     ) {
                         response.getJSONObject(j).put(
                             "handheldCount",
                             response.getJSONObject(j)
-                                .getInt("handheldCount") + jsonObject.getInt("handheldCount")
+                                .getInt("handheldCount") + barcodes.getJSONObject(i)
+                                .getInt("handheldCount")
                         )
-                        it.getJSONArray("KBarCodes").remove(i)
+                        similarIndexes.add(i)
+                        break
                     }
                 }
             }
-            for (i in 0 until it.getJSONArray("KBarCodes").length()) {
-                response.put(it.getJSONArray("KBarCodes")[i])
+            for (i in 0 until barcodes.length()) {
+
+                if (!similarIndexes.contains(i)) {
+                    response.put(it.getJSONArray("KBarCodes")[i])
+                }
             }
 
             scannedJsonArray = response
@@ -277,12 +291,86 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         queue.add(request)
     }
 
-    private fun readFile(uri: Uri) {
+    private fun readXLSXFile(uri: Uri) {
 
         val excelBarcodes = ArrayList<String>()
         val workbook: XSSFWorkbook
         try {
             workbook = XSSFWorkbook(contentResolver.openInputStream(uri))
+        } catch (e: IOException) {
+            Toast.makeText(this, "فایل نامعتبر است", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val sheet = workbook.getSheet("Amar")
+        if (sheet == null) {
+            Toast.makeText(this, "فایل خالی است", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        for (i in 1 until sheet.physicalNumberOfRows) {
+            if (sheet.getRow(i).getCell(0) == null || sheet.getRow(i).getCell(1) == null) {
+                break
+            } else {
+
+                repeat(sheet.getRow(i).getCell(1).numericCellValue.toInt()) {
+                    excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
+                }
+            }
+        }
+
+        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            fileJsonArray = it.getJSONArray("KBarCodes")
+            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
+            refreshUI(0)
+
+        }, { response ->
+            Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+                val json = JSONObject()
+                val epcArray = JSONArray()
+
+                json.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                excelBarcodes.forEach {
+                    barcodeArray.put(it)
+                }
+
+                json.put("KBarCodes", barcodeArray)
+
+                return json.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        val queue = Volley.newRequestQueue(this@FileAttachment)
+        queue.add(request)
+    }
+
+    private fun readXLSFile(uri: Uri) {
+
+        val excelBarcodes = ArrayList<String>()
+        val workbook: HSSFWorkbook
+        try {
+            workbook = HSSFWorkbook(contentResolver.openInputStream(uri))
         } catch (e: IOException) {
             Toast.makeText(this, "فایل نامعتبر است", Toast.LENGTH_LONG).show()
             return
@@ -372,73 +460,85 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         val result = ConflictLists()
 
-        var template: JSONObject
-
         var difference: Int
-        val fileJSONArrayCopy = JSONArray()
-        val responseCopy = JSONArray()
 
-        for (i in 0 until fileJSONArray.length()) {
-            fileJSONArrayCopy.put(fileJSONArray.getJSONObject(i))
-        }
-        for (i in 0 until scannedJSONArray.length()) {
-            responseCopy.put(scannedJSONArray.getJSONObject(i))
-        }
+        var similarIndexesInScannedArray = arrayListOf<Int>()
+        var similarIndexesInFileArray = arrayListOf<Int>()
 
         for (i in 0 until scannedJSONArray.length()) {
-            template = scannedJSONArray.getJSONObject(i)
+
+            val scannedJSONObject = scannedJSONArray.getJSONObject(i)
+
             for (j in 0 until fileJSONArray.length()) {
-                if (template.getString("KBarCode") == fileJSONArray.getJSONObject(j)
-                        .getString("KBarCode")
+
+                val fileJSONObject = fileJSONArray.getJSONObject(j)
+
+                if (scannedJSONObject.getString("KBarCode") == fileJSONObject.getString("KBarCode")
                 ) {
-                    difference = template.getInt("handheldCount") - fileJSONArray.getJSONObject(j)
-                        .getInt("handheldCount")
+                    difference =
+                        scannedJSONObject.getInt("handheldCount") - fileJSONObject.getInt("handheldCount")
                     when {
                         difference > 0 -> {
-                            template.put("numberWithExplanation", "تعداد اضافی: " + difference)
-                            template.put("number", difference)
-                            result.additional.put(template)
-                            result.all.put(template)
+                            scannedJSONObject.put(
+                                "numberWithExplanation",
+                                "تعداد اضافی: " + difference
+                            )
+                            scannedJSONObject.put("number", difference)
+                            result.additional.put(scannedJSONObject)
+                            result.all.put(scannedJSONObject)
                         }
                         difference < 0 -> {
-                            template.put("numberWithExplanation", "تعداد کسری: " + difference)
-                            template.put("number", difference)
-                            result.shortage.put(template)
-                            result.all.put(template)
+                            scannedJSONObject.put(
+                                "numberWithExplanation",
+                                "تعداد کسری: " + -difference
+                            )
+                            scannedJSONObject.put("number", -difference)
+                            result.shortage.put(scannedJSONObject)
+                            result.all.put(scannedJSONObject)
                         }
                         else -> {
-                            template.put(
+                            scannedJSONObject.put(
                                 "numberWithExplanation",
-                                "تعداد تایید شده" + template.getInt("handheldCount")
+                                "تعداد تایید شده: " + scannedJSONObject.getInt("handheldCount")
                             )
-                            template.put("number", template.getInt("handheldCount"))
-                            result.matched.put(template)
-                            result.all.put(template)
+                            scannedJSONObject.put(
+                                "number",
+                                scannedJSONObject.getInt("handheldCount")
+                            )
+                            result.matched.put(scannedJSONObject)
+                            result.all.put(scannedJSONObject)
                         }
                     }
-                    responseCopy.remove(i)
-                    fileJSONArrayCopy.remove(j)
+                    similarIndexesInScannedArray.add(i)
+                    similarIndexesInFileArray.add(j)
+                    break
                 }
             }
         }
 
-        for (i in 0 until fileJSONArrayCopy.length()) {
-            template = fileJSONArrayCopy.getJSONObject(i)
-            template.put("numberWithExplanation", "تعداد کسری: " + template.getInt("handheldCount"))
-            template.put("number", template.getInt("handheldCount"))
-            result.shortage.put(template)
-            result.all.put(template)
+        for (i in 0 until fileJSONArray.length()) {
+            if (!similarIndexesInFileArray.contains(i)) {
+                val template = fileJSONArray.getJSONObject(i)
+                template.put(
+                    "numberWithExplanation", "تعداد کسری: " + template.getInt("handheldCount")
+                )
+                template.put("number", template.getInt("handheldCount"))
+                result.shortage.put(template)
+                result.all.put(template)
+            }
         }
 
-        for (i in 0 until responseCopy.length()) {
-            template = scannedJSONArray.getJSONObject(i)
-            template.put(
-                "numberWithExplanation",
-                "تعداد اضافی: " + template.getInt("handheldCount")
-            )
-            template.put("number", template.getInt("handheldCount"))
-            result.additional.put(template)
-            result.all.put(template)
+        for (i in 0 until scannedJSONArray.length()) {
+            if (!similarIndexesInScannedArray.contains(i)) {
+                val template = scannedJSONArray.getJSONObject(i)
+                template.put(
+                    "numberWithExplanation",
+                    "تعداد اضافی: " + template.getInt("handheldCount")
+                )
+                template.put("number", template.getInt("handheldCount"))
+                result.additional.put(template)
+                result.all.put(template)
+            }
         }
 
         return result
@@ -499,7 +599,6 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         setContent {
             Page()
         }
-
     }
 
     private fun exportFile() {
@@ -548,32 +647,43 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             cell3.setCellValue(template.getInt("number").toDouble())
         }
 
-        val outFile = File(Environment.getExternalStorageDirectory(), "output.xlsx")
+        var dir = File(Environment.getExternalStorageDirectory(), "/RFID")
+        dir.mkdir()
+        dir = File(Environment.getExternalStorageDirectory(), "/RFID/خروجی/")
+        dir.mkdir()
+
+        val outFile = File(dir, uiParameters.fileName.value + ".xlsx")
+
         val outputStream = FileOutputStream(outFile.absolutePath)
         workbook.write(outputStream)
         outputStream.flush()
         outputStream.close()
 
+        val uri = FileProvider.getUriForFile(this, this.applicationContext.packageName + ".provider", outFile)
         val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(outFile.absolutePath))
+        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
         shareIntent.type = "application/octet-stream"
         applicationContext.startActivity(shareIntent)
-        Toast.makeText(this, "فایل در روت حافظه ذخیره شد", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "فایل در مسیر " + "/RFID/خروجی" + " " + "ذخیره شد", Toast.LENGTH_LONG).show()
     }
 
     class UIParameters : ViewModel() {
         var resultLists = mutableStateOf(ConflictLists())
         var number = mutableStateOf(0)
         var filter = mutableStateOf(0)
+        var fileName = mutableStateOf("خروجی")
+        val openDialog = mutableStateOf(false)
     }
 
     @Composable
     fun Page() {
         MyApplicationTheme() {
-            Scaffold(
-                topBar = { AppBar() },
-                content = { Content() },
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Scaffold(
+                    topBar = { AppBar() },
+                    content = { Content() },
+                )
+            }
         }
     }
 
@@ -599,7 +709,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
-                IconButton(onClick = { exportFile() }) {
+                IconButton(onClick = { uiParameters.openDialog.value = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
                         contentDescription = ""
@@ -634,152 +744,154 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             .padding(vertical = 4.dp, horizontal = 8.dp)
             .wrapContentWidth()
 
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column {
 
-            Column {
+            if (uiParameters.openDialog.value) {
+                FileAlertDialog()
+            }
 
-                Column(
-                    modifier = Modifier
-                        .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                        .background(
-                            MaterialTheme.colors.onPrimary,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                    .background(
+                        MaterialTheme.colors.onPrimary,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .fillMaxWidth()
+            ) {
+
+                Row() {
+
+                    Text(
+                        text = "اندازه توان(" + slideValue.value.toInt() + ")",
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .padding(start = 8.dp, end = 8.dp)
+                            .align(Alignment.CenterVertically),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Slider(
+                        value = slideValue.value,
+                        onValueChange = {
+                            slideValue.value = it
+                            rfPower = it.toInt()
+                        },
+                        enabled = true,
+                        valueRange = 5f..30f,
+                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
 
-                    Row() {
+                    Text(
+                        text = "تعداد اسکن شده: " + uiParameters.number.value,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp),
+                    )
 
+                    DropDownList()
+
+                    Row {
                         Text(
-                            text = "اندازه توان(" + slideValue.value.toInt() + ")",
+                            text = "بارکد",
                             modifier = Modifier
-                                .wrapContentSize()
-                                .padding(start = 8.dp, end = 8.dp)
+                                .padding(end = 4.dp, bottom = 10.dp)
                                 .align(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center
                         )
 
-                        Slider(
-                            value = slideValue.value,
-                            onValueChange = {
-                                slideValue.value = it
-                                rfPower = it.toInt()
+                        Switch(
+                            checked = switchValue.value,
+                            onCheckedChange = {
+                                barcodeIsEnabled = it
+                                switchValue.value = it
                             },
-                            enabled = true,
-                            valueRange = 5f..30f,
-                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                            modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-
-                        Text(
-                            text = "تعداد اسکن شده: " + uiParameters.number.value,
-                            textAlign = TextAlign.Right,
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp),
-                        )
-
-                        DropDownList()
-
-                        Row {
-                            Text(
-                                text = "بارکد",
-                                modifier = Modifier
-                                    .padding(end = 4.dp, bottom = 10.dp)
-                                    .align(Alignment.CenterVertically),
-                            )
-
-                            Switch(
-                                checked = switchValue.value,
-                                onCheckedChange = {
-                                    barcodeIsEnabled = it
-                                    switchValue.value = it
-                                },
-                                modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
-                            )
-                        }
-                    }
-
-                    if (isScanning) {
-                        Row(
-                            modifier = Modifier
-                                .padding(32.dp)
-                                .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-                        ) {
-                            CircularProgressIndicator(color = MaterialTheme.colors.primary)
-                        }
                     }
                 }
 
-                LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
-
-                    val jsonArray = when (uiParameters.filter.value) {
-                        0 -> uiParameters.resultLists.value.all
-                        1 -> uiParameters.resultLists.value.matched
-                        2 -> uiParameters.resultLists.value.additional
-                        else -> uiParameters.resultLists.value.shortage
+                if (isScanning) {
+                    Row(
+                        modifier = Modifier
+                            .padding(32.dp)
+                            .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colors.primary)
                     }
+                }
+            }
 
-                    items(jsonArray.length()) { i ->
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier
-                                .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                                .background(
-                                    MaterialTheme.colors.onPrimary,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .fillMaxWidth()
-                        ) {
-                            Column {
-                                Text(
-                                    text = jsonArray.getJSONObject(i)
-                                        .getString("productName"),
-                                    fontSize = 20.sp,
-                                    textAlign = TextAlign.Right,
-                                    modifier = modifier,
-                                    color = colorResource(id = R.color.Brown)
-                                )
+            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
-                                Text(
-                                    text = jsonArray.getJSONObject(i)
-                                        .getString("KBarCode"),
-                                    fontSize = 18.sp,
-                                    textAlign = TextAlign.Right,
-                                    modifier = modifier,
-                                    color = colorResource(id = R.color.DarkGreen)
-                                )
+                val jsonArray = when (uiParameters.filter.value) {
+                    0 -> uiParameters.resultLists.value.all
+                    1 -> uiParameters.resultLists.value.matched
+                    2 -> uiParameters.resultLists.value.additional
+                    else -> uiParameters.resultLists.value.shortage
+                }
 
-                                Text(
-                                    text = jsonArray.getJSONObject(i)
-                                        .getString("numberWithExplanation"),
-                                    fontSize = 18.sp,
-                                    textAlign = TextAlign.Right,
-                                    modifier = modifier,
-                                    color = colorResource(id = R.color.Goldenrod)
-                                )
-                            }
-
-                            Image(
-                                painter = rememberImagePainter(
-                                    jsonArray.getJSONObject(i)
-                                        .getString("ImgUrl"),
-                                ),
-                                contentDescription = "",
-                                modifier = Modifier
-                                    .height(100.dp)
-                                    .padding(vertical = 4.dp, horizontal = 8.dp)
+                items(jsonArray.length()) { i ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                            .background(
+                                MaterialTheme.colors.onPrimary,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .fillMaxWidth()
+                    ) {
+                        Column {
+                            Text(
+                                text = jsonArray.getJSONObject(i)
+                                    .getString("productName"),
+                                fontSize = 20.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.Brown)
                             )
 
+                            Text(
+                                text = jsonArray.getJSONObject(i)
+                                    .getString("KBarCode"),
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.DarkGreen)
+                            )
+
+                            Text(
+                                text = jsonArray.getJSONObject(i)
+                                    .getString("numberWithExplanation"),
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.Goldenrod)
+                            )
                         }
+
+                        Image(
+                            painter = rememberImagePainter(
+                                jsonArray.getJSONObject(i)
+                                    .getString("ImgUrl"),
+                            ),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .height(100.dp)
+                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                        )
+
                     }
                 }
             }
         }
+
     }
 
     @Composable
@@ -828,6 +940,47 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 }
             }
         }
+    }
+
+    @Composable
+    fun FileAlertDialog() {
+
+        AlertDialog(
+
+            buttons = {
+
+                Column {
+
+                    Text(
+                        text = "نام فایل خروجی را وارد کنید", modifier = Modifier
+                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = uiParameters.fileName.value, onValueChange = {
+                            uiParameters.fileName.value = it
+                        },
+                        modifier = Modifier
+                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                            .align(Alignment.CenterHorizontally)
+                    )
+
+                    Button(modifier = Modifier
+                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
+                        .align(Alignment.CenterHorizontally),
+                        onClick = {
+                            uiParameters.openDialog.value = false
+                            exportFile()
+                        }) {
+                        Text(text = "ذخیره")
+                    }
+                }
+            },
+
+            onDismissRequest = {
+                uiParameters.openDialog.value = false
+            }
+        )
     }
 
     @Preview

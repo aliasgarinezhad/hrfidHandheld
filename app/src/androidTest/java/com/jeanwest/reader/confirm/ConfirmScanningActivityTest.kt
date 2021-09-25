@@ -24,7 +24,7 @@ class ConfirmScanningActivityTest {
     @Test
     fun firstTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        onView(withId(R.id.startConfirmActivityButton)).perform(click())
+        //onView(withId(R.id.startConfirmActivityButton)).perform(click())
         onView(withId(R.id.confirm_id_text)).perform(typeText("114000014948"))
         onView(withId(R.id.confirm_id_text)).perform(pressImeActionButton())
 

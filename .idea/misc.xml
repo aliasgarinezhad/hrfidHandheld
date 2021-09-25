@@ -4,6 +4,8 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_add_circle_outline_24.xml" value="0.33046875" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_arrow_back_24.xml" value="0.27361111111111114" />
+        <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_arrow_forward_24.xml" value="0.32290076335877865" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_directions_transit_24.xml" value="0.20555555555555555" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/drawable/ic_baseline_settings_24.xml" value="0.32290076335877865" />
         <entry key="..\:/Users/a.askarinejad/StudioProjects/RFIDKotlin/app/src/main/res/layout/activity_about_us.xml" value="0.1" />

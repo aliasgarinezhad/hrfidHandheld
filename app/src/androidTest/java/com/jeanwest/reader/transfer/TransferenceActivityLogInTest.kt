@@ -17,8 +17,8 @@ class TransferenceActivityLogInTest {
     @Test
     fun firstTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        Espresso.onView(ViewMatchers.withId(R.id.startTransferActivityButton))
-            .perform(ViewActions.click())
+        //Espresso.onView(ViewMatchers.withId(R.id.startTransferActivityButton))
+            //.perform(ViewActions.click())
         Espresso.onView(ViewMatchers.withId(R.id.sourceWareHouseTextView))
             .perform(ViewActions.typeText("1"))
         Espresso.onView(ViewMatchers.withId(R.id.desWareHouseTextView))
@@ -41,8 +41,8 @@ class TransferenceActivityLogInTest {
     @Test
     fun secondTest() {
         ActivityScenario.launch(MainActivity::class.java)
-        Espresso.onView(ViewMatchers.withId(R.id.startTransferActivityButton))
-            .perform(ViewActions.click())
+        //Espresso.onView(ViewMatchers.withId(R.id.startTransferActivityButton))
+        //    .perform(ViewActions.click())
         Espresso.onView(ViewMatchers.withId(R.id.sourceWareHouseTextView))
             .perform(ViewActions.typeText(""))
         Espresso.onView(ViewMatchers.withId(R.id.desWareHouseTextView))
