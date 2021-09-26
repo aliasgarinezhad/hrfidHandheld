@@ -42,11 +42,13 @@ import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.warehouseScanning.WarehouseScanningActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -85,15 +87,37 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         open()
 
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        epcTable =
+            if (memory.getString("FileAttachmentEPCTable", "").isNullOrEmpty()) {
+                HashMap<String, Int>()
+            } else {
+                Gson().fromJson(
+                    memory.getString("FileAttachmentEPCTable", ""),
+                    epcTable.javaClass
+                )
+            }
+
+        epcTablePreviousSize = epcTable.size
+
+        barcodeTable =
+            if (memory.getString("FileAttachmentBarcodeTable", "").isNullOrEmpty()) {
+                ArrayList<String>()
+            } else {
+                Gson().fromJson(
+                    memory.getString(
+                        "FileAttachmentBarcodeTable",
+                        ""
+                    ),
+                    barcodeTable.javaClass
+                )
+            }
+
         try {
             rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
             e.printStackTrace()
-        }
-
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        if(memory.getString("scanned", "") != "") {
-            scannedJsonArray = JSONArray(memory.getString("scanned", ""))
         }
 
         if (intent.action == Intent.ACTION_SEND) {
@@ -142,16 +166,17 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             } else {
                 while (!rf.setEPCMode()) {
                 }
-                uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
-                refreshUI(0)
                 Toast.makeText(this, "فرمت فایل باید اکسل باشد", Toast.LENGTH_LONG).show()
             }
         } else {
             while (!rf.setEPCMode()) {
             }
-            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
-            refreshUI(0)
         }
+
+        syncScannedItemsToServer()
+        uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
+        refreshUI(0)
+
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -330,8 +355,6 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             fileJsonArray = it.getJSONArray("KBarCodes")
-            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
-            refreshUI(0)
 
         }, { response ->
             Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
@@ -404,8 +427,6 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             fileJsonArray = it.getJSONArray("KBarCodes")
-            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
-            refreshUI(0)
 
         }, { response ->
             Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
@@ -560,13 +581,25 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
 
-        uiParameters.MatchedNumber.value = 0
+        uiParameters.matchedNumber.value = 0
         for (i in 0 until result.matched.length()) {
             val template = result.matched.getJSONObject(i)
-            uiParameters.MatchedNumber.value += template.getInt("number")
+            uiParameters.matchedNumber.value += template.getInt("number")
         }
 
         return result
+    }
+
+    private fun saveToMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val edit = memory.edit()
+
+        val epcJson = JSONObject(epcTable as Map<*, *>)
+        edit.putString("FileAttachmentEPCTable", epcJson.toString())
+        val barcodesJson = JSONArray(barcodeTable)
+        edit.putString("FileAttachmentBarcodeTable", barcodesJson.toString())
+        edit.apply()
     }
 
     private fun clear() {
@@ -577,6 +610,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         uiParameters = UIParameters()
         uiParameters.resultLists.value =
             comparison(fileJSONArray = fileJsonArray, scannedJSONArray = JSONArray())
+        saveToMemory()
         refreshUI(0)
     }
 
@@ -595,10 +629,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     }
 
     private fun back() {
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        val editor = memory.edit()
-        editor.putString("scanned", scannedJsonArray.toString())
-        editor.commit()
+
+        saveToMemory()
         isScanning = false // cause scanning routine loop to stop
         close()
         finish()
@@ -688,18 +720,23 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         outputStream.flush()
         outputStream.close()
 
-        val uri = FileProvider.getUriForFile(this, this.applicationContext.packageName + ".provider", outFile)
+        val uri = FileProvider.getUriForFile(
+            this,
+            this.applicationContext.packageName + ".provider",
+            outFile
+        )
         val shareIntent = Intent(Intent.ACTION_SEND)
         shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
         shareIntent.type = "application/octet-stream"
         applicationContext.startActivity(shareIntent)
-        Toast.makeText(this, "فایل در مسیر " + "/RFID/خروجی" + " " + "ذخیره شد", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "فایل در مسیر " + "/RFID/خروجی" + " " + "ذخیره شد", Toast.LENGTH_LONG)
+            .show()
     }
 
     class UIParameters : ViewModel() {
         val shortageNumber = mutableStateOf(0)
         val additionalNumber = mutableStateOf(0)
-        val MatchedNumber = mutableStateOf(0)
+        val matchedNumber = mutableStateOf(0)
         var resultLists = mutableStateOf(ConflictLists())
         var number = mutableStateOf(0)
         var filter = mutableStateOf(0)
@@ -866,7 +903,32 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "تایید شده: " + uiParameters.MatchedNumber.value,
+                        text = "تایید شده: " + uiParameters.matchedNumber.value,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    Text(
+                        text = "کد کسری: " + uiParameters.resultLists.value.shortage.length(),
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
+                    Text(
+                        text = "کد اضافی: " + uiParameters.resultLists.value.additional.length(),
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
+                    Text(
+                        text = "کد تایید شده: " + uiParameters.resultLists.value.matched.length(),
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
