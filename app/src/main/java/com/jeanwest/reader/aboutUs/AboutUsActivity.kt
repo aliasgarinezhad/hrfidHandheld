@@ -1,12 +1,9 @@
 package com.jeanwest.reader.aboutUs
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,56 +11,70 @@ import android.os.Environment
 import android.os.Handler
 import android.provider.Settings
 import android.util.Log
-import android.view.View
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.jeanwest.reader.R
-import kotlinx.android.synthetic.main.activity_about_us.*
+import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 
-class AboutUsActivity : AppCompatActivity() {
+class AboutUsActivity : ComponentActivity() {
 
-    lateinit var versionName: TextView
-    lateinit var alert: AlertDialog
+    private var isDownloading = mutableStateOf(false)
+    private var openDialog = mutableStateOf(false)
+
     var api = UpdateAPI()
     var handler = Handler()
     var thread: Runnable = object : Runnable {
         override fun run() {
+
             if (api.finished) {
+
+                isDownloading.value = false
+
                 if (!api.response.equals("ok")) {
                     Toast.makeText(this@AboutUsActivity, api.response, Toast.LENGTH_LONG).show()
                 } else {
 
-                    val path = Environment.getExternalStorageDirectory().toString() + "/" + "app.apk"
+                    val path =
+                        Environment.getExternalStorageDirectory().toString() + "/" + "app.apk"
 
                     val file = File(path)
-                    if(file.exists()) {
+                    if (file.exists()) {
                         val intent = Intent(Intent.ACTION_VIEW);
-                        intent.setDataAndType(uriFromFile(applicationContext, File(path)), "application/vnd.android.package-archive");
+                        intent.setDataAndType(
+                            uriFromFile(applicationContext, File(path)),
+                            "application/vnd.android.package-archive"
+                        );
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                         try {
                             applicationContext.startActivity(intent);
-                        } catch (e : ActivityNotFoundException) {
+                        } catch (e: ActivityNotFoundException) {
                             e.printStackTrace();
                             Log.e("TAG", "Error in opening the file!");
                         }
-                    }else{
-                        Toast.makeText(applicationContext,"Error",Toast.LENGTH_LONG).show();
-                    }
-                    if (alert.isShowing) {
-                        alert.hide()
+                    } else {
+                        Toast.makeText(applicationContext, "Error", Toast.LENGTH_LONG).show();
                     }
                 }
 
             } else {
-                if (!alert.isShowing) {
-                    alert.show()
-                }
                 handler.postDelayed(this, 500)
             }
         }
@@ -72,51 +83,21 @@ class AboutUsActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_about_us)
-        versionName = findViewById(R.id.versionNameView)
-        try {
-            versionName.text = "ورژن: " + packageManager.getPackageInfo(packageName, 0).versionName
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
+
+        setContent {
+            AboutUsUI()
         }
+
         api.context = this
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if(!packageManager.canRequestPackageInstalls()){
-                startActivityForResult(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                    .setData(Uri.parse(String.format("package:%s", packageName))), 2)
+            if (!packageManager.canRequestPackageInstalls()) {
+                startActivityForResult(
+                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                        .setData(Uri.parse(String.format("package:%s", packageName))), 2
+                )
             }
         }
-
-        val alertBuilder = AlertDialog.Builder(api.context)
-        alertBuilder.setMessage("لطفا منتظر بمانید ...")
-        alertBuilder.setTitle("در حال دانلود نسخه به روز")
-        alert = alertBuilder.create()
-        alert.setOnShowListener {
-            alert.window!!.decorView.layoutDirection =
-                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
-        }
-        about_us_toolbar.setNavigationOnClickListener {
-            finish()
-        }
-    }
-
-    fun update(view: View?) {
-        val alertBuilder = AlertDialog.Builder(this)
-        alertBuilder.setMessage("نرم افزار به روز رسانی شود؟")
-        alertBuilder.setTitle("به روز رسانی نرم افزار")
-        alertBuilder.setPositiveButton("بله") { _, _ ->
-            api = UpdateAPI()
-            api.start()
-            handler.postDelayed(thread, 1000)
-        }
-        alertBuilder.setNegativeButton("خیر") { _, _ -> }
-        val alertUpdatePermit = alertBuilder.create()
-        alertUpdatePermit.setOnShowListener {
-            alertUpdatePermit.window!!.decorView.layoutDirection =
-                View.LAYOUT_DIRECTION_RTL // set title and message direction to RTL
-        }
-        alertUpdatePermit.show()
     }
 
     fun uriFromFile(context: Context, file: File): Uri {
@@ -128,5 +109,111 @@ class AboutUsActivity : AppCompatActivity() {
         } else {
             Uri.fromFile(file)
         }
+    }
+
+
+    @Composable
+    fun AboutUsUI() {
+        MyApplicationTheme {
+
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+
+                            navigationIcon = {
+                                IconButton(onClick = { finish() }) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                                        contentDescription = ""
+                                    )
+                                }
+                            },
+
+                            title = {
+
+                                Text(
+                                    text = "درباره ما",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .wrapContentSize()
+                                        .padding(end = 50.dp),
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        )
+                    },
+                    content = {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "ورژن کنونی: " + packageManager.getPackageInfo(
+                                    packageName,
+                                    0
+                                ).versionName,
+                                modifier = Modifier.padding(bottom = 20.dp, top = 20.dp),
+                                fontSize = 20.sp
+                            )
+                            Button(onClick = {
+                                openDialog.value = true
+                            },) {
+                                Text(text = "به روز رسانی",
+                                    fontSize = 20.sp)
+                            }
+                            if (openDialog.value) {
+                                UpdateAlertDialog()
+                            }
+                            if(isDownloading.value) {
+
+                                CircularProgressIndicator(modifier = Modifier.padding(top = 50.dp))
+                                Text(text = "در حال دانلود",
+                                    modifier = Modifier.padding(bottom = 10.dp, top = 10.dp))
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun UpdateAlertDialog() {
+        AlertDialog(
+            onDismissRequest = {
+                openDialog.value = false
+            },
+            buttons = {
+
+                Column (modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
+
+                    Text(text = "نرم افزار به روز رسانی شود؟", modifier = Modifier.padding(bottom = 10.dp))
+
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+
+                        Button(onClick = {
+                            api = UpdateAPI()
+                            api.start()
+                            handler.postDelayed(thread, 1000)
+                            openDialog.value = false
+                            isDownloading.value = true
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "بله")
+                        }
+                        Button(onClick = { openDialog.value = false }, modifier = Modifier.padding(top = 10.dp, start = 20.dp)) {
+                            Text(text = "خیر")
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @Preview
+    @Composable
+    fun Preview() {
+        AboutUsUI()
     }
 }

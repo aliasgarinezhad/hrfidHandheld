@@ -91,12 +91,16 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             e.printStackTrace()
         }
 
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        if(memory.getString("scanned", "") != "") {
+            scannedJsonArray = JSONArray(memory.getString("scanned", ""))
+        }
+
         if (intent.action == Intent.ACTION_SEND) {
             if ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" == intent.type
                 || "application/vnd.ms-excel" == intent.type
             ) {
 
-                val memory = PreferenceManager.getDefaultSharedPreferences(this)
                 if (memory.getString("username", "empty") != "") {
 
                     MainActivity.username = memory.getString("username", "empty")!!
@@ -138,12 +142,14 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             } else {
                 while (!rf.setEPCMode()) {
                 }
+                uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
                 refreshUI(0)
                 Toast.makeText(this, "فرمت فایل باید اکسل باشد", Toast.LENGTH_LONG).show()
             }
         } else {
             while (!rf.setEPCMode()) {
             }
+            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
             refreshUI(0)
         }
     }
@@ -462,8 +468,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         var difference: Int
 
-        var similarIndexesInScannedArray = arrayListOf<Int>()
-        var similarIndexesInFileArray = arrayListOf<Int>()
+        val similarIndexesInScannedArray = arrayListOf<Int>()
+        val similarIndexesInFileArray = arrayListOf<Int>()
 
         for (i in 0 until scannedJSONArray.length()) {
 
@@ -541,6 +547,25 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             }
         }
 
+        uiParameters.additionalNumber.value = 0
+        for (i in 0 until result.additional.length()) {
+            val template = result.additional.getJSONObject(i)
+            uiParameters.additionalNumber.value += template.getInt("number")
+        }
+
+        uiParameters.shortageNumber.value = 0
+        for (i in 0 until result.shortage.length()) {
+            val template = result.shortage.getJSONObject(i)
+            uiParameters.shortageNumber.value += template.getInt("number")
+        }
+
+
+        uiParameters.MatchedNumber.value = 0
+        for (i in 0 until result.matched.length()) {
+            val template = result.matched.getJSONObject(i)
+            uiParameters.MatchedNumber.value += template.getInt("number")
+        }
+
         return result
     }
 
@@ -570,6 +595,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     }
 
     private fun back() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val editor = memory.edit()
+        editor.putString("scanned", scannedJsonArray.toString())
+        editor.commit()
         isScanning = false // cause scanning routine loop to stop
         close()
         finish()
@@ -668,6 +697,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     }
 
     class UIParameters : ViewModel() {
+        val shortageNumber = mutableStateOf(0)
+        val additionalNumber = mutableStateOf(0)
+        val MatchedNumber = mutableStateOf(0)
         var resultLists = mutableStateOf(ConflictLists())
         var number = mutableStateOf(0)
         var filter = mutableStateOf(0)
@@ -814,6 +846,31 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                             modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
                         )
                     }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    Text(
+                        text = "کسری: " + uiParameters.shortageNumber.value,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
+                    Text(
+                        text = "اضافی: " + uiParameters.additionalNumber.value,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
+                    Text(
+                        text = "تایید شده: " + uiParameters.MatchedNumber.value,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                    )
                 }
 
                 if (isScanning) {
