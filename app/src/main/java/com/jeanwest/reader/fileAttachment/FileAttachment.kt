@@ -21,9 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +65,6 @@ import java.io.IOException
 
 class FileAttachment : ComponentActivity(), IBarcodeResult {
 
-    private var isScanning = false
     lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
     var epcTable: MutableMap<String, Int> = HashMap()
@@ -75,7 +72,17 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     var barcodeTable = ArrayList<String>()
     private val barcode2D = Barcode2D(this)
     private var barcodeIsEnabled = false
-    var uiParameters = UIParameters()
+
+    //ui parameters
+    private var isScanning by mutableStateOf(false)
+    private var shortageNumber by mutableStateOf(0)
+    private var additionalNumber by mutableStateOf(0)
+    private var matchedNumber by mutableStateOf(0)
+    private var resultLists by mutableStateOf(ConflictLists())
+    private var number by mutableStateOf(0)
+    private var filter by mutableStateOf(0)
+    private var fileName by mutableStateOf("خروجی")
+    private var openDialog by mutableStateOf(false)
 
     private val apiTimeout = 20000
     private var fileJsonArray = JSONArray()
@@ -86,6 +93,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
 
         open()
+
+        setContent {
+            Page()
+        }
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
@@ -174,7 +185,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         syncScannedItemsToServer()
-        uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
+        resultLists = comparison(fileJsonArray, scannedJsonArray)
         refreshUI(0)
 
     }
@@ -277,7 +288,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             }
 
             scannedJsonArray = response
-            uiParameters.resultLists.value = comparison(fileJsonArray, scannedJsonArray)
+            resultLists = comparison(fileJsonArray, scannedJsonArray)
 
             refreshUI(0)
 
@@ -568,23 +579,23 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        uiParameters.additionalNumber.value = 0
+        additionalNumber = 0
         for (i in 0 until result.additional.length()) {
             val template = result.additional.getJSONObject(i)
-            uiParameters.additionalNumber.value += template.getInt("number")
+            additionalNumber += template.getInt("number")
         }
 
-        uiParameters.shortageNumber.value = 0
+        shortageNumber = 0
         for (i in 0 until result.shortage.length()) {
             val template = result.shortage.getJSONObject(i)
-            uiParameters.shortageNumber.value += template.getInt("number")
+            shortageNumber += template.getInt("number")
         }
 
 
-        uiParameters.matchedNumber.value = 0
+        matchedNumber = 0
         for (i in 0 until result.matched.length()) {
             val template = result.matched.getJSONObject(i)
-            uiParameters.matchedNumber.value += template.getInt("number")
+            matchedNumber += template.getInt("number")
         }
 
         return result
@@ -607,8 +618,17 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         epcTable.clear()
         epcTablePreviousSize = 0
         fileJsonArray = JSONArray()
-        uiParameters = UIParameters()
-        uiParameters.resultLists.value =
+
+        shortageNumber = 0
+        additionalNumber = 0
+        matchedNumber = 0
+        resultLists = ConflictLists()
+        number = 0
+        filter = 0
+        fileName = "خروجی"
+        openDialog = false
+
+        resultLists =
             comparison(fileJSONArray = fileJsonArray, scannedJSONArray = JSONArray())
         saveToMemory()
         refreshUI(0)
@@ -638,7 +658,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
     private fun refreshUI(speed: Int) {
 
-        uiParameters.number.value = epcTable.size + barcodeTable.size
+        number = epcTable.size + barcodeTable.size
 
         if (isScanning) {
             when {
@@ -655,10 +675,6 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                 }
             }
-        }
-
-        setContent {
-            Page()
         }
     }
 
@@ -677,8 +693,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val headerCell4 = headerRow.createCell(3)
         headerCell4.setCellValue("اضافی")
 
-        for (i in 0 until uiParameters.resultLists.value.matched.length()) {
-            val template = uiParameters.resultLists.value.matched.getJSONObject(i)
+        for (i in 0 until resultLists.matched.length()) {
+            val template = resultLists.matched.getJSONObject(i)
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
             cell.setCellValue(template.getString("KBarCode"))
@@ -686,8 +702,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             cell2.setCellValue(template.getInt("handheldCount").toDouble())
         }
 
-        for (i in 0 until uiParameters.resultLists.value.shortage.length()) {
-            val template = uiParameters.resultLists.value.shortage.getJSONObject(i)
+        for (i in 0 until resultLists.shortage.length()) {
+            val template = resultLists.shortage.getJSONObject(i)
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
             cell.setCellValue(template.getString("KBarCode"))
@@ -697,8 +713,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             cell3.setCellValue(template.getInt("number").toDouble())
         }
 
-        for (i in 0 until uiParameters.resultLists.value.additional.length()) {
-            val template = uiParameters.resultLists.value.additional.getJSONObject(i)
+        for (i in 0 until resultLists.additional.length()) {
+            val template = resultLists.additional.getJSONObject(i)
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             val cell = row.createCell(0)
             cell.setCellValue(template.getString("KBarCode"))
@@ -713,7 +729,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         dir = File(Environment.getExternalStorageDirectory(), "/RFID/خروجی/")
         dir.mkdir()
 
-        val outFile = File(dir, uiParameters.fileName.value + ".xlsx")
+        val outFile = File(dir, fileName + ".xlsx")
 
         val outputStream = FileOutputStream(outFile.absolutePath)
         workbook.write(outputStream)
@@ -733,20 +749,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             .show()
     }
 
-    class UIParameters : ViewModel() {
-        val shortageNumber = mutableStateOf(0)
-        val additionalNumber = mutableStateOf(0)
-        val matchedNumber = mutableStateOf(0)
-        var resultLists = mutableStateOf(ConflictLists())
-        var number = mutableStateOf(0)
-        var filter = mutableStateOf(0)
-        var fileName = mutableStateOf("خروجی")
-        val openDialog = mutableStateOf(false)
-    }
-
     @Composable
     fun Page() {
-        MyApplicationTheme() {
+        MyApplicationTheme {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
@@ -778,7 +783,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
-                IconButton(onClick = { uiParameters.openDialog.value = true }) {
+                IconButton(onClick = { openDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
                         contentDescription = ""
@@ -807,15 +812,15 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
 
-        val slideValue = rememberSaveable { mutableStateOf(30F) }
-        val switchValue = rememberSaveable { mutableStateOf(false) }
+        var slideValue by rememberSaveable { mutableStateOf(30F) }
+        var switchValue by rememberSaveable { mutableStateOf(false) }
         val modifier = Modifier
             .padding(vertical = 4.dp, horizontal = 8.dp)
             .wrapContentWidth()
 
         Column {
 
-            if (uiParameters.openDialog.value) {
+            if (openDialog) {
                 FileAlertDialog()
             }
 
@@ -829,10 +834,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                Row() {
+                Row {
 
                     Text(
-                        text = "اندازه توان(" + slideValue.value.toInt() + ")",
+                        text = "اندازه توان(" + slideValue.toInt() + ")",
                         modifier = Modifier
                             .wrapContentSize()
                             .padding(start = 8.dp, end = 8.dp)
@@ -841,9 +846,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     )
 
                     Slider(
-                        value = slideValue.value,
+                        value = slideValue,
                         onValueChange = {
-                            slideValue.value = it
+                            slideValue = it
                             rfPower = it.toInt()
                         },
                         enabled = true,
@@ -858,7 +863,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "تعداد اسکن شده: " + uiParameters.number.value,
+                        text = "تعداد اسکن شده: " + number,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(horizontal = 8.dp),
@@ -875,10 +880,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                         )
 
                         Switch(
-                            checked = switchValue.value,
+                            checked = switchValue,
                             onCheckedChange = {
                                 barcodeIsEnabled = it
-                                switchValue.value = it
+                                switchValue = it
                             },
                             modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
                         )
@@ -891,19 +896,19 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "کسری: " + uiParameters.shortageNumber.value,
+                        text = "کسری: " + shortageNumber,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "اضافی: " + uiParameters.additionalNumber.value,
+                        text = "اضافی: " + additionalNumber,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "تایید شده: " + uiParameters.matchedNumber.value,
+                        text = "تایید شده: " + matchedNumber,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
@@ -916,19 +921,19 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "کد کسری: " + uiParameters.resultLists.value.shortage.length(),
+                        text = "کد کسری: " + resultLists.shortage.length(),
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "کد اضافی: " + uiParameters.resultLists.value.additional.length(),
+                        text = "کد اضافی: " + resultLists.additional.length(),
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "کد تایید شده: " + uiParameters.resultLists.value.matched.length(),
+                        text = "کد تایید شده: " + resultLists.matched.length(),
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
@@ -948,11 +953,11 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
             LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
-                val jsonArray = when (uiParameters.filter.value) {
-                    0 -> uiParameters.resultLists.value.all
-                    1 -> uiParameters.resultLists.value.matched
-                    2 -> uiParameters.resultLists.value.additional
-                    else -> uiParameters.resultLists.value.shortage
+                val jsonArray = when (filter) {
+                    0 -> resultLists.all
+                    1 -> resultLists.matched
+                    2 -> resultLists.additional
+                    else -> resultLists.shortage
                 }
 
                 items(jsonArray.length()) { i ->
@@ -1017,43 +1022,43 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     fun DropDownList() {
 
         val list = arrayListOf("همه", "تایید شده", "اضافی", "کسری")
-        val expanded = rememberSaveable {
+        var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded.value = true }) {
-                Text(text = list[uiParameters.filter.value])
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = list[filter])
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
 
             DropdownMenu(
-                expanded = expanded.value,
-                onDismissRequest = { expanded.value = false },
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
                 modifier = Modifier.wrapContentWidth()
             ) {
 
                 DropdownMenuItem(onClick = {
-                    uiParameters.filter.value = 0
-                    expanded.value = false
+                    filter = 0
+                    expanded = false
                 }) {
                     Text(text = list[0])
                 }
                 DropdownMenuItem(onClick = {
-                    uiParameters.filter.value = 1
-                    expanded.value = false
+                    filter = 1
+                    expanded = false
                 }) {
                     Text(text = list[1])
                 }
                 DropdownMenuItem(onClick = {
-                    uiParameters.filter.value = 2
-                    expanded.value = false
+                    filter = 2
+                    expanded = false
                 }) {
                     Text(text = list[2])
                 }
                 DropdownMenuItem(onClick = {
-                    uiParameters.filter.value = 3
-                    expanded.value = false
+                    filter = 3
+                    expanded = false
                 }) {
                     Text(text = list[3])
                 }
@@ -1076,8 +1081,8 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     )
 
                     OutlinedTextField(
-                        value = uiParameters.fileName.value, onValueChange = {
-                            uiParameters.fileName.value = it
+                        value = fileName, onValueChange = {
+                            fileName = it
                         },
                         modifier = Modifier
                             .padding(top = 10.dp, start = 10.dp, end = 10.dp)
@@ -1088,7 +1093,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                         .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
                         .align(Alignment.CenterHorizontally),
                         onClick = {
-                            uiParameters.openDialog.value = false
+                            openDialog = false
                             exportFile()
                         }) {
                         Text(text = "ذخیره")
@@ -1097,7 +1102,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             },
 
             onDismissRequest = {
-                uiParameters.openDialog.value = false
+                openDialog = false
             }
         )
     }
@@ -1105,6 +1110,16 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     @Preview
     @Composable
     fun Preview() {
+
+        shortageNumber = 0
+        additionalNumber = 0
+        matchedNumber = 0
+        resultLists = ConflictLists()
+        number = 0
+        filter = 0
+        fileName = "خروجی"
+        openDialog = false
+
         Page()
     }
 }

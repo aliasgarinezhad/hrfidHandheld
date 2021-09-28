@@ -1,16 +1,16 @@
 package com.jeanwest.reader.aboutUs
 
 import android.annotation.SuppressLint
-import android.content.ActivityNotFoundException
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.os.Handler
 import android.provider.Settings
-import android.util.Log
+import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,52 +33,12 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 
+
 class AboutUsActivity : ComponentActivity() {
 
     private var isDownloading = mutableStateOf(false)
     private var openDialog = mutableStateOf(false)
-
-    var api = UpdateAPI()
-    var handler = Handler()
-    var thread: Runnable = object : Runnable {
-        override fun run() {
-
-            if (api.finished) {
-
-                isDownloading.value = false
-
-                if (!api.response.equals("ok")) {
-                    Toast.makeText(this@AboutUsActivity, api.response, Toast.LENGTH_LONG).show()
-                } else {
-
-                    val path =
-                        Environment.getExternalStorageDirectory().toString() + "/" + "app.apk"
-
-                    val file = File(path)
-                    if (file.exists()) {
-                        val intent = Intent(Intent.ACTION_VIEW);
-                        intent.setDataAndType(
-                            uriFromFile(applicationContext, File(path)),
-                            "application/vnd.android.package-archive"
-                        );
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        try {
-                            applicationContext.startActivity(intent);
-                        } catch (e: ActivityNotFoundException) {
-                            e.printStackTrace();
-                            Log.e("TAG", "Error in opening the file!");
-                        }
-                    } else {
-                        Toast.makeText(applicationContext, "Error", Toast.LENGTH_LONG).show();
-                    }
-                }
-
-            } else {
-                handler.postDelayed(this, 500)
-            }
-        }
-    }
+    private var downLoadId = 0L
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,14 +48,66 @@ class AboutUsActivity : ComponentActivity() {
             AboutUsUI()
         }
 
-        api.context = this
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!packageManager.canRequestPackageInstalls()) {
                 startActivityForResult(
                     Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
                         .setData(Uri.parse(String.format("package:%s", packageName))), 2
                 )
+            }
+        }
+
+        registerReceiver(onDownloadComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+    }
+
+    private fun downloadApkFile() {
+
+        val path = getExternalFilesDir(null)?.path + "/download/" + "app.apk"
+        val file = File(path)
+        if (file.exists()) {
+            file.delete()
+        }
+
+        val serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug.apk"
+        val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        val downloadManagerRequest = DownloadManager.Request(Uri.parse(serverAddress))
+        downloadManagerRequest.setTitle("بروزرسانی RFID")
+            .setDescription("در حال دانلود ...")
+            .setDestinationInExternalFilesDir(
+                this,
+                "download",
+                "app.apk"
+            )
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        downLoadId = downloadManager.enqueue(downloadManagerRequest)
+    }
+
+    private val onDownloadComplete: BroadcastReceiver = object : BroadcastReceiver() {
+
+        override fun onReceive(context: Context, intent: Intent) {
+
+            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+
+            if (downLoadId == id) {
+                isDownloading.value = false
+
+                val path = getExternalFilesDir(null)?.path + "/download/" + "app.apk"
+
+                val file = File(path)
+                if (file.exists()) {
+                    val installIntent = Intent(Intent.ACTION_VIEW);
+                    installIntent.setDataAndType(
+                        uriFromFile(applicationContext, File(path)),
+                        "application/vnd.android.package-archive"
+                    )
+                    installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    applicationContext.startActivity(installIntent)
+
+                } else {
+                    Toast.makeText(this@AboutUsActivity, "خطا در به روز رسانی", Toast.LENGTH_LONG)
+                        .show()
+                }
             }
         }
     }
@@ -111,6 +123,18 @@ class AboutUsActivity : ComponentActivity() {
         }
     }
 
+    private fun back() {
+        unregisterReceiver(onDownloadComplete)
+        finish()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+
+        if(keyCode == 4) {
+            back()
+        }
+        return true
+    }
 
     @Composable
     fun AboutUsUI() {
@@ -122,7 +146,7 @@ class AboutUsActivity : ComponentActivity() {
                         TopAppBar(
 
                             navigationIcon = {
-                                IconButton(onClick = { finish() }) {
+                                IconButton(onClick = { back() }) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
                                         contentDescription = ""
@@ -156,20 +180,26 @@ class AboutUsActivity : ComponentActivity() {
                                 modifier = Modifier.padding(bottom = 20.dp, top = 20.dp),
                                 fontSize = 20.sp
                             )
-                            Button(onClick = {
-                                openDialog.value = true
-                            },) {
-                                Text(text = "به روز رسانی",
-                                    fontSize = 20.sp)
+                            Button(
+                                onClick = {
+                                    openDialog.value = true
+                                },
+                            ) {
+                                Text(
+                                    text = "به روز رسانی",
+                                    fontSize = 20.sp
+                                )
                             }
                             if (openDialog.value) {
                                 UpdateAlertDialog()
                             }
-                            if(isDownloading.value) {
+                            if (isDownloading.value) {
 
                                 CircularProgressIndicator(modifier = Modifier.padding(top = 50.dp))
-                                Text(text = "در حال دانلود",
-                                    modifier = Modifier.padding(bottom = 10.dp, top = 10.dp))
+                                Text(
+                                    text = "در حال دانلود",
+                                    modifier = Modifier.padding(bottom = 10.dp, top = 10.dp)
+                                )
                             }
                         }
                     },
@@ -186,23 +216,27 @@ class AboutUsActivity : ComponentActivity() {
             },
             buttons = {
 
-                Column (modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
 
-                    Text(text = "نرم افزار به روز رسانی شود؟", modifier = Modifier.padding(bottom = 10.dp))
+                    Text(
+                        text = "نرم افزار به روز رسانی شود؟",
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
 
                     Row(horizontalArrangement = Arrangement.SpaceBetween) {
 
                         Button(onClick = {
-                            api = UpdateAPI()
-                            api.start()
-                            handler.postDelayed(thread, 1000)
+                            downloadApkFile()
                             openDialog.value = false
                             isDownloading.value = true
 
                         }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
                             Text(text = "بله")
                         }
-                        Button(onClick = { openDialog.value = false }, modifier = Modifier.padding(top = 10.dp, start = 20.dp)) {
+                        Button(
+                            onClick = { openDialog.value = false },
+                            modifier = Modifier.padding(top = 10.dp, start = 20.dp)
+                        ) {
                             Text(text = "خیر")
                         }
                     }
