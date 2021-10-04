@@ -85,22 +85,78 @@ class MainActivity : ComponentActivity() {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        while (!rf.init()) {
-            rf.free()
-        }
-        if (Build.MODEL == "EXARKXK650") {
-            while (!rf.setFrequencyMode(0x08)) {
-                rf.free()
+
+        rfInit()
+    }
+
+    private fun rfInit() {
+
+        val frequency: Int
+        val rfLink = 2
+
+        when (Build.MODEL) {
+            getString(R.string.EXARK) -> {
+                frequency = 0x08
             }
-        } else if (Build.MODEL == "c72") {
-            while (!rf.setFrequencyMode(0x04)) {
-                rf.free()
+            getString(R.string.chainway) -> {
+                frequency = 0x04
             }
-        }
-        while (!rf.setRFLink(2)) {
-            rf.free()
+            else -> {
+                Toast.makeText(
+                    this,
+                    "دستگاه فاقد ماژول RFID است",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
         }
 
+        for (i in 0..11) {
+
+            if (rf.init()) {
+                break
+            } else if (i == 10) {
+
+                Toast.makeText(
+                    this,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            } else {
+                rf.free()
+            }
+        }
+
+        for (i in 0..11) {
+
+            if (rf.setFrequencyMode(frequency)) {
+                break
+            } else if (i == 10) {
+
+                Toast.makeText(
+                    this,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+        }
+
+        for (i in 0..11) {
+
+            if (rf.setRFLink(rfLink)) {
+                break
+            } else if (i == 10) {
+
+                Toast.makeText(
+                    this,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+        }
     }
 
     override fun onResume() {
