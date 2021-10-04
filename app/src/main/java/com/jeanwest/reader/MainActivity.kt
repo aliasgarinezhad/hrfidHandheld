@@ -298,7 +298,7 @@ class MainActivity : ComponentActivity() {
     fun FileAttachment() {
         Button(
             onClick = {
-                if (memory.getString("username", "empty") == "") {
+                if (memory.getString("username", "") == "") {
                     Toast.makeText(
                         this,
                         "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
@@ -341,7 +341,7 @@ class MainActivity : ComponentActivity() {
     fun ConfirmButton() {
         Button(
             onClick = {
-                if (memory.getString("username", "empty") == "") {
+                if (memory.getString("username", "") == "") {
                     Toast.makeText(
                         this,
                         "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
@@ -387,10 +387,10 @@ class MainActivity : ComponentActivity() {
 
         memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        if (memory.getString("username", "empty") != "") {
+        if (memory.getString("username", "") != "") {
 
-            username = memory.getString("username", "empty")!!
-            token = memory.getString("accessToken", "empty")!!
+            username = memory.getString("username", "")!!
+            token = memory.getString("accessToken", "")!!
             loginButtonText = "خروج از حساب $username"
         } else {
 
@@ -401,7 +401,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    if (memory.getString("username", "empty") != "") {
+                    if (memory.getString("username", "") != "") {
 
                         val editor: SharedPreferences.Editor = memory.edit()
                         editor.putString("accessToken", "")
@@ -469,7 +469,7 @@ class MainActivity : ComponentActivity() {
     fun WarehouseScanning() {
         Button(
             onClick = {
-                if (memory.getString("username", "empty") == "") {
+                if (memory.getString("username", "") == "") {
                     Toast.makeText(
                         this,
                         "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
@@ -512,7 +512,7 @@ class MainActivity : ComponentActivity() {
     fun TransferButton() {
         Button(
             onClick = {
-                if (memory.getString("username", "empty") == "") {
+                if (memory.getString("username", "") == "") {
                     Toast.makeText(
                         this,
                         "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
@@ -594,7 +594,7 @@ class MainActivity : ComponentActivity() {
 
         Button(
             onClick = {
-                if (memory.getString("username", "empty") == "") {
+                if (memory.getString("username", "") == "") {
                     Toast.makeText(
                         this,
                         "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",

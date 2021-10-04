@@ -59,6 +59,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.math.abs
 
 
 class FileAttachment : ComponentActivity(), IBarcodeResult {
@@ -66,67 +67,40 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
     var epcTable: MutableMap<String, Int> = HashMap()
-    var epcTablePreviousSize = 0
+    private var epcTablePreviousSize = 0
     var barcodeTable = ArrayList<String>()
     private val barcode2D = Barcode2D(this)
     private var barcodeIsEnabled = false
-    private var fileProducts = ArrayList<FileProduct>()
-    private var scannedProducts = ArrayList<ScannedProduct>()
-    private var conflictResult = ArrayList<ResultData>()
+    private val fileProducts = ArrayList<FileProduct>()
+    private val scannedProducts = ArrayList<ScannedProduct>()
+    private val invalidEpcs = ArrayList<String>()
 
     //ui parameters
+    private var conflictResultProducts by mutableStateOf(ArrayList<conflictResultProduct>())
     private var isScanning by mutableStateOf(false)
     private var shortageNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
-    private var matchedNumber by mutableStateOf(0)
-    private var resultLists by mutableStateOf(ConflictLists())
     private var number by mutableStateOf(0)
     private var fileName by mutableStateOf("خروجی")
     private var openDialog by mutableStateOf(false)
-    private var uiList by mutableStateOf(ArrayList<UIListItem>())
+    private var uiList by mutableStateOf(ArrayList<conflictResultProduct>())
     private var categoryFilter by mutableStateOf(0)
-    private var categoryValues by mutableStateOf(arrayListOf("همه دسته ها"))
-    private val scanValues = arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری")
+    private var categoryValues by mutableStateOf(arrayListOf("همه دسته ها", "نامعلوم"))
+    private val scanValues = arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
     private var scanFilter by mutableStateOf(0)
 
-    private val apiTimeout = 20000
-    var beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+    private val apiTimeout = 60000
+    val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         open()
-
         setContent {
             Page()
         }
-
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-
-        epcTable =
-            if (memory.getString("FileAttachmentEPCTable", "").isNullOrEmpty()) {
-                HashMap<String, Int>()
-            } else {
-                Gson().fromJson(
-                    memory.getString("FileAttachmentEPCTable", ""),
-                    epcTable.javaClass
-                )
-            }
-
-        epcTablePreviousSize = epcTable.size
-
-        barcodeTable =
-            if (memory.getString("FileAttachmentBarcodeTable", "").isNullOrEmpty()) {
-                ArrayList<String>()
-            } else {
-                Gson().fromJson(
-                    memory.getString(
-                        "FileAttachmentBarcodeTable",
-                        ""
-                    ),
-                    barcodeTable.javaClass
-                )
-            }
+        loadMemory()
+        number = epcTable.size + barcodeTable.size
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -135,14 +109,15 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         if (intent.action == Intent.ACTION_SEND) {
-            if ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" == intent.type
-                || "application/vnd.ms-excel" == intent.type
+            if (getString(R.string.xlsx) == intent.type
+                || getString(R.string.xls) == intent.type
             ) {
+                val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-                if (memory.getString("username", "empty") != "") {
+                if (memory.getString("username", "") != "") {
 
-                    MainActivity.username = memory.getString("username", "empty")!!
-                    MainActivity.token = memory.getString("accessToken", "empty")!!
+                    MainActivity.username = memory.getString("username", "")!!
+                    MainActivity.token = memory.getString("accessToken", "")!!
                 } else {
                     Toast.makeText(
                         this,
@@ -154,11 +129,11 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 while (!rf.init()) {
                     rf.free()
                 }
-                if (Build.MODEL == "EXARKXK650") {
+                if (Build.MODEL == getString(R.string.EXARK)) {
                     while (!rf.setFrequencyMode(0x08)) {
                         rf.free()
                     }
-                } else if (Build.MODEL == "c72") {
+                } else if (Build.MODEL == getString(R.string.chainway)) {
                     while (!rf.setFrequencyMode(0x04)) {
                         rf.free()
                     }
@@ -167,34 +142,34 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     rf.free()
                 }
                 while (!rf.setEPCMode()) {
+                    rf.free()
                 }
 
                 val uri = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
 
-                if (intent.type == "application/vnd.ms-excel") {
+                if (intent.type == getString(R.string.xls)) {
                     readXLSFile(uri)
-                } else if (intent.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                } else if (intent.type == getString(R.string.xlsx)) {
                     readXLSXFile(uri)
                 }
 
             } else {
                 while (!rf.setEPCMode()) {
+                    rf.free()
                 }
                 Toast.makeText(this, "فرمت فایل باید اکسل باشد", Toast.LENGTH_LONG).show()
+                if(number != 0) {
+                    syncScannedItemsToServer()
+                }
             }
         } else {
             while (!rf.setEPCMode()) {
+                rf.free()
+            }
+            if(number != 0) {
+                syncScannedItemsToServer()
             }
         }
-
-        syncScannedItemsToServer()
-
-        conflictResult.clear()
-        uiList.clear()
-        conflictResult = getResultData(fileProducts, scannedProducts)
-        uiList = uiListAdapterChange(conflictResult)
-
-        refreshUI(0)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -213,7 +188,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
                 } else {
                     isScanning = false // cause scanning routine loop to stop
-                    syncScannedItemsToServer()
+                    if(number != 0) {
+                        syncScannedItemsToServer()
+                    }
                 }
             }
         } else if (keyCode == 4) {
@@ -226,7 +203,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
     private suspend fun scanningRoutine() {
 
-        while (!rf.setPower(rfPower)) {
+        if(rf.power != rfPower) {
+
+            while (!rf.setPower(rfPower)) {
+                rf.stopInventory()
+                rf.free()
+            }
         }
         rf.startInventoryTag(0, 0, 0)
         isScanning = true
@@ -242,24 +224,41 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     break
                 }
             }
-            refreshUI(epcTable.size - epcTablePreviousSize)
+            number = epcTable.size + barcodeTable.size
 
+            val speed = epcTable.size - epcTablePreviousSize
+            when {
+                speed > 100 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+                }
+                speed > 30 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                }
+                speed > 10 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
+                }
+                speed > 0 -> {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                }
+            }
             epcTablePreviousSize = epcTable.size
 
+            saveToMemory()
             delay(1000)
         }
 
         rf.stopInventory()
-
-        refreshUI(0)
+        number = epcTable.size + barcodeTable.size
+        saveToMemory()
     }
 
-    private fun getResultData(
+    private fun getConflicts(
         fileProducts: ArrayList<FileProduct>,
-        scannedProducts: ArrayList<ScannedProduct>
-    ): ArrayList<ResultData> {
+        scannedProducts: ArrayList<ScannedProduct>,
+        invalidEPCs : ArrayList<String>
+    ): ArrayList<conflictResultProduct> {
 
-        val result = ArrayList<ResultData>()
+        val result = ArrayList<conflictResultProduct>()
 
         val samePrimaryKeys = ArrayList<Long>()
 
@@ -269,19 +268,20 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
                 if (scannedProduct.primaryKey == fileProduct.primaryKey) {
 
-                    val resultData = ResultData(
+                    val resultData = conflictResultProduct(
                         name = fileProduct.name,
                         KBarCode = fileProduct.KBarCode,
                         imageUrl = fileProduct.imageUrl,
                         category = fileProduct.category,
-                        matchedNumber = scannedProduct.scannedNumber - fileProduct.number,
+                        matchedNumber = abs(scannedProduct.scannedNumber - fileProduct.number),
+                        scannedNumber = scannedProduct.scannedNumber,
                         result =
                         when {
                             scannedProduct.scannedNumber > fileProduct.number -> {
-                                "اضافی: " + (scannedProduct.scannedNumber - fileProduct.number)
+                                "اضافی: " + (scannedProduct.scannedNumber - fileProduct.number) + "(${fileProduct.number})"
                             }
                             scannedProduct.scannedNumber < fileProduct.number -> {
-                                "کسری: " + (fileProduct.number - scannedProduct.scannedNumber)
+                                "کسری: " + (fileProduct.number - scannedProduct.scannedNumber) + "(${fileProduct.number})"
                             }
                             else -> {
                                 "تایید شده: " + fileProduct.number
@@ -289,7 +289,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                         },
                         scan = when {
                             scannedProduct.scannedNumber > fileProduct.number -> {
-                                "اضافی"
+                                "اضافی فایل"
                             }
                             scannedProduct.scannedNumber < fileProduct.number -> {
                                 "کسری"
@@ -303,14 +303,15 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     samePrimaryKeys.add(fileProduct.primaryKey)
                 }
             }
-            if (!samePrimaryKeys.contains(scannedProduct.primaryKey)) {
-                val resultData = ResultData(
+            if (scannedProduct.primaryKey !in samePrimaryKeys) {
+                val resultData = conflictResultProduct(
                     name = scannedProduct.name,
                     KBarCode = scannedProduct.KBarCode,
                     imageUrl = scannedProduct.imageUrl,
                     category = "نامعلوم",
                     matchedNumber = scannedProduct.scannedNumber,
-                    result = "اضافی: " + scannedProduct.scannedNumber,
+                    scannedNumber = scannedProduct.scannedNumber,
+                    result = "اضافی: " + scannedProduct.scannedNumber + "(0)",
                     scan = "اضافی"
                 )
                 result.add(resultData)
@@ -318,108 +319,104 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         fileProducts.forEach { fileProduct ->
-            if (!samePrimaryKeys.contains(fileProduct.primaryKey)) {
-                val resultData = ResultData(
+            if (fileProduct.primaryKey !in samePrimaryKeys) {
+                val resultData = conflictResultProduct(
                     name = fileProduct.name,
                     KBarCode = fileProduct.KBarCode,
                     imageUrl = fileProduct.imageUrl,
                     category = fileProduct.category,
-                    matchedNumber = -fileProduct.number,
-                    result = "کسری: " + fileProduct.number,
+                    matchedNumber = fileProduct.number,
+                    scannedNumber = 0,
+                    result = "کسری: " + fileProduct.number + "(${fileProduct.number})",
                     scan = "کسری"
                 )
                 result.add(resultData)
             }
         }
 
+        invalidEPCs.forEach {
+            val resultData = conflictResultProduct(
+                name = it,
+                KBarCode = "",
+                imageUrl = "",
+                category = "نامعلوم",
+                matchedNumber = 0,
+                scannedNumber = 1,
+                result = "خراب: " + 1,
+                scan = "خراب"
+            )
+            result.add(resultData)
+        }
+
+        shortageNumber = 0
+        result.filter{
+            it.scan == "کسری"
+        }.forEach {
+            shortageNumber += it.matchedNumber
+        }
+
+        additionalNumber = 0
+        result.filter{
+            it.scan == "اضافی" || it.scan == "اضافی فایل"
+        }.forEach {
+            additionalNumber += it.matchedNumber
+        }
+
         return result
     }
 
-    private fun uiListAdapterChange(result: ArrayList<ResultData>): ArrayList<UIListItem> {
+    private fun filterResult(conflictResult: ArrayList<conflictResultProduct>): ArrayList<conflictResultProduct> {
 
-        val uiList = ArrayList<UIListItem>()
-
-        result.forEach {
-
-            if(scanValues[scanFilter] == "همه اجناس") {
-
-                if(categoryValues[categoryFilter] == "همه دسته ها") {
-                    val uiListItem = UIListItem(
-                        name = it.name,
-                        KBarCode = it.KBarCode,
-                        imageUrl = it.imageUrl,
-                        category = it.category,
-                        result = it.result
-                    )
-                    uiList.add(uiListItem)
+        val scanFilterOutput =
+            when {
+                scanValues[scanFilter] == "همه اجناس" -> {
+                    conflictResult
                 }
-
-                else if (it.category == categoryValues[categoryFilter]) {
-                    val uiListItem = UIListItem(
-                        name = it.name,
-                        KBarCode = it.KBarCode,
-                        imageUrl = it.imageUrl,
-                        category = it.category,
-                        result = it.result
-                    )
-                    uiList.add(uiListItem)
+                scanValues[scanFilter] == "اضافی" -> {
+                    conflictResult.filter {
+                        it.scan == "اضافی" || it.scan == "اضافی فایل"
+                    } as ArrayList<conflictResultProduct>
+                }
+                else -> {
+                    conflictResult.filter {
+                        it.scan == scanValues[scanFilter]
+                    } as ArrayList<conflictResultProduct>
                 }
             }
-
-            else if (it.scan == scanValues[scanFilter]) {
-                if(categoryValues[categoryFilter] == "همه دسته ها") {
-                    val uiListItem = UIListItem(
-                        name = it.name,
-                        KBarCode = it.KBarCode,
-                        imageUrl = it.imageUrl,
-                        category = it.category,
-                        result = it.result
-                    )
-                    uiList.add(uiListItem)
-                }
-
-                else if (it.category == categoryValues[categoryFilter]) {
-                    val uiListItem = UIListItem(
-                        name = it.name,
-                        KBarCode = it.KBarCode,
-                        imageUrl = it.imageUrl,
-                        category = it.category,
-                        result = it.result
-                    )
-                    uiList.add(uiListItem)
-                }
+        val output =
+            if (categoryValues[categoryFilter] == "همه دسته ها") {
+                scanFilterOutput
+            } else {
+                scanFilterOutput.filter {
+                    it.category == categoryValues[categoryFilter]
+                } as ArrayList<conflictResultProduct>
             }
-        }
 
-        return uiList
+        return output
     }
 
     private fun syncScannedItemsToServer() {
-
-        if ((epcTable.size + barcodeTable.size) == 0) {
-            Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
-            return
-        }
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
-            val response = it.getJSONArray("epcs")
+            val epcs = it.getJSONArray("epcs")
             val barcodes = it.getJSONArray("KBarCodes")
+            val invalids = it.getJSONArray("invalidEpcs")
             val similarIndexes = arrayListOf<Int>()
 
             for (i in 0 until barcodes.length()) {
 
-                for (j in 0 until response.length()) {
+                for (j in 0 until epcs.length()) {
 
                     if (barcodes.getJSONObject(i)
-                            .getString("KBarCode") == response.getJSONObject(j)
+                            .getString("KBarCode") == epcs.getJSONObject(j)
                             .getString("KBarCode")
                     ) {
-                        response.getJSONObject(j).put(
+                        epcs.getJSONObject(j).put(
                             "handheldCount",
-                            response.getJSONObject(j)
+                            epcs.getJSONObject(j)
                                 .getInt("handheldCount") + barcodes.getJSONObject(i)
                                 .getInt("handheldCount")
                         )
@@ -430,33 +427,41 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             }
             for (i in 0 until barcodes.length()) {
 
-                if (!similarIndexes.contains(i)) {
-                    response.put(it.getJSONArray("KBarCodes")[i])
+                if (i !in similarIndexes) {
+                    epcs.put(it.getJSONArray("KBarCodes")[i])
                 }
             }
 
             scannedProducts.clear()
 
-            for (i in 0 until response.length()) {
+            for (i in 0 until epcs.length()) {
 
                 val scannedProduct = ScannedProduct(
-                    name = response.getJSONObject(i).getString("productName"),
-                    KBarCode = response.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = response.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = response.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedNumber = response.getJSONObject(i).getInt("handheldCount"),
+                    name = epcs.getJSONObject(i).getString("productName"),
+                    KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
+                    imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
+                    primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
+                    scannedNumber = epcs.getJSONObject(i).getInt("handheldCount"),
                 )
                 scannedProducts.add(scannedProduct)
             }
-            conflictResult.clear()
-            uiList.clear()
-            conflictResult = getResultData(fileProducts, scannedProducts)
-            uiList = uiListAdapterChange(conflictResult)
 
-            refreshUI(0)
+            invalidEpcs.clear()
+            for (i in 0 until invalids.length()) {
+                invalidEpcs.add(invalids.getString(i))
+            }
+
+            conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
+            uiList = filterResult(conflictResultProducts)
 
         }, { response ->
-            Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+            if ((epcTable.size + barcodeTable.size) == 0) {
+                Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+            }
+            conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs )
+            uiList = filterResult(conflictResultProducts)
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -507,16 +512,21 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val sheet = workbook.getSheet("Amar")
+        val sheet = workbook.getSheetAt(0)
         if (sheet == null) {
             Toast.makeText(this, "فایل خالی است", Toast.LENGTH_LONG).show()
             return
         }
 
+        val barcodeToCategoryMap = HashMap<String, String>()
+
         for (i in 1 until sheet.physicalNumberOfRows) {
             if (sheet.getRow(i).getCell(0) == null || sheet.getRow(i).getCell(1) == null) {
                 break
             } else {
+
+                barcodeToCategoryMap[sheet.getRow(i).getCell(0).stringCellValue] =
+                    sheet.getRow(i).getCell(2)?.stringCellValue ?: "نامعلوم"
 
                 repeat(sheet.getRow(i).getCell(1).numericCellValue.toInt()) {
                     excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
@@ -539,11 +549,26 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                     imageUrl = fileJsonArray.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = fileJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
                     number = fileJsonArray.getJSONObject(i).getInt("handheldCount"),
-                    category = ""
+                    category = barcodeToCategoryMap[fileJsonArray.getJSONObject(i)
+                        .getString("KBarCode")] ?: "نامعلوم",
                 )
                 fileProducts.add(fileProduct)
             }
 
+            categoryValues.clear()
+            categoryValues.add("همه دسته ها")
+            categoryValues.add("نامعلوم")
+            barcodeToCategoryMap.values.forEach { category ->
+                if (category !in categoryValues) {
+                    categoryValues.add(category)
+                }
+            }
+            if(number != 0) {
+                syncScannedItemsToServer()
+            } else {
+                conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
+                uiList = filterResult(conflictResultProducts)
+            }
         }, { response ->
             Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
         }) {
@@ -594,7 +619,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val sheet = workbook.getSheet("Amar")
+        val sheet = workbook.getSheetAt(0)
         if (sheet == null) {
             Toast.makeText(this, "فایل خالی است", Toast.LENGTH_LONG).show()
             return
@@ -641,12 +666,16 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             categoryValues.add("همه دسته ها")
             categoryValues.add("نامعلوم")
             barcodeToCategoryMap.values.forEach { category ->
-                if (!categoryValues.contains(category)) {
+                if (category !in categoryValues) {
                     categoryValues.add(category)
                 }
             }
-
-
+            if(number != 0) {
+                syncScannedItemsToServer()
+            } else {
+                conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
+                uiList = filterResult(conflictResultProducts)
+            }
         }, { response ->
             Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
         }) {
@@ -689,18 +718,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             barcodeTable.add(barcode)
-            refreshUI(0)
+            number = epcTable.size + barcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            saveToMemory()
             syncScannedItemsToServer()
         }
     }
-
-    data class ConflictLists(
-        var additional: JSONArray = JSONArray(),
-        var shortage: JSONArray = JSONArray(),
-        var all: JSONArray = JSONArray(),
-        var matched: JSONArray = JSONArray(),
-    )
 
     private fun saveToMemory() {
 
@@ -714,27 +737,38 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         edit.apply()
     }
 
+    private fun loadMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        epcTable =
+            Gson().fromJson(memory.getString("FileAttachmentEPCTable", ""), epcTable.javaClass)
+                ?: HashMap()
+
+        epcTablePreviousSize = epcTable.size
+
+        barcodeTable = Gson().fromJson(
+            memory.getString("FileAttachmentBarcodeTable", ""),
+            barcodeTable.javaClass
+        ) ?: ArrayList()
+    }
+
     private fun clear() {
         barcodeTable.clear()
         epcTable.clear()
         epcTablePreviousSize = 0
-
-        fileProducts.clear()
-        scannedProducts.clear()
-        conflictResult.clear()
-        uiList.clear()
-
         shortageNumber = 0
         additionalNumber = 0
-        matchedNumber = 0
-        resultLists = ConflictLists()
         number = 0
-        scanFilter = 0
-        fileName = "خروجی"
-        openDialog = false
-
         saveToMemory()
-        refreshUI(0)
+        number = epcTable.size + barcodeTable.size
+
+        invalidEpcs.clear()
+        fileProducts.clear()
+        scannedProducts.clear()
+        conflictResultProducts = ArrayList()
+        uiList = ArrayList()
+        openDialog = false
     }
 
     private fun start() {
@@ -759,32 +793,10 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
-    private fun refreshUI(speed: Int) {
-
-        number = epcTable.size + barcodeTable.size
-
-        if (isScanning) {
-            when {
-                speed > 100 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
-                }
-                speed > 30 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                }
-                speed > 10 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                }
-                speed > 0 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                }
-            }
-        }
-    }
-
     private fun exportFile() {
 
         val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("AMAR")
+        val sheet = workbook.createSheet("conflicts")
 
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
         val headerCell = headerRow.createCell(0)
@@ -792,39 +804,23 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         val headerCell2 = headerRow.createCell(1)
         headerCell2.setCellValue("تعداد")
         val headerCell3 = headerRow.createCell(2)
-        headerCell3.setCellValue("کسری")
+        headerCell3.setCellValue("دسته")
         val headerCell4 = headerRow.createCell(3)
-        headerCell4.setCellValue("اضافی")
+        headerCell4.setCellValue("کسری")
+        val headerCell5 = headerRow.createCell(4)
+        headerCell5.setCellValue("اضافی")
 
-        for (i in 0 until resultLists.matched.length()) {
-            val template = resultLists.matched.getJSONObject(i)
+        conflictResultProducts.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
-            val cell = row.createCell(0)
-            cell.setCellValue(template.getString("KBarCode"))
-            val cell2 = row.createCell(1)
-            cell2.setCellValue(template.getInt("handheldCount").toDouble())
-        }
+            row.createCell(0).setCellValue(it.KBarCode)
+            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
+            row.createCell(2).setCellValue(it.category)
 
-        for (i in 0 until resultLists.shortage.length()) {
-            val template = resultLists.shortage.getJSONObject(i)
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            val cell = row.createCell(0)
-            cell.setCellValue(template.getString("KBarCode"))
-            val cell2 = row.createCell(1)
-            cell2.setCellValue(template.getInt("handheldCount").toDouble())
-            val cell3 = row.createCell(2)
-            cell3.setCellValue(template.getInt("number").toDouble())
-        }
-
-        for (i in 0 until resultLists.additional.length()) {
-            val template = resultLists.additional.getJSONObject(i)
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            val cell = row.createCell(0)
-            cell.setCellValue(template.getString("KBarCode"))
-            val cell2 = row.createCell(1)
-            cell2.setCellValue(template.getInt("handheldCount").toDouble())
-            val cell3 = row.createCell(3)
-            cell3.setCellValue(template.getInt("number").toDouble())
+            if(it.scan == "کسری") {
+                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+            } else if(it.scan == "اضافی" || it.scan == "اضافی فایل") {
+                row.createCell(4).setCellValue(it.matchedNumber.toDouble())
+            }
         }
 
         var dir = File(Environment.getExternalStorageDirectory(), "/RFID")
@@ -832,7 +828,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         dir = File(Environment.getExternalStorageDirectory(), "/RFID/خروجی/")
         dir.mkdir()
 
-        val outFile = File(dir, fileName + ".xlsx")
+        val outFile = File(dir, "$fileName.xlsx")
 
         val outputStream = FileOutputStream(outFile.absolutePath)
         workbook.write(outputStream)
@@ -970,7 +966,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "تعداد اسکن شده: " + number,
+                        text = "تعداد اسکن شده: $number",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(horizontal = 8.dp),
@@ -997,48 +993,29 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
 
                     Text(
-                        text = "کسری: " + shortageNumber,
+                        text = "کسری: $shortageNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "اضافی: " + additionalNumber,
+                        text = "کد: " + conflictResultProducts.filter { it.scan == "کسری" }.size,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "تایید شده: " + matchedNumber,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    Text(
-                        text = "کد کسری: " + resultLists.shortage.length(),
+                        text = "اضافی: $additionalNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "کد اضافی: " + resultLists.additional.length(),
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
-                    )
-                    Text(
-                        text = "کد تایید شده: " + resultLists.matched.length(),
+                        text = "کد: " + conflictResultProducts.filter { it.scan == "اضافی" }.size,
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
@@ -1143,9 +1120,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 scanValues.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        uiList = ArrayList<UIListItem>()
+                        uiList = ArrayList()
                         scanFilter = scanValues.indexOf(it)
-                        uiList = uiListAdapterChange(conflictResult)
+                        uiList = filterResult(conflictResultProducts)
                     }) {
                         Text(text = it)
                     }
@@ -1176,9 +1153,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 categoryValues.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        uiList = ArrayList<UIListItem>()
+                        uiList = ArrayList()
                         categoryFilter = categoryValues.indexOf(it)
-                        uiList = uiListAdapterChange(conflictResult)
+                        uiList = filterResult(conflictResultProducts)
                     }) {
                         Text(text = it)
                     }
@@ -1234,8 +1211,6 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
         shortageNumber = 0
         additionalNumber = 0
-        matchedNumber = 0
-        resultLists = ConflictLists()
         number = 0
         scanFilter = 0
         fileName = "خروجی"
