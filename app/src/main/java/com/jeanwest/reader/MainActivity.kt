@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
             else -> {
                 Toast.makeText(
                     this,
-                    "دستگاه فاقد ماژول RFID است",
+                    "این دستگاه توسط برنامه پشتیبانی نمی شود",
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity() {
         val scaffoldState = rememberScaffoldState()
         val scope = rememberCoroutineScope()
 
-        MyApplicationTheme() {
+        MyApplicationTheme {
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
 

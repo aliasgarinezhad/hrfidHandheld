@@ -222,7 +222,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             else -> {
                 Toast.makeText(
                     this,
-                    "دستگاه فاقد ماژول RFID است",
+                    "این دستگاه توسط برنامه پشتیبانی نمی شود",
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -280,24 +280,9 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (rf.power != rfPower) {
-
-            for (i in 0..11) {
-
-                if (rf.setPower(rfPower)) {
-                    break
-                } else if (i == 10) {
-                    CoroutineScope(Main).launch {
-                        Toast.makeText(
-                            this@FileAttachment,
-                            "مشکلی در سخت افزار پیش آمده است",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    isScanning = false
-                    return
-                }
-            }
+        if(!setRFPower(rfPower)) {
+            isScanning = false
+            return
         }
 
         rf.startInventoryTag(0, 0, 0)
@@ -488,6 +473,27 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         return output
     }
 
+    private fun setRFPower(power : Int) : Boolean {
+        if (rf.power != power) {
+
+            for (i in 0..11) {
+                if (rf.setPower(power)) {
+                    return true
+                }
+            }
+            CoroutineScope(Main).launch {
+                Toast.makeText(
+                    this@FileAttachment,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return false
+        } else {
+            return true
+        }
+    }
+
     private fun syncScannedItemsToServer() {
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
@@ -664,7 +670,11 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 uiList = filterResult(conflictResultProducts)
             }
         }, { response ->
-            Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+            if(excelBarcodes.isEmpty()) {
+                Toast.makeText(this@FileAttachment, "هیچ بارکدی در فایل یافت نشد", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+            }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -771,7 +781,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
                 uiList = filterResult(conflictResultProducts)
             }
         }, { response ->
-            Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+
+            if(excelBarcodes.isEmpty()) {
+                Toast.makeText(this@FileAttachment, "هیچ بارکدی در فایل یافت نشد", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+            }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
