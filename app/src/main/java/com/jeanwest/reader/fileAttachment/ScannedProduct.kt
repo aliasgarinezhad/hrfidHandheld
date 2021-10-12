@@ -6,4 +6,5 @@ data class ScannedProduct(
     var imageUrl: String,
     var primaryKey: Long,
     var scannedNumber: Int,
+    var productCode : String
 )

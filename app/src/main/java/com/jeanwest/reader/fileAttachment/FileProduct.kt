@@ -7,4 +7,5 @@ data class FileProduct(
     var primaryKey : Long,
     var number : Int,
     var category : String,
+    var productCode : String
 )
