@@ -6,7 +6,7 @@ class AddProductActivityTest {
 
     @Test
     fun epcGeneratorTest() {
-        for (i in 0L until 1000000L) {
+        /*for (i in 0L until 1000000L) {
 
             val epc = epcGenerator((i % 256).toInt(), (i % 8).toInt(), (i % 8).toInt(), (i % 4096).toInt(), (i % 4294967296), i)
             val decodedEPC = epcDecoder(epc)
@@ -20,8 +20,8 @@ class AddProductActivityTest {
                 println("generated: ${decodedEPC.serial}")
             }
             assert(decodedEPC.serial == i)
-        }
-        //println(epcGenerator(48, 0, 6, 100, 119952347L, 152L))
+        }*/
+        println(epcGenerator(48, 0, 0, 101, 119952347L, 0L))
     }
 
     private fun epcGenerator(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long) : String {

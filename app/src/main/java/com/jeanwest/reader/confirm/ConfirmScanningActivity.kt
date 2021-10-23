@@ -28,7 +28,6 @@ import com.jeanwest.reader.R
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import com.mikhaellopez.circularprogressbar.CircularProgressBar.ProgressDirection
 import com.rscja.deviceapi.RFIDWithUHFUART
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.android.synthetic.main.activity_confirm.*
