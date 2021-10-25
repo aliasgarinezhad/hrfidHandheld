@@ -111,11 +111,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        for (i in 0..11) {
+        for (i in 0..2) {
 
             if (rf.init()) {
                 break
-            } else if (i == 10) {
+            } else if (i == 1) {
 
                 Toast.makeText(
                     this,

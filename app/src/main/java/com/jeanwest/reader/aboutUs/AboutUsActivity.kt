@@ -23,6 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -216,26 +219,31 @@ class AboutUsActivity : ComponentActivity() {
             },
             buttons = {
 
-                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
+                Column(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.SpaceAround) {
 
                     Text(
                         text = "نرم افزار به روز رسانی شود؟",
-                        modifier = Modifier.padding(bottom = 10.dp)
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 22.sp
                     )
 
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
 
                         Button(onClick = {
                             downloadApkFile()
                             openDialog.value = false
                             isDownloading.value = true
 
-                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                        }, modifier = Modifier.padding(top = 10.dp, end = 10.dp)) {
                             Text(text = "بله")
                         }
                         Button(
                             onClick = { openDialog.value = false },
-                            modifier = Modifier.padding(top = 10.dp, start = 20.dp)
+                            modifier = Modifier.padding(top = 10.dp, start = 10.dp)
                         ) {
                             Text(text = "خیر")
                         }
