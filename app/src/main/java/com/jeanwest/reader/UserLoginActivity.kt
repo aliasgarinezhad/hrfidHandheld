@@ -1,34 +1,40 @@
 package com.jeanwest.reader
 
 import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.preference.PreferenceManager
-import android.view.View
-import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import kotlinx.android.synthetic.main.activity_user_login.*
+import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONObject
 
-class UserLoginActivity : AppCompatActivity() {
+class UserLoginActivity : ComponentActivity() {
+
+    private var username by mutableStateOf("")
+    private var password by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_user_login)
-        user_login_toolbar.setNavigationOnClickListener {
-            finish()
-        }
+        setContent { Page() }
     }
 
-    fun signIn(view: View) {
+    private fun signIn() {
 
         val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val editor: SharedPreferences.Editor = memory.edit()
-
-        val username = findViewById<EditText>(R.id.userNameEditText)
-        val password = findViewById<EditText>(R.id.passwordEditText)
 
         val logInRequest = Volley.newRequestQueue(this)
         val url = "http://rfid-api-0-1.avakatan.ir/login"
@@ -36,7 +42,7 @@ class UserLoginActivity : AppCompatActivity() {
         val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 
             editor.putString("accessToken", response.getString("accessToken"))
-            editor.putString("username", username.editableText.toString())
+            editor.putString("username", username)
             editor.apply()
             finish()
 
@@ -51,8 +57,8 @@ class UserLoginActivity : AppCompatActivity() {
 
             override fun getBody(): ByteArray {
                 val body = JSONObject()
-                body.put("username", username.editableText.toString())
-                body.put("password", password.editableText.toString())
+                body.put("username", username)
+                body.put("password", password)
                 return body.toString().toByteArray()
             }
 
@@ -64,4 +70,94 @@ class UserLoginActivity : AppCompatActivity() {
         }
         logInRequest.add(jsonRequest)
     }
+
+    private fun back() {
+        finish()
+    }
+
+    @Composable
+    fun Page() {
+        MyApplicationTheme {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Scaffold(
+                    topBar = { AppBar() },
+                    content = { Content() },
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun Content() {
+
+        Column (modifier = Modifier.fillMaxSize()) {
+            UsernameTextField()
+            PasswordTextField()
+            Button(onClick = {signIn()}, modifier = Modifier.padding(top = 20.dp).align(Alignment.CenterHorizontally)) {
+                Text(text = "ورود")
+            }
+        }
+    }
+
+    @Composable
+    fun AppBar() {
+
+        TopAppBar(
+
+            title = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 0.dp, end = 60.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "ورود به حساب کاربری", textAlign = TextAlign.Center,
+                    )
+                }
+            },
+            navigationIcon = {
+                Box(
+                    modifier = Modifier.width(60.dp)
+                ) {
+                    IconButton(onClick = { back() }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                            contentDescription = ""
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun UsernameTextField() {
+
+        OutlinedTextField(
+            value = username, onValueChange = {
+                username = it
+            },
+            modifier = Modifier
+                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                .fillMaxWidth(),
+            label = { Text(text = "نام کاربری") }
+        )
+    }
+
+    @Composable
+    fun PasswordTextField() {
+
+        OutlinedTextField(
+            value = password, onValueChange = {
+                password = it
+            },
+            modifier = Modifier
+                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                .fillMaxWidth(),
+            label = { Text(text = "رمز عبور") }
+        )
+    }
+
 }

@@ -238,12 +238,12 @@ class AboutUsActivity : ComponentActivity() {
                             openDialog.value = false
                             isDownloading.value = true
 
-                        }, modifier = Modifier.padding(top = 10.dp, end = 10.dp)) {
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
                             Text(text = "بله")
                         }
                         Button(
                             onClick = { openDialog.value = false },
-                            modifier = Modifier.padding(top = 10.dp, start = 10.dp)
+                            modifier = Modifier.padding(top = 10.dp)
                         ) {
                             Text(text = "خیر")
                         }

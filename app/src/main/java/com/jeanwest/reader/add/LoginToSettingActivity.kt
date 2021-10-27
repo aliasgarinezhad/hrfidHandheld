@@ -20,7 +20,7 @@ class LoginToSettingActivity : AppCompatActivity() {
 
     fun loginButton(view: View?) {
         if (login_password_text.text.toString() == "123456") {
-            val intent = Intent(this, SettingActivity::class.java)
+            val intent = Intent(this, AddProductSettingActivity::class.java)
             startActivity(intent)
         } else {
             Toast.makeText(this, "رمز عبور اشتباه است", Toast.LENGTH_LONG).show()

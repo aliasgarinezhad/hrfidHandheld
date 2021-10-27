@@ -61,7 +61,7 @@ import java.io.IOException
 import kotlin.math.abs
 
 
-class FileAttachment : ComponentActivity(), IBarcodeResult {
+class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
     private var lastScanEpcTable = mutableListOf<String>()
     private lateinit var rf: RFIDWithUHFUART
@@ -512,7 +512,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             }
             CoroutineScope(Main).launch {
                 Toast.makeText(
-                    this@FileAttachment,
+                    this@FileAttachmentActivity,
                     "مشکلی در سخت افزار پیش آمده است",
                     Toast.LENGTH_LONG
                 ).show()
@@ -565,12 +565,12 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
 
             if (excelBarcodes.isEmpty()) {
                 Toast.makeText(
-                    this@FileAttachment,
+                    this@FileAttachmentActivity,
                     "هیچ بارکدی در فایل یافت نشد",
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -604,7 +604,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachment)
+        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
         queue.add(request)
     }
 
@@ -672,7 +672,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
@@ -712,7 +712,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachment)
+        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
         queue.add(request)
     }
 
@@ -736,7 +736,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             if (lastScanEpcTable.size == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachment, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -770,7 +770,7 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachment)
+        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
         queue.add(request)
     }
 
@@ -1305,34 +1305,34 @@ class FileAttachment : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = categoryValues[categoryFilter])
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
+        Row(modifier = Modifier.clickable { expanded = true }) {
+            Text(text = categoryValues[categoryFilter])
+            Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+        }
 
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.wrapContentWidth()
+        ) {
 
-                categoryValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        categoryFilter = categoryValues.indexOf(it)
-                        uiList = filterResult(conflictResultProducts)
-                    }) {
-                        Text(text = it)
-                    }
+            categoryValues.forEach {
+                DropdownMenuItem(onClick = {
+                    expanded = false
+                    categoryFilter = categoryValues.indexOf(it)
+                    uiList = filterResult(conflictResultProducts)
+                }) {
+                    Text(text = it)
                 }
             }
         }
     }
+}
 
-    @Composable
-    fun ZoneFilterDropDownList() {
+@Composable
+fun ZoneFilterDropDownList() {
 
-        var expanded by rememberSaveable {
+    var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 

@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import androidx.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.View
 import android.widget.CheckBox
@@ -15,19 +14,22 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceManager
+import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.R
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.android.synthetic.main.activity_add_product.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.launch
 import java.util.*
 
-class AddProductActivity : AppCompatActivity(),
-    IBarcodeResult {
-    
+class AddProductActivity : AppCompatActivity(), IBarcodeResult {
+
     private lateinit var barcode2D: Barcode2D
     private lateinit var barcodeID: String
     private lateinit var rf: RFIDWithUHFUART
@@ -89,15 +91,15 @@ class AddProductActivity : AppCompatActivity(),
 
         super.onResume()
         open()
-        if (rf.power != RFPower) {
-            while (!rf.setPower(RFPower)) {
-            }
-        }
-        while (!rf.setEPCAndTIDMode()) {
-        }
+
+        setRFEpcAndTidMode()
 
         if (memory.getLong("value", -1L) == -1L) {
-            Toast.makeText(this, "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید",
+                Toast.LENGTH_LONG
+            ).show()
             isAddNewOK = false
         } else {
             counterValue = memory.getLong("value", -1L)
@@ -107,8 +109,7 @@ class AddProductActivity : AppCompatActivity(),
             filterNumber = memory.getInt("filter", -1)
             partitionNumber = memory.getInt("partition", -1)
             companyNumber = memory.getInt("company", -1)
-            tagPassword = memory.getString("password", "")
-            oneStepActive = memory.getInt("step", -1) == 1
+            tagPassword = memory.getString("password", "") ?: "00000000"
             counterValueModified = memory.getLong("counterModified", -1L)
             isAddNewOK = true
         }
@@ -130,6 +131,44 @@ class AddProductActivity : AppCompatActivity(),
         })
     }
 
+    private fun setRFPower(power: Int): Boolean {
+        if (rf.power != power) {
+
+            for (i in 0..11) {
+                if (rf.setPower(power)) {
+                    return true
+                }
+            }
+            CoroutineScope(Main).launch {
+                Toast.makeText(
+                    this@AddProductActivity,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return false
+        } else {
+            return true
+        }
+    }
+
+    private fun setRFEpcAndTidMode(): Boolean {
+
+        for (i in 0..11) {
+            if (rf.setEPCAndTIDMode()) {
+                return true
+            }
+        }
+        CoroutineScope(Main).launch {
+            Toast.makeText(
+                this@AddProductActivity,
+                "مشکلی در سخت افزار پیش آمده است",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        return false
+    }
+
     override fun onPause() {
         super.onPause()
         back()
@@ -145,11 +184,8 @@ class AddProductActivity : AppCompatActivity(),
             status.text = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID"
             status.setBackgroundColor(getColor(R.color.DarkGreen))
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            if (oneStepActive) {
-                addNewTag()
-            } else {
-                step2 = true
-            }
+            step2 = true
+
         } else {
             barcodeIsScanning = false
             rf.stopInventory()
@@ -162,7 +198,11 @@ class AddProductActivity : AppCompatActivity(),
 
     fun start() {
         if (!isAddNewOK) {
-            Toast.makeText(this, "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید",
+                Toast.LENGTH_LONG
+            ).show()
             barcodeIsScanning = false
             return
         }
@@ -273,7 +313,8 @@ class AddProductActivity : AppCompatActivity(),
                     }
                 }
             } else {
-                status.text = status.text.toString() + "\n" + "اسکن اول با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
+                status.text =
+                    status.text.toString() + "\n" + "اسکن اول با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
 
                 isOK = true
             }
@@ -330,13 +371,15 @@ class AddProductActivity : AppCompatActivity(),
                 status.setBackgroundColor(getColor(R.color.Brown))
                 return
             }
-            status.text = status.text.toString() + "\n" + "اسکن دوم با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
+            status.text =
+                status.text.toString() + "\n" + "اسکن دوم با موفقیت انجام شد" + "\n" + "TID: $tid" + "\n" + "EPC: $epc"
         }
 
         api = AddProductAPI()
         api.barcode = barcodeID
         api.start()
-        while (api.run) {}
+        while (api.run) {
+        }
 
         if (!api.status) {
             status.text = status.text.toString() + "\n" + "خطا در دیتابیس" + api.response
@@ -344,16 +387,35 @@ class AddProductActivity : AppCompatActivity(),
             status.setBackgroundColor(getColor(R.color.Brown))
             return
         }
-        while (!rf.setPower(30)) {}
+        while (!rf.setPower(30)) {
+        }
 
         val itemNumber = api.response.toLong() // 32 bit
         val serialNumber = counterValue // 38 bit
 
-        val productEPC = epcGenerator(headerNumber, filterNumber, partitionNumber, companyNumber, itemNumber, serialNumber)
+        val productEPC = epcGenerator(
+            headerNumber,
+            filterNumber,
+            partitionNumber,
+            companyNumber,
+            itemNumber,
+            serialNumber
+        )
 
         var k = 0
         while (k < 15) {
-            if (rf.writeData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6, productEPC)) {
+            if (rf.writeData(
+                    "00000000",
+                    IUHF.Bank_TID,
+                    0,
+                    96,
+                    tid,
+                    IUHF.Bank_EPC,
+                    2,
+                    6,
+                    productEPC
+                )
+            ) {
                 break
             }
             k++
@@ -394,7 +456,7 @@ class AddProductActivity : AppCompatActivity(),
         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
         status.setBackgroundColor(getColor(R.color.DarkGreen))
 
-        status.text = status.text.toString() + "\n" +"با موفقیت اضافه شد"
+        status.text = status.text.toString() + "\n" + "با موفقیت اضافه شد"
         status.text = status.text.toString() + "\n" + "number of try in writing: $k"
         status.text = status.text.toString() + "\n" + "number of try in confirming: $o"
         status.text = status.text.toString() + "\n" + "Header: $headerNumber"
@@ -429,7 +491,14 @@ class AddProductActivity : AppCompatActivity(),
         edit = editOption.isChecked
     }
 
-    private fun epcGenerator(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long) : String {
+    private fun epcGenerator(
+        header: Int,
+        filter: Int,
+        partition: Int,
+        company: Int,
+        item: Long,
+        serial: Long
+    ): String {
 
         var tempStr = java.lang.Long.toBinaryString(header.toLong())
         val headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
@@ -443,7 +512,8 @@ class AddProductActivity : AppCompatActivity(),
         val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
         tempStr = java.lang.Long.toBinaryString(serial)
         val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
-        val EPCStr = headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
+        val EPCStr =
+            headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
 
         tempStr = EPCStr.substring(0, 64).toULong(2).toString(16)
         val epc0To64 = String.format("%16s", tempStr).replace(" ".toRegex(), "0")
@@ -457,10 +527,9 @@ class AddProductActivity : AppCompatActivity(),
     companion object {
         var step2 = false
         var RFPower = 5
-        var oneStepActive = false
-        var counterMaxValue: Long = 5
-        var counterMinValue: Long = 0
-        var tagPassword: String? = "00000000"
+        var counterMaxValue = 5L
+        var counterMinValue = 0L
+        var tagPassword = "00000000"
         var counterValue: Long = 0
         var filterNumber = 0 // 3bit
         var partitionNumber = 6 // 3bit

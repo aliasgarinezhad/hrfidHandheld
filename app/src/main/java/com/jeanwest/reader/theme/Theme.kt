@@ -8,19 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorPalette = darkColors(
-/*    primary = Purple200,
+    primary = Purple200,
     primaryVariant = Purple700,
-    secondary = Teal200*/
+    secondary = Teal200
 
-    primary = Teal,
-    primaryVariant = Teal700,
-    //background = Color(0xFFF2F2F2),
-    background = Lavender,
-    surface = Lavender,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black,
+
 )
 
 private val LightColorPalette = lightColors(
@@ -38,7 +30,8 @@ private val LightColorPalette = lightColors(
 
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    //darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable() () -> Unit
 ) {
     val colors = if (darkTheme) {

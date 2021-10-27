@@ -35,7 +35,7 @@ import androidx.preference.PreferenceManager
 import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.add.AddProductActivity
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
-import com.jeanwest.reader.fileAttachment.FileAttachment
+import com.jeanwest.reader.fileAttachment.FileAttachmentActivity
 import com.jeanwest.reader.finding.FindingProductActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.transfer.TransferenceActivityLogIn
@@ -111,11 +111,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        for (i in 0..2) {
+        for (i in 0..6) {
 
             if (rf.init()) {
                 break
-            } else if (i == 1) {
+            } else if (i == 5) {
 
                 Toast.makeText(
                     this,
@@ -361,7 +361,7 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, FileAttachment::class.java)
+                    val intent = Intent(this, FileAttachmentActivity::class.java)
                     startActivity(intent)
                 }
             },

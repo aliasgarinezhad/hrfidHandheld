@@ -20,7 +20,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".fileAttachment.FileAttachment"
+            android:name=".fileAttachment.FileAttachmentActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -44,7 +44,7 @@
         <activity android:name=".finding.FindingProductSubActivity" />
         <activity android:name=".finding.FindingProductActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningSubResultActivity" />
-        <activity android:name=".add.SettingActivity" />
+        <activity android:name=".add.AddProductSettingActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
         <activity android:name=".add.LoginToSettingActivity" />
