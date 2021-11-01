@@ -6,15 +6,12 @@ import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.Parcelable
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,13 +91,18 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
     private val scanValues =
         arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
     private var scanFilter by mutableStateOf(0)
-    private var zoneValue by mutableStateOf(arrayListOf("همه ناحیه ها", "ناحیه تعریف شده"))
+    private var zoneValue by mutableStateOf(arrayListOf("همه", "در ناحیه"))
+    private var signedValue by mutableStateOf(arrayListOf("همه", "نشانه دار", "بی نشانه"))
     private var zoneFilter by mutableStateOf(0)
+    private var signedFilter by mutableStateOf(0)
     private var zoneProductCodes = mutableListOf<String>()
+    private var signedProductCodes = mutableListOf<String>()
+    private var openClearDialog by mutableStateOf(false)
 
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
+    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -441,18 +443,38 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
     private fun filterResult(conflictResult: ArrayList<ConflictResultProduct>): ArrayList<ConflictResultProduct> {
 
-        val zoneFilterOutput =
+        val signedFilterOutput =
             when {
-                zoneValue[zoneFilter] == "همه ناحیه ها" -> {
+                signedValue[signedFilter] == "همه" -> {
                     conflictResult
                 }
-                zoneValue[zoneFilter] == "ناحیه تعریف شده" -> {
+                signedValue[signedFilter] == "نشانه دار" -> {
                     conflictResult.filter {
-                        it.productCode in zoneProductCodes
+                        it.KBarCode in signedProductCodes
+                    } as ArrayList<ConflictResultProduct>
+                }
+                signedValue[signedFilter] == "بی نشانه" -> {
+                    conflictResult.filter {
+                        it.KBarCode !in signedProductCodes
                     } as ArrayList<ConflictResultProduct>
                 }
                 else -> {
                     conflictResult
+                }
+            }
+
+        val zoneFilterOutput =
+            when {
+                zoneValue[zoneFilter] == "همه" -> {
+                    signedFilterOutput
+                }
+                zoneValue[zoneFilter] == "در ناحیه" -> {
+                    signedFilterOutput.filter {
+                        it.productCode in zoneProductCodes
+                    } as ArrayList<ConflictResultProduct>
+                }
+                else -> {
+                    signedFilterOutput
                 }
             }
 
@@ -480,7 +502,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         }
 
         shortageCodesNumber = categoryFilterOutput.filter { it.scan == "کسری" }.size
-        additionalCodesNumber = categoryFilterOutput.filter { it.scan == "اضافی" || it.scan == "اضافی فایل"}.size
+        additionalCodesNumber =
+            categoryFilterOutput.filter { it.scan == "اضافی" || it.scan == "اضافی فایل" }.size
 
         val uiListParameters =
             when {
@@ -570,7 +593,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                    .show()
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -672,7 +696,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                    .show()
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
@@ -736,7 +761,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             if (lastScanEpcTable.size == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                    .show()
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -867,8 +893,16 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString("FileAttachmentEPCTable", JSONArray(epcTable).toString())
         edit.putString("FileAttachmentBarcodeTable", JSONArray(barcodeTable).toString())
+        edit.putString("FileAttachmentFileZoneCodesTable", JSONArray(zoneProductCodes).toString())
+        edit.putString(
+            "FileAttachmentFileSignedCodesTable",
+            JSONArray(signedProductCodes).toString()
+        )
         edit.putString("FileAttachmentFileBarcodeTable", JSONArray(excelBarcodes).toString())
-        edit.putString("FileAttachmentBarcodeToCategoryMapTable", JSONObject(barcodeToCategoryMap as Map<*, *>).toString())
+        edit.putString(
+            "FileAttachmentBarcodeToCategoryMapTable",
+            JSONObject(barcodeToCategoryMap as Map<*, *>).toString()
+        )
         edit.apply()
     }
 
@@ -898,16 +932,27 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             barcodeToCategoryMap.javaClass
         ) ?: mutableMapOf()
 
+        zoneProductCodes = Gson().fromJson(
+            memory.getString("FileAttachmentFileZoneCodesTable", ""),
+            zoneProductCodes.javaClass
+        ) ?: mutableListOf()
+
+        signedProductCodes = Gson().fromJson(
+            memory.getString("FileAttachmentFileSignedCodesTable", ""),
+            signedProductCodes.javaClass
+        ) ?: mutableListOf()
+
         number = epcTable.size + barcodeTable.size
     }
 
     private fun clear() {
 
-        if(number != 0) {
+        if (number != 0) {
             barcodeTable.clear()
             epcTable.clear()
             lastScanEpcTable.clear()
             invalidEpcs.clear()
+            zoneProductCodes.clear()
             epcTablePreviousSize = 0
             number = 0
             scannedProducts.clear()
@@ -920,6 +965,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             epcTable.clear()
             lastScanEpcTable.clear()
             invalidEpcs.clear()
+            zoneProductCodes.clear()
             epcTablePreviousSize = 0
             number = 0
             excelBarcodes.clear()
@@ -982,11 +1028,15 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
                 row.createCell(4).setCellValue(it.matchedNumber.toDouble())
             }
+
+            if(it.KBarCode in signedProductCodes) {
+                row.createCell(5).setCellValue("نشانه دار")
+            }
         }
 
-        var dir = File(Environment.getExternalStorageDirectory(), "/RFID")
+        var dir = File(this.getExternalFilesDir(null), "/RFID")
         dir.mkdir()
-        dir = File(Environment.getExternalStorageDirectory(), "/RFID/خروجی/")
+        dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
         dir.mkdir()
 
         val outFile = File(dir, "$fileName.xlsx")
@@ -1013,6 +1063,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             .show()
     }
 
+    @ExperimentalFoundationApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -1037,13 +1088,6 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-                IconButton(onClick = { }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_check_box_outline_blank_24),
-                        contentDescription = ""
-                    )
-                }
-
             },
 
             actions = {
@@ -1053,7 +1097,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-                IconButton(onClick = { clear() }) {
+                IconButton(onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
@@ -1065,6 +1109,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = "پیوست فایل",
                     modifier = Modifier
+                        .padding(start = 35.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -1073,6 +1118,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
+    @ExperimentalFoundationApi
     @Composable
     fun Content() {
 
@@ -1086,6 +1132,10 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
             if (openDialog) {
                 FileAlertDialog()
+            }
+
+            if (openClearDialog) {
+                ClearAlertDialog()
             }
 
             Column(
@@ -1196,8 +1246,9 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     ScanFilterDropDownList()
-                    ZoneFilterDropDownList()
                     CategoryFilterDropDownList()
+                    ZoneFilterDropDownList()
+                    SignedFilterDropDownList()
                 }
 
                 if (isScanning) {
@@ -1219,10 +1270,27 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         modifier = Modifier
                             .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                             .background(
-                                MaterialTheme.colors.onPrimary,
+                                color = if (uiList[i].KBarCode !in signedProductCodes) {
+                                    MaterialTheme.colors.onPrimary
+                                } else {
+                                    MaterialTheme.colors.primary
+                                },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+
+                                },
+                                onLongClick = {
+                                    if (uiList[i].KBarCode !in signedProductCodes) {
+                                        signedProductCodes.add(uiList[i].KBarCode)
+                                    } else {
+                                        signedProductCodes.remove(uiList[i].KBarCode)
+                                    }
+                                    uiList = filterResult(conflictResultProducts)
+                                },
+                            ),
                     ) {
                         Column {
                             Text(
@@ -1305,34 +1373,34 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-        Row(modifier = Modifier.clickable { expanded = true }) {
-            Text(text = categoryValues[categoryFilter])
-            Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-        }
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = categoryValues[categoryFilter])
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.wrapContentWidth()
-        ) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
 
-            categoryValues.forEach {
-                DropdownMenuItem(onClick = {
-                    expanded = false
-                    categoryFilter = categoryValues.indexOf(it)
-                    uiList = filterResult(conflictResultProducts)
-                }) {
-                    Text(text = it)
+                categoryValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        categoryFilter = categoryValues.indexOf(it)
+                        uiList = filterResult(conflictResultProducts)
+                    }) {
+                        Text(text = it)
+                    }
                 }
             }
         }
     }
-}
 
-@Composable
-fun ZoneFilterDropDownList() {
+    @Composable
+    fun ZoneFilterDropDownList() {
 
-    var expanded by rememberSaveable {
+        var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 
@@ -1352,6 +1420,38 @@ fun ZoneFilterDropDownList() {
                     DropdownMenuItem(onClick = {
                         expanded = false
                         zoneFilter = zoneValue.indexOf(it)
+                        uiList = filterResult(conflictResultProducts)
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun SignedFilterDropDownList() {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = signedValue[signedFilter])
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                signedValue.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        signedFilter = signedValue.indexOf(it)
                         uiList = filterResult(conflictResultProducts)
                     }) {
                         Text(text = it)
@@ -1402,6 +1502,55 @@ fun ZoneFilterDropDownList() {
         )
     }
 
+    @Composable
+    fun ClearAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openClearDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = if (number == 0) {
+                            "فایل پاک شود؟"
+                        } else {
+                            "کالاهای اسکن شده پاک شوند؟"
+                        },
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 22.sp
+                    )
+
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                        Button(onClick = {
+                            openClearDialog = false
+                            clear()
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "بله")
+                        }
+                        Button(
+                            onClick = { openClearDialog = false },
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(text = "خیر")
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @ExperimentalFoundationApi
     @Preview
     @Composable
     fun Preview() {
