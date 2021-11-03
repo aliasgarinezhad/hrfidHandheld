@@ -10,6 +10,7 @@ import java.util.ArrayList;
 public class RFIDWithUHFUART{
 
     public static ArrayList<UHFTAGInfo> uhfTagInfo = new ArrayList<>(2100);
+    public static UHFTAGInfo writtenUhfTagInfo = new UHFTAGInfo();
 
     int i = 0;
 
@@ -98,7 +99,12 @@ public class RFIDWithUHFUART{
     }
 
     public String readData(String accessPwd, int filterBank, int filterPtr, int filterCnt, String filterData, int bank, int ptr, int cnt) {
-        return "";
+
+        if(filterData.equals(writtenUhfTagInfo.getTid())) {
+            return writtenUhfTagInfo.getEPC();
+        } else {
+            return "";
+        }
     }
 
     public boolean writeData(String accessPwd, int bank, int ptr, int cnt, String data) {
@@ -106,6 +112,9 @@ public class RFIDWithUHFUART{
     }
 
     public boolean writeData(String accessPwd, int filterBank, int filterPtr, int filterCnt, String filterData, int bank, int ptr, int cnt, String writeData) {
+
+        writtenUhfTagInfo.setEPC(writeData);
+        writtenUhfTagInfo.setTid(filterData);
         return true;
     }
 

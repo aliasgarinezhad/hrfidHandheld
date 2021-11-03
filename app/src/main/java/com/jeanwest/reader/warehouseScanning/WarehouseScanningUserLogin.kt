@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import androidx.preference.PreferenceManager
-import android.view.KeyEvent
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -13,8 +11,8 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceManager
 import com.jeanwest.reader.R
-import kotlinx.android.synthetic.main.activity_add_product_login_setting.*
 import kotlinx.android.synthetic.main.activity_scanning_login.*
 import java.util.*
 
@@ -67,7 +65,8 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
         editor.putInt("ID", departmentInfoID) // value to store
         editor.commit()
         api.start()
-        while (api.run) {}
+        while (api.run) {
+        }
         if (!api.status) {
             Toast.makeText(this, "خطا در دیتابیس", Toast.LENGTH_LONG).show()
             return
@@ -103,8 +102,10 @@ class WarehouseScanningUserLogin : AppCompatActivity() {
 
     fun finishReading(view: View?) {
         val finishWarehouseScanning = WarehouseScanningFinishAPI()
-        finishWarehouseScanning.depoMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 2, 0)
-        finishWarehouseScanning.storeMojodiReviewInfoID = memory.getInt(departmentInfoID.toString() + 1, 0)
+        finishWarehouseScanning.depoMojodiReviewInfoID =
+            memory.getInt(departmentInfoID.toString() + 2, 0)
+        finishWarehouseScanning.storeMojodiReviewInfoID =
+            memory.getInt(departmentInfoID.toString() + 1, 0)
         finishWarehouseScanning.start()
         while (finishWarehouseScanning.run) {
         }

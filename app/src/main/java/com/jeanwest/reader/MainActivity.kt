@@ -208,14 +208,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             navigationIcon = {
-                                Box(
-                                    modifier = Modifier.width(60.dp)
+
+                                IconButton(
+                                    onClick = { scope.launch { scaffoldState.drawerState.open() } },
                                 ) {
-                                    IconButton(
-                                        onClick = { scope.launch { scaffoldState.drawerState.open() } },
-                                    ) {
-                                        Icon(Icons.Filled.Menu, "")
-                                    }
+                                    Icon(Icons.Filled.Menu, "")
                                 }
                             }
                         )

@@ -30,7 +30,7 @@ class AddProductSettingActivity : ComponentActivity() {
     private var headerNumber by mutableStateOf(AddProductActivity.headerNumber.toString())
     private var companyNumber by mutableStateOf(AddProductActivity.companyNumber.toString())
     private var password by mutableStateOf(AddProductActivity.tagPassword)
-    private var serialNumberMin by mutableStateOf(AddProductActivity.counterMinValue.toString())
+    private var serialNumberMin by mutableStateOf(AddProductActivity.counterValue.toString())
     private var serialNumberMax by mutableStateOf(AddProductActivity.counterMaxValue.toString())
 
     @SuppressLint("SetTextI18n", "CommitPrefEdits")

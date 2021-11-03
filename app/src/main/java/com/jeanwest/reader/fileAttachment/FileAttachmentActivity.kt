@@ -1054,13 +1054,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         val shareIntent = Intent(Intent.ACTION_SEND)
         shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
         shareIntent.type = "application/octet-stream"
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         applicationContext.startActivity(shareIntent)
-        Toast.makeText(
-            this,
-            "فایل در مسیر " + "/RFID/خروجی" + " " + "ذخیره شد",
-            Toast.LENGTH_LONG
-        )
-            .show()
     }
 
     @ExperimentalFoundationApi
@@ -1555,13 +1550,8 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Preview() {
 
-        shortagesNumber = 0
-        additionalNumber = 0
-        number = 0
-        scanFilter = 0
-        fileName = "خروجی"
-        openDialog = false
+        openClearDialog = true
 
-        Page()
+        ClearAlertDialog()
     }
 }
