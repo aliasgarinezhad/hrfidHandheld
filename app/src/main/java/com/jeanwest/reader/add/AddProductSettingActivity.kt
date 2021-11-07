@@ -1,7 +1,5 @@
 package com.jeanwest.reader.add
 
-import android.annotation.SuppressLint
-import android.os.Bundle
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import androidx.activity.ComponentActivity
@@ -25,18 +23,35 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 
 class AddProductSettingActivity : ComponentActivity() {
 
-    private var filterNumber by mutableStateOf(AddProductActivity.filterNumber)
-    private var partitionNumber by mutableStateOf(AddProductActivity.partitionNumber)
-    private var headerNumber by mutableStateOf(AddProductActivity.headerNumber.toString())
-    private var companyNumber by mutableStateOf(AddProductActivity.companyNumber.toString())
-    private var password by mutableStateOf(AddProductActivity.tagPassword)
-    private var serialNumberMin by mutableStateOf(AddProductActivity.counterValue.toString())
-    private var serialNumberMax by mutableStateOf(AddProductActivity.counterMaxValue.toString())
+    private var filterNumber by mutableStateOf(0)
+    private var partitionNumber by mutableStateOf(0)
+    private var headerNumber by mutableStateOf("48")
+    private var companyNumber by mutableStateOf("101")
+    private var password by mutableStateOf("00000000")
+    private var serialNumberMin by mutableStateOf("0")
+    private var serialNumberMax by mutableStateOf("0")
+    private var serialNumber by mutableStateOf(0L)
 
-    @SuppressLint("SetTextI18n", "CommitPrefEdits")
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onResume() {
+        super.onResume()
         setContent { Page() }
+        loadMemory()
+    }
+
+    private fun loadMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        if (memory.getLong("value", -1L) != -1L) {
+            serialNumber = memory.getLong("value", -1L)
+            serialNumberMax = memory.getLong("max", -1L).toString()
+            serialNumberMin = memory.getLong("value", -1L).toString()
+            headerNumber = memory.getInt("header", -1).toString()
+            filterNumber = memory.getInt("filter", -1)
+            partitionNumber = memory.getInt("partition", -1)
+            companyNumber = memory.getInt("company", -1).toString()
+            password = memory.getString("password", "") ?: "00000000"
+        }
     }
 
     private fun saveToMemory() {
@@ -44,23 +59,14 @@ class AddProductSettingActivity : ComponentActivity() {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
 
-        AddProductActivity.counterMinValue = serialNumberMin.toLong()
-        AddProductActivity.counterValue = serialNumberMin.toLong()
-        AddProductActivity.counterMaxValue = serialNumberMax.toLong()
-        AddProductActivity.headerNumber = headerNumber.toInt()
-        AddProductActivity.filterNumber = filterNumber
-        AddProductActivity.partitionNumber = partitionNumber
-        AddProductActivity.companyNumber = companyNumber.toInt()
-        AddProductActivity.tagPassword = password
-
-        memoryEditor.putLong("value", AddProductActivity.counterValue)
-        memoryEditor.putLong("max", AddProductActivity.counterMaxValue)
-        memoryEditor.putLong("min", AddProductActivity.counterMinValue)
-        memoryEditor.putInt("header", AddProductActivity.headerNumber)
-        memoryEditor.putInt("filter", AddProductActivity.filterNumber)
-        memoryEditor.putInt("partition", AddProductActivity.partitionNumber)
-        memoryEditor.putInt("company", AddProductActivity.companyNumber)
-        memoryEditor.putString("password", AddProductActivity.tagPassword)
+        memoryEditor.putLong("value", serialNumberMin.toLong())
+        memoryEditor.putLong("max", serialNumberMax.toLong())
+        memoryEditor.putLong("min", serialNumberMin.toLong())
+        memoryEditor.putInt("header", headerNumber.toInt())
+        memoryEditor.putInt("filter", filterNumber)
+        memoryEditor.putInt("partition", partitionNumber)
+        memoryEditor.putInt("company", companyNumber.toInt())
+        memoryEditor.putString("password", password)
         memoryEditor.putLong("counterModified", 0L)
         memoryEditor.apply()
     }
@@ -103,7 +109,7 @@ class AddProductSettingActivity : ComponentActivity() {
                 .padding(top = 20.dp)
                 .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround) {
-                Text(text = "سریال:${AddProductActivity.counterValue}")
+                Text(text = "سریال:${serialNumber}")
                 FilterDropDownList()
                 PartitionDropDownList()
             }

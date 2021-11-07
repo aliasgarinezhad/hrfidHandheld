@@ -1,8 +1,7 @@
 package com.jeanwest.reader.add
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
-import android.annotation.SuppressLint
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -26,20 +25,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.util.*
 
 class AddProductActivity : ComponentActivity(), IBarcodeResult {
@@ -58,12 +53,19 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
 
-    private var isAddNewOK = true
     private var step2 = false
     private var rfPower = 5
     private var edit = false
 
-    @SuppressLint("SetTextI18n")
+    private var counterMaxValue = 0L
+    private var counterMinValue = 0L
+    private var tagPassword = "00000000"
+    private var counterValue = 0L
+    private var filterNumber = 0 // 3bit
+    private var partitionNumber = 0 // 3bit
+    private var headerNumber = 48 // 8bit
+    private var companyNumber = 101 // 12bit
+
     override fun onResume() {
 
         super.onResume()
@@ -92,14 +94,8 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        if (memory.getLong("value", -1L) == -1L) {
-            Toast.makeText(
-                this,
-                "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید",
-                Toast.LENGTH_LONG
-            ).show()
-            isAddNewOK = false
-        } else {
+        if (memory.getLong("value", -1L) != -1L) {
+
             counterValue = memory.getLong("value", -1L)
             counterMaxValue = memory.getLong("max", -1L)
             counterMinValue = memory.getLong("min", -1L)
@@ -109,7 +105,6 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             companyNumber = memory.getInt("company", -1)
             tagPassword = memory.getString("password", "") ?: "00000000"
             counter = memory.getLong("counterModified", -1L)
-            isAddNewOK = true
         }
 
         numberOfWrittenRfTags = counterValue - counterMinValue
@@ -182,14 +177,13 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    @SuppressLint("SetTextI18n")
     @Throws(InterruptedException::class)
     override fun getBarcode(barcode: String?) {
 
         if (!barcode.isNullOrEmpty()) {
             barcodeIsScanning = false
             barcodeID = barcode
-            result = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID"
+            result = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID\n"
             //status.setBackgroundColor(getColor(R.color.DarkGreen))
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             step2 = true
@@ -205,18 +199,6 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun startBarcodeScan() {
-        if (!isAddNewOK) {
-
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@AddProductActivity,
-                    "دیتای برنامه پاک شده است. جهت کسب اطلاعات بیشتر با توسعه دهنده تماس بگیرید",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            barcodeIsScanning = false
-            return
-        }
         barcode2D.startScan(this)
     }
 
@@ -233,32 +215,34 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
-            if (event.repeatCount == 0) {
+            if (event.repeatCount != 0) {
+                return true
+            }
+            if (counterValue >= counterMaxValue) {
+                Toast.makeText(
+                    this@AddProductActivity,
+                    "تنظیمات نامعتبر است",
+                    Toast.LENGTH_LONG
+                ).show()
+                return true
+            }
 
-                if (barcodeIsScanning) {
+            if (barcodeIsScanning) {
+                return true
+            }
+            if (step2) {
+                rf.stopInventory()
+                rfIsScanning = false
+                addNewTag()
+                step2 = false
+            } else {
+                barcodeIsScanning = true
+                startBarcodeScan()
+                rfIsScanning = true
+                if (!setRFPower(rfPower)) {
                     return true
                 }
-                if (step2) {
-                    try {
-                        rf.stopInventory()
-                        rfIsScanning = false
-                        addNewTag()
-                    } catch (e: InterruptedException) {
-                        e.printStackTrace()
-                    }
-                    step2 = false
-                } else {
-
-                    barcodeIsScanning = true
-                    startBarcodeScan()
-                    if (isAddNewOK) {
-                        rfIsScanning = true
-                        if (!setRFPower(rfPower)) {
-                            return true
-                        }
-                        rf.startInventoryTag(0, 0, 0)
-                    }
-                }
+                rf.startInventoryTag(0, 0, 0)
             }
         } else if (keyCode == 4) {
             back()
@@ -291,7 +275,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
         for (k in 0..15) {
 
-            rf.readData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6).let {
+            rf.readData("00000000", IUHF.Bank_TID, 0, 96, tid, IUHF.Bank_EPC, 2, 6)?.let {
                 if (productEPC == it.lowercase()) {
                     return true
                 }
@@ -300,13 +284,11 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         return false
     }
 
-    @SuppressLint("SetTextI18n")
     @Throws(InterruptedException::class)
     private fun addNewTag() {
 
         val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
-        var isOK = false
 
         for (i in 0..1000) {
             rf.readTagFromBuffer()?.also {
@@ -315,45 +297,30 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             } ?: break
         }
 
-        when {
-            epcs.size > 990 -> {
-                Thread.sleep(100)
-                rf.startInventoryTag(0, 0, 0)
-                startBarcodeScan()
-                barcodeIsScanning = true
-                rfIsScanning = true
-                return
+        if (epcs.size > 990) {
+            Thread.sleep(100)
+            rf.startInventoryTag(0, 0, 0)
+            startBarcodeScan()
+            barcodeIsScanning = true
+            rfIsScanning = true
+            return
+        } else if (epcs.size > 2) {
+
+            epcs = epcs.distinct().toMutableList()
+
+            if (!edit) {
+                epcs = epcs.filter {
+                    !it.startsWith("30")
+                }.toMutableList()
             }
-            epcs.size < 3 -> {
-                result += "\n" + "هیچ تگی یافت نشد"
-            }
-            else -> {
 
-                epcs = epcs.distinct().toMutableList()
-
-                if (!edit) {
-                    epcs = epcs.filter {
-                        !it.startsWith("30")
-                    }.toMutableList()
-                }
-
-                when {
-                    epcs.isEmpty() -> {
-                        result += "\n" + "هیچ تگ جدیدی یافت نشد"
-                    }
-                    epcs.size > 1 -> {
-                        "\n" + "تعداد تگ های یافت شده بیشتر از یک عدد است"
-                    }
-                    else -> {
-                        epc = epcs[0]
-                        tid = tidMap[epc] ?: "null"
-                        isOK = true
-                    }
-                }
+            if (epcs.size == 1) {
+                epc = epcs[0]
+                tid = tidMap[epc] ?: "null"
             }
         }
 
-        if (!isOK) {
+        if (epcs.size != 1) {
 
             epcs.clear()
             tidMap.clear()
@@ -371,7 +338,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
             rf.stopInventory()
 
-            if (epcs.size <= 10) {
+            if (epcs.size < 10) {
                 result += "هیچ تگی یافت نشد"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 //status.setBackgroundColor(getColor(R.color.Brown))
@@ -388,11 +355,13 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
                 when {
                     epcs.isEmpty() -> {
-                        result += "\n" + "هیچ تگ جدیدی یافت نشد"
+                        result += "هیچ تگ جدیدی یافت نشد"
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                         return
                     }
                     epcs.size > 1 -> {
-                        "\n" + "تعداد تگ های یافت شده بیشتر از یک عدد است"
+                        result += "تعداد تگ های یافت شده بیشتر از یک عدد است"
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                         return
                     }
                     else -> {
@@ -442,24 +411,21 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             //status.setBackgroundColor(getColor(R.color.DarkGreen))
 
-            result += "\n" + "با موفقیت اضافه شد"
+            result += "با موفقیت اضافه شد" + "\n"
             //result += "\nHeader: $headerNumber"
             //result += "\nFilter: $filterNumber"
             //result += "\nPartition: $partitionNumber"
             //result += "\nCompany number: $companyNumber"
             //result += "\nItem number: $itemNumber"
             //result += "\nSerial number: $serialNumber"
-            result += "\nسریال جدید:  $productEPC"
+            result += "سریال جدید: $productEPC"
 
             counterValue++
             counter++
             numberOfWrittenRfTags = counterValue - counterMinValue
-            if (counterValue >= counterMaxValue) {
-                isAddNewOK = false
-            }
             saveMemory()
         }, {
-            result += "\n" + "خطا در دیتابیس" + it.message
+            result += "خطا در دیتابیس" + it.message
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             //status.setBackgroundColor(getColor(R.color.Brown))
         }) {
@@ -467,7 +433,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                 return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
             }
         }
-        
+
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
@@ -503,17 +469,6 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
         return epc0To64 + epc64To96
 
-    }
-
-    companion object {
-        var counterMaxValue = 5L
-        var counterMinValue = 0L
-        var tagPassword = "00000000"
-        var counterValue = 0L
-        var filterNumber = 0 // 3bit
-        var partitionNumber = 6 // 3bit
-        var headerNumber = 48 // 8bit
-        var companyNumber = 101 // 12bit
     }
 
     @Composable

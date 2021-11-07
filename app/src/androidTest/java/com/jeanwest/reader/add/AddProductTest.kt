@@ -43,7 +43,7 @@ class AddProductTest {
         addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
         addProductActivity.waitForIdle()
-        Thread.sleep(100)
+        Thread.sleep(1000)
         addProductActivity.waitForIdle()
 
 
@@ -94,7 +94,7 @@ class AddProductTest {
 
         addProductActivity.waitForIdle()
 
-        Thread.sleep(100)
+        Thread.sleep(1000)
         addProductActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
@@ -147,10 +147,33 @@ class AddProductTest {
 
         addProductActivity.waitForIdle()
 
-        Thread.sleep(100)
+        Thread.sleep(1000)
         addProductActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid != "E28011702000015F195D0A17")
+    }
+
+    @Test
+    fun addProductTest5() {
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        addProductActivity.waitForIdle()
+
+        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+
+        addProductActivity.waitForIdle()
+
+        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+
+        addProductActivity.waitForIdle()
+
+        Thread.sleep(2000)
+        addProductActivity.waitForIdle()
+
+        assert(RFIDWithUHFUART.writtenUhfTagInfo.epc == "")
     }
 
     @Test
@@ -181,7 +204,7 @@ class AddProductTest {
 
             addProductActivity.waitForIdle()
 
-            Thread.sleep(100)
+            Thread.sleep(500)
             addProductActivity.waitForIdle()
 
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
