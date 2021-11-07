@@ -43,9 +43,12 @@ class AddProductTest {
         addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
         addProductActivity.waitForIdle()
+        Thread.sleep(100)
+        addProductActivity.waitForIdle()
 
+
+        //Log.e("Error", RFIDWithUHFUART.writtenUhfTagInfo.epc)
         assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
-
     }
 
     //Write one unProgrammed stuff that placed between four programmed stuffs
@@ -89,6 +92,9 @@ class AddProductTest {
 
         addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
+        addProductActivity.waitForIdle()
+
+        Thread.sleep(100)
         addProductActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
@@ -141,6 +147,9 @@ class AddProductTest {
 
         addProductActivity.waitForIdle()
 
+        Thread.sleep(100)
+        addProductActivity.waitForIdle()
+
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid != "E28011702000015F195D0A17")
     }
 
@@ -172,6 +181,10 @@ class AddProductTest {
 
             addProductActivity.waitForIdle()
 
+            Thread.sleep(100)
+            addProductActivity.waitForIdle()
+
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
         }
     }

@@ -47,7 +47,6 @@
         <activity android:name=".add.AddProductSettingActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
-        <activity android:name=".add.LoginToSettingActivity" />
         <activity android:name=".aboutUs.AboutUsActivity" />
         <activity android:name=".warehouseScanning.WareHouseScanningFindingProduct" />
         <activity android:name=".warehouseScanning.WarehouseScanningActivity" />

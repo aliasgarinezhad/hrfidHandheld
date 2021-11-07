@@ -25,6 +25,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.testClasses.Barcode2D
@@ -35,13 +39,13 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.util.*
 
 class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
     private var barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
-    private lateinit var api: AddProductAPI
     private var epc = ""
     private var tid = ""
     private var barcodeID = ""
@@ -300,7 +304,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     @Throws(InterruptedException::class)
     private fun addNewTag() {
 
-        val tidMap = mutableMapOf<String,String>()
+        val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
         var isOK = false
 
@@ -399,72 +403,73 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        api = AddProductAPI()
-        api.barcode = barcodeID
-        api.start()
-        while (api.run) {
-        }
+        val url = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=$barcodeID"
+        val request = object : JsonObjectRequest(Method.GET, url, null, fun(it) {
 
-        if (!api.status) {
-            result += "\n" + "خطا در دیتابیس" + api.response
+            if (!setRFPower(30)) {
+                return
+            }
+            val itemNumber = it.getString("RFID").toLong()// 32 bit
+            val serialNumber = counterValue // 38 bit
+
+            val productEPC = epcGenerator(
+                headerNumber,
+                filterNumber,
+                partitionNumber,
+                companyNumber,
+                itemNumber,
+                serialNumber
+            )
+
+            if (!rfWrite(productEPC)) {
+                result += "خطا در نوشتن"
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                //status.setBackgroundColor(getColor(R.color.Brown))
+                return
+            }
+
+            if (!rfWriteVerify(productEPC)) {
+                result += "خطا در تطبیق"
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                //status.setBackgroundColor(getColor(R.color.Brown))
+                return
+            }
+
+            if (!setRFPower(rfPower)) {
+                return
+            }
+
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            //status.setBackgroundColor(getColor(R.color.DarkGreen))
+
+            result += "\n" + "با موفقیت اضافه شد"
+            //result += "\nHeader: $headerNumber"
+            //result += "\nFilter: $filterNumber"
+            //result += "\nPartition: $partitionNumber"
+            //result += "\nCompany number: $companyNumber"
+            //result += "\nItem number: $itemNumber"
+            //result += "\nSerial number: $serialNumber"
+            result += "\nسریال جدید:  $productEPC"
+
+            counterValue++
+            counter++
+            numberOfWrittenRfTags = counterValue - counterMinValue
+            if (counterValue >= counterMaxValue) {
+                isAddNewOK = false
+            }
+            saveMemory()
+        }, {
+            result += "\n" + "خطا در دیتابیس" + it.message
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             //status.setBackgroundColor(getColor(R.color.Brown))
-            return
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
+            }
         }
-
-        if (!setRFPower(30)) {
-            return
-        }
-
-        val itemNumber = api.response.toLong() // 32 bit
-        val serialNumber = counterValue // 38 bit
-
-        val productEPC = epcGenerator(
-            headerNumber,
-            filterNumber,
-            partitionNumber,
-            companyNumber,
-            itemNumber,
-            serialNumber
-        )
-
-        if (!rfWrite(productEPC)) {
-            result += "خطا در نوشتن"
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            //status.setBackgroundColor(getColor(R.color.Brown))
-            return
-        }
-
-        if (!rfWriteVerify(productEPC)) {
-            result += "خطا در تطبیق"
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            //status.setBackgroundColor(getColor(R.color.Brown))
-            return
-        }
-
-        if (!setRFPower(rfPower)) {
-            return
-        }
-
-        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-        //status.setBackgroundColor(getColor(R.color.DarkGreen))
-
-        result += "\n" + "با موفقیت اضافه شد"
-        //result += "\nHeader: $headerNumber"
-        //result += "\nFilter: $filterNumber"
-        //result += "\nPartition: $partitionNumber"
-        //result += "\nCompany number: $companyNumber"
-        //result += "\nItem number: $itemNumber"
-        //result += "\nSerial number: $serialNumber"
-        result += "\nسریال جدید:  $productEPC"
-
-        counterValue++
-        counter++
-        numberOfWrittenRfTags = counterValue - counterMinValue
-        if (counterValue >= counterMaxValue) {
-            isAddNewOK = false
-        }
-        saveMemory()
+        
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
     }
 
     private fun epcGenerator(
@@ -504,7 +509,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         var counterMaxValue = 5L
         var counterMinValue = 0L
         var tagPassword = "00000000"
-        var counterValue: Long = 0
+        var counterValue = 0L
         var filterNumber = 0 // 3bit
         var partitionNumber = 6 // 3bit
         var headerNumber = 48 // 8bit
