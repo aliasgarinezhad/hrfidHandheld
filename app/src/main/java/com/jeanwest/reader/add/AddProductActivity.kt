@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -52,6 +53,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     private var openDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
+    private var resultColor by mutableStateOf(R.color.white)
 
     private var step2 = false
     private var rfPower = 5
@@ -184,7 +186,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             barcodeIsScanning = false
             barcodeID = barcode
             result = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID\n"
-            //status.setBackgroundColor(getColor(R.color.DarkGreen))
+            resultColor = R.color.DarkGreen
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             step2 = true
 
@@ -193,7 +195,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             rf.stopInventory()
             rfIsScanning = false
             result = "بارکدی پیدا نشد"
-            //status.setBackgroundColor(getColor(R.color.Brown))
+            resultColor = R.color.Brown
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
         }
     }
@@ -341,7 +343,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             if (epcs.size < 10) {
                 result += "هیچ تگی یافت نشد"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                //status.setBackgroundColor(getColor(R.color.Brown))
+                resultColor = R.color.Brown
                 return
             } else {
 
@@ -357,11 +359,13 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                     epcs.isEmpty() -> {
                         result += "هیچ تگ جدیدی یافت نشد"
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                        resultColor = R.color.Brown
                         return
                     }
                     epcs.size > 1 -> {
                         result += "تعداد تگ های یافت شده بیشتر از یک عدد است"
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                        resultColor = R.color.Brown
                         return
                     }
                     else -> {
@@ -393,14 +397,14 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             if (!rfWrite(productEPC)) {
                 result += "خطا در نوشتن"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                //status.setBackgroundColor(getColor(R.color.Brown))
+                resultColor = R.color.Brown
                 return
             }
 
             if (!rfWriteVerify(productEPC)) {
                 result += "خطا در تطبیق"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                //status.setBackgroundColor(getColor(R.color.Brown))
+                resultColor = R.color.Brown
                 return
             }
 
@@ -409,7 +413,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             }
 
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            //status.setBackgroundColor(getColor(R.color.DarkGreen))
+            resultColor = R.color.DarkGreen
 
             result += "با موفقیت اضافه شد" + "\n"
             //result += "\nHeader: $headerNumber"
@@ -427,7 +431,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         }, {
             result += "خطا در دیتابیس" + it.message
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            //status.setBackgroundColor(getColor(R.color.Brown))
+            resultColor = R.color.Brown
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
@@ -630,7 +634,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                 modifier = Modifier
                     .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                     .background(
-                        MaterialTheme.colors.onPrimary,
+                        color = colorResource(id = resultColor),
                         shape = RoundedCornerShape(10.dp)
                     )
                     .fillMaxWidth()

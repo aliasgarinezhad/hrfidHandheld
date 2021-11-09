@@ -10,10 +10,28 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jeanwest.reader.hardware.Barcode2D
-
-import com.jeanwest.reader.hardware.IBarcodeResult
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
+import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.android.synthetic.main.activity_finding.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -22,7 +40,8 @@ import java.util.*
 class FindingProductActivity : AppCompatActivity(),
     IBarcodeResult {
 
-    private lateinit var barcode2D: Barcode2D
+    private var productCode by mutableStateOf("")
+    private var barcode2D = Barcode2D(this)
     lateinit var list: ListView
     var listString = ArrayList<String>()
     var pictureURLList = ArrayList<String>()
@@ -34,7 +53,6 @@ class FindingProductActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_finding)
-        barcode2D = Barcode2D(this)
         list = findViewById(R.id.findingListView)
         kBarCode = findViewById(R.id.finding_k_bar_code_text)
         nextActivityIntent = Intent(this, FindingProductSubActivity::class.java)
@@ -45,7 +63,7 @@ class FindingProductActivity : AppCompatActivity(),
             startActivity(nextActivityIntent)
         }
 
-        kBarCode.setOnEditorActionListener{ _, _, _ ->
+        kBarCode.setOnEditorActionListener { _, _, _ ->
 
             receive(kBarCode)
             true
@@ -91,8 +109,11 @@ class FindingProductActivity : AppCompatActivity(),
             listString.clear()
             pictureURLList.clear()
             try {
-                kBarCode.setText(api.similar.getJSONObject(0
-                ).getString("K_Bar_Code"))
+                kBarCode.setText(
+                    api.similar.getJSONObject(
+                        0
+                    ).getString("K_Bar_Code")
+                )
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
@@ -126,19 +147,15 @@ class FindingProductActivity : AppCompatActivity(),
         return true
     }
 
-    fun start() {
+    private fun start() {
         barcode2D.startScan(this)
     }
 
-    fun stop() {
-        barcode2D.stopScan(this)
-    }
-
-    fun open() {
+    private fun open() {
         barcode2D.open(this, this)
     }
 
-    fun close() {
+    private fun close() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
     }
@@ -225,5 +242,154 @@ class FindingProductActivity : AppCompatActivity(),
     private fun back() {
         close()
         finish()
+    }
+
+    @Composable
+    fun Page() {
+        MyApplicationTheme {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Scaffold(
+                    topBar = { AppBar() },
+                    content = { Content() }
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun AppBar() {
+        TopAppBar(
+            title = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 0.dp, end = 60.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "جست و جو", textAlign = TextAlign.Center,
+                    )
+                }
+            },
+            navigationIcon = {
+                Box(
+                    modifier = Modifier.width(60.dp)
+                ) {
+                    IconButton(onClick = { back() }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                            contentDescription = ""
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun Content() {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colors.onPrimary,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                ProductCodeTextField()
+                IconButton(onClick = { receive(View(this@FindingProductActivity)) }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_search_24),
+                        contentDescription = ""
+                    )
+                }
+            }
+
+            /*LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+
+                items(uiList.size) { i ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                            .background(
+                                color = if (uiList[i].KBarCode !in signedProductCodes) {
+                                    MaterialTheme.colors.onPrimary
+                                } else {
+                                    MaterialTheme.colors.primary
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+
+                                },
+                                onLongClick = {
+                                    if (uiList[i].KBarCode !in signedProductCodes) {
+                                        signedProductCodes.add(uiList[i].KBarCode)
+                                    } else {
+                                        signedProductCodes.remove(uiList[i].KBarCode)
+                                    }
+                                    uiList = filterResult(conflictResultProducts)
+                                },
+                            ),
+                    ) {
+                        Column {
+                            Text(
+                                text = uiList[i].name,
+                                fontSize = 20.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.Brown)
+                            )
+
+                            Text(
+                                text = uiList[i].KBarCode,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.DarkGreen)
+                            )
+
+                            Text(
+                                text = uiList[i].result,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = modifier,
+                                color = colorResource(id = R.color.Goldenrod)
+                            )
+                        }
+
+                        Image(
+                            painter = rememberImagePainter(
+                                uiList[i].imageUrl,
+                            ),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .height(100.dp)
+                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                        )
+                    }
+                }
+            }*/
+        }
+    }
+
+    @Composable
+    fun ProductCodeTextField() {
+
+        OutlinedTextField(
+            value = productCode, onValueChange = {
+                productCode = it
+            },
+            modifier = Modifier
+                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                .fillMaxWidth(),
+            label = { Text(text = "کد محصول") }
+        )
     }
 }
