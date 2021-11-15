@@ -1006,16 +1006,12 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         val sheet = workbook.createSheet("conflicts")
 
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        val headerCell = headerRow.createCell(0)
-        headerCell.setCellValue("کد جست و جو")
-        val headerCell2 = headerRow.createCell(1)
-        headerCell2.setCellValue("تعداد")
-        val headerCell3 = headerRow.createCell(2)
-        headerCell3.setCellValue("دسته")
-        val headerCell4 = headerRow.createCell(3)
-        headerCell4.setCellValue("کسری")
-        val headerCell5 = headerRow.createCell(4)
-        headerCell5.setCellValue("اضافی")
+        headerRow.createCell(0).setCellValue("کد جست و جو")
+        headerRow.createCell(1).setCellValue("تعداد")
+        headerRow.createCell(2).setCellValue("دسته")
+        headerRow.createCell(3).setCellValue("کسری")
+        headerRow.createCell(4).setCellValue("اضافی")
+        headerRow.createCell(5).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
@@ -1031,6 +1027,54 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
             if(it.KBarCode in signedProductCodes) {
                 row.createCell(5).setCellValue("نشانه دار")
+            }
+        }
+
+        val sheet2 = workbook.createSheet("کسری")
+
+        val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
+        header2Row.createCell(0).setCellValue("کد جست و جو")
+        header2Row.createCell(1).setCellValue("موجودی")
+        header2Row.createCell(2).setCellValue("دسته")
+        header2Row.createCell(3).setCellValue("کسری")
+        headerRow.createCell(4).setCellValue("نشانه")
+
+        conflictResultProducts.forEach {
+
+            if (it.scan == "کسری") {
+                val row = sheet2.createRow(sheet2.physicalNumberOfRows)
+                row.createCell(0).setCellValue(it.KBarCode)
+                row.createCell(1).setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
+                row.createCell(2).setCellValue(it.category)
+                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+
+                if(it.KBarCode in signedProductCodes) {
+                    row.createCell(4).setCellValue("نشانه دار")
+                }
+            }
+        }
+
+        val sheet3 = workbook.createSheet("اضافی")
+
+        val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
+        header3Row.createCell(0).setCellValue("کد جست و جو")
+        header3Row.createCell(1).setCellValue("موجودی")
+        header3Row.createCell(2).setCellValue("دسته")
+        header3Row.createCell(3).setCellValue("اضافی")
+        headerRow.createCell(4).setCellValue("نشانه")
+
+        conflictResultProducts.forEach {
+
+            if (it.scan == "اضافی") {
+                val row = sheet3.createRow(sheet3.physicalNumberOfRows)
+                row.createCell(0).setCellValue(it.KBarCode)
+                row.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
+                row.createCell(2).setCellValue(it.category)
+                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+
+                if(it.KBarCode in signedProductCodes) {
+                    row.createCell(4).setCellValue("نشانه دار")
+                }
             }
         }
 

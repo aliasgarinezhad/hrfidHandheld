@@ -24,9 +24,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
@@ -36,6 +39,10 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.json.JSONArray
+import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 
 class AddProductActivity : ComponentActivity(), IBarcodeResult {
@@ -45,15 +52,19 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     private var epc = ""
     private var tid = ""
     private var barcodeID = ""
+    private var barcodeTable = mutableListOf<String>()
 
     private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var counter by mutableStateOf(0L)
+    private var counter by mutableStateOf(0)
     private var numberOfWrittenRfTags by mutableStateOf(0L)
     private var result by mutableStateOf("")
-    private var openDialog by mutableStateOf(false)
+    private var openSettingDialog by mutableStateOf(false)
+    private var openClearDialog by mutableStateOf(false)
+    private var openFileDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(R.color.white)
+    private var fileName by mutableStateOf("خروجی")
 
     private var step2 = false
     private var rfPower = 5
@@ -92,6 +103,42 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         setRFEpcAndTidMode()
     }
 
+    private fun exportFile() {
+        val workbook = XSSFWorkbook()
+        val sheet = workbook.createSheet("کالا های رایت شده")
+        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
+        headerRow.createCell(0).setCellValue("بارکد کالا")
+        headerRow.createCell(1).setCellValue("تعداد")
+
+        barcodeTable.forEach {
+            val row = sheet.createRow(sheet.physicalNumberOfRows)
+            row.createCell(0).setCellValue(it)
+            row.createCell(1).setCellValue(1.toDouble())
+            var dir = File(this.getExternalFilesDir(null), "/RFID")
+            dir.mkdir()
+            dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
+            dir.mkdir()
+
+            val outFile = File(dir, "$fileName.xlsx")
+
+            val outputStream = FileOutputStream(outFile.absolutePath)
+            workbook.write(outputStream)
+            outputStream.flush()
+            outputStream.close()
+
+            val uri = FileProvider.getUriForFile(
+                this,
+                this.applicationContext.packageName + ".provider",
+                outFile
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND)
+            shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
+            shareIntent.type = "application/octet-stream"
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            applicationContext.startActivity(shareIntent)
+        }
+    }
+
     private fun loadMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
@@ -106,7 +153,11 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             partitionNumber = memory.getInt("partition", -1)
             companyNumber = memory.getInt("company", -1)
             tagPassword = memory.getString("password", "") ?: "00000000"
-            counter = memory.getLong("counterModified", -1L)
+            barcodeTable = Gson().fromJson(
+                memory.getString("AddProductBarcodeTable", ""),
+                barcodeTable.javaClass
+            ) ?: mutableListOf()
+            counter = barcodeTable.size
         }
 
         numberOfWrittenRfTags = counterValue - counterMinValue
@@ -117,7 +168,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
         memoryEditor.putLong("value", counterValue)
-        memoryEditor.putLong("counterModified", counter)
+        memoryEditor.putString("AddProductBarcodeTable", JSONArray(barcodeTable).toString())
         memoryEditor.apply()
     }
 
@@ -211,6 +262,12 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     private fun stopBarcodeScan() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
+    }
+
+    private fun clear() {
+        barcodeTable.clear()
+        counter = barcodeTable.size
+        saveMemory()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -416,16 +473,11 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             resultColor = R.color.DarkGreen
 
             result += "با موفقیت اضافه شد" + "\n"
-            //result += "\nHeader: $headerNumber"
-            //result += "\nFilter: $filterNumber"
-            //result += "\nPartition: $partitionNumber"
-            //result += "\nCompany number: $companyNumber"
-            //result += "\nItem number: $itemNumber"
-            //result += "\nSerial number: $serialNumber"
             result += "سریال جدید: $productEPC"
 
             counterValue++
-            counter++
+            barcodeTable.add(it.getString("KBarCode"))
+            counter = barcodeTable.size
             numberOfWrittenRfTags = counterValue - counterMinValue
             saveMemory()
         }, {
@@ -503,20 +555,24 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             actions = {
 
                 IconButton(onClick = {
-                    counter = 0
-                    saveMemory()
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
-                        contentDescription = ""
-                    )
-                }
-
-                IconButton(onClick = {
-                    openDialog = true
+                    openSettingDialog = true
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_settings_24),
+                        contentDescription = ""
+                    )
+                }
+                IconButton(onClick = { openFileDialog = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_share_24),
+                        contentDescription = ""
+                    )
+                }
+                IconButton(onClick = {
+                    openClearDialog = true
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
                     )
                 }
@@ -526,10 +582,8 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = "اضافه کردن",
                     modifier = Modifier
-                        .padding(start = 35.dp)
-                        .fillMaxSize()
                         .wrapContentSize(),
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Right,
                 )
             }
         )
@@ -552,8 +606,16 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                if (openDialog) {
-                    PasswordAlertDialog()
+                if (openSettingDialog) {
+                    SettingAlertDialog()
+                }
+
+                if (openFileDialog) {
+                    FileAlertDialog()
+                }
+
+                if (openClearDialog) {
+                    ClearAlertDialog()
                 }
 
                 Row {
@@ -651,7 +713,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun PasswordAlertDialog() {
+    fun SettingAlertDialog() {
 
         var password by remember { mutableStateOf("") }
 
@@ -680,7 +742,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                         .align(Alignment.CenterHorizontally),
                         onClick = {
                             if (password == "123456") {
-                                openDialog = false
+                                openSettingDialog = false
                                 val nextActivityIntent = Intent(
                                     this@AddProductActivity,
                                     AddProductSettingActivity::class.java
@@ -700,7 +762,92 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             },
 
             onDismissRequest = {
-                openDialog = false
+                openSettingDialog = false
+            }
+        )
+    }
+
+    @Composable
+    fun FileAlertDialog() {
+
+        AlertDialog(
+
+            buttons = {
+
+                Column {
+
+                    Text(
+                        text = "نام فایل خروجی را وارد کنید", modifier = Modifier
+                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = fileName, onValueChange = {
+                            fileName = it
+                        },
+                        modifier = Modifier
+                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                            .align(Alignment.CenterHorizontally)
+                    )
+
+                    Button(modifier = Modifier
+                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
+                        .align(Alignment.CenterHorizontally),
+                        onClick = {
+                            openFileDialog = false
+                            exportFile()
+                        }) {
+                        Text(text = "ذخیره")
+                    }
+                }
+            },
+
+            onDismissRequest = {
+                openFileDialog = false
+            }
+        )
+    }
+
+    @Composable
+    fun ClearAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openClearDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = "حافظه پاک شود؟",
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 22.sp
+                    )
+
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                        Button(onClick = {
+                            openClearDialog = false
+                            clear()
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "بله")
+                        }
+                        Button(
+                            onClick = { openClearDialog = false },
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(text = "خیر")
+                        }
+                    }
+                }
             }
         )
     }
