@@ -13,9 +13,6 @@ import org.junit.Test
 
 class AddProductTest {
 
-    /*@get:Rule
-    var activity = createAndroidComposeRule<MainActivity>()*/
-
     @get:Rule
     var addProductActivity = createAndroidComposeRule<AddProductActivity>()
 
@@ -178,7 +175,6 @@ class AddProductTest {
 
     @Test
     fun addProductTest4() {
-        //activity.onNodeWithText("اضافه کردن").performClick()
 
         for (i in 1000000L..1000100L) {
 

@@ -1,7 +1,9 @@
 package com.jeanwest.reader.add
 
-import com.jeanwest.reader.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -30,6 +32,7 @@ import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
@@ -82,6 +85,14 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
     override fun onResume() {
 
         super.onResume()
+
+        fileName = Calendar.getInstance(TimeZone.getDefault()).let {
+            "" +  it.get(Calendar.YEAR) + "-" + (it.get(Calendar.MONTH) + 1) + "-" + it.get(Calendar.DAY_OF_MONTH)
+        }
+
+
+        val util = JalaliDate()
+        fileName = util.currentShamsidate
 
         barcodeInit()
         rfInit()
@@ -433,7 +444,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=$barcodeID"
+        val url = "http://rfid-api-0-1.avakatan.ir/products/v2?kbarcode=$barcodeID"
         val request = object : JsonObjectRequest(Method.GET, url, null, fun(it) {
 
             if (!setRFPower(30)) {
