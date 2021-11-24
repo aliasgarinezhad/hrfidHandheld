@@ -3,81 +3,141 @@ package com.jeanwest.reader.finding
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.View
-import android.view.inputmethod.InputMethodManager
-import android.widget.AdapterView.OnItemClickListener
-import android.widget.EditText
-import android.widget.ListView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
-import kotlinx.android.synthetic.main.activity_finding.*
-import org.json.JSONException
+import org.json.JSONArray
 import org.json.JSONObject
-import java.util.*
 
-class FindingProductActivity : AppCompatActivity(),
-    IBarcodeResult {
+class FindingProductActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
-    private var barcode2D = Barcode2D(this)
-    lateinit var list: ListView
-    var listString = ArrayList<String>()
-    var pictureURLList = ArrayList<String>()
-    lateinit var kBarCode: EditText
-    private lateinit var nextActivityIntent: Intent
-    private var product: JSONObject = JSONObject()
-    lateinit var api: FindingProductAPI
+    private var uiList by mutableStateOf(mutableListOf<SearchResultProducts>())
+    private var filteredUiList by mutableStateOf(mutableListOf<SearchResultProducts>())
+    private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
+    private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
+    private var storeFilterValues by mutableStateOf(mutableListOf(
+            "0",
+            "5",
+            "10",
+            "11",
+            "17",
+            "21",
+            "22",
+            "24",
+            "29",
+            "34",
+            "38",
+            "39",
+            "41",
+            "42",
+            "44",
+            "46",
+            "47",
+            "48",
+            "49",
+            "50",
+            "51",
+            "52",
+            "53",
+            "54",
+            "55",
+            "56",
+            "57",
+            "58",
+            "59",
+            "60",
+            "61",
+            "64",
+            "66",
+            "67",
+            "68",
+            "69",
+            "70",
+            "71",
+            "73",
+            "74",
+            "75",
+            "81",
+            "82",
+            "83",
+            "84",
+            "86",
+            "87",
+            "88",
+            "89",
+            "91",
+            "92",
+            "93",
+            "94",
+            "95",
+            "97",
+            "98",
+            "99",
+            "101",
+            "103",
+            "104",
+            "105",
+            "106",
+            "107",
+            "108",
+            "109",
+            "110",
+            "111",
+            "112"
+        ))
+    private var wareHouseFilterValues by mutableStateOf(mutableListOf("همه", "فروشگاه", "انبار"))
+    private var colorFilterValue by mutableStateOf("همه رنگ ها")
+    private var sizeFilterValue by mutableStateOf("همه سایز ها")
+    private var storeFilterValue by mutableStateOf("68")
+    private var wareHouseFilterValue by mutableStateOf("همه")
 
+    //11531052J-2410-L
+
+    private var barcode2D = Barcode2D(this)
+
+    @ExperimentalCoilApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_finding)
-        list = findViewById(R.id.findingListView)
-        kBarCode = findViewById(R.id.finding_k_bar_code_text)
-        nextActivityIntent = Intent(this, FindingProductSubActivity::class.java)
-
-        list.onItemClickListener = OnItemClickListener { _, _, i, _ ->
-            product = api.similar.getJSONObject(i);
-            nextActivityIntent.putExtra("product", product.toString())
-            startActivity(nextActivityIntent)
-        }
-
-        kBarCode.setOnEditorActionListener { _, _, _ ->
-
-            receive(kBarCode)
-            true
-        }
-        finding_toolbar.setNavigationOnClickListener {
-            back()
+        setContent {
+            Page()
         }
     }
 
     override fun onResume() {
         super.onResume()
         open()
-        val findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
-        list.adapter = findingListAdapter
     }
 
     override fun onPause() {
@@ -88,52 +148,28 @@ class FindingProductActivity : AppCompatActivity(),
     @Throws(InterruptedException::class)
     override fun getBarcode(barcode: String) {
 
-        var json: JSONObject
-
         if (barcode.isNotEmpty()) {
 
-            api = FindingProductAPI()
-            api.barcode = "kbarcode=$barcode"
-            api.start()
+            filteredUiList = mutableListOf()
+            uiList = mutableListOf()
+            colorFilterValues = mutableListOf("همه رنگ ها")
+            sizeFilterValues = mutableListOf("همه سایز ها")
+            productCode = ""
 
-            while (api.run) {
-            }
-            if (!api.status) {
-                Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
-                return
-            }
+            val url =
+                "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
 
-            val view = this.currentFocus
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.hideSoftInputFromWindow(view!!.windowToken, 0)
-            listString.clear()
-            pictureURLList.clear()
-            try {
-                kBarCode.setText(
-                    api.similar.getJSONObject(
-                        0
-                    ).getString("K_Bar_Code")
-                )
-            } catch (e: JSONException) {
-                e.printStackTrace()
-            }
-            for (i in 0 until api.similar.length()) {
-                try {
-                    json = api.similar.getJSONObject(i)
-                    listString.add(
-                        """
-                    سایز: ${json.getString("Size")}
-                    
-                    رنگ: ${json.getString("Color")}
-                    """.trimIndent()
-                    )
-                    pictureURLList.add(json.getString("ImgUrl"))
-                } catch (e: JSONException) {
-                    e.printStackTrace()
+            val request = JsonObjectRequest(url, {
+
+                val products = it.getJSONArray("products")
+                if (products.length() > 0) {
+                    jsonArrayProcess(products)
                 }
-            }
-            val findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
-            list.adapter = findingListAdapter
+            }, {
+                Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+            })
+            val queue = Volley.newRequestQueue(this)
+            queue.add(request)
         }
     }
 
@@ -160,83 +196,138 @@ class FindingProductActivity : AppCompatActivity(),
         barcode2D.close(this)
     }
 
-    fun receive(view: View) {
+    private fun filterUiList(uiList: MutableList<SearchResultProducts>): MutableList<SearchResultProducts> {
 
-        var json: JSONObject
-        val findingListAdapter: MyListAdapterFind
-
-        api = FindingProductAPI()
-        api.barcode = "K_Bar_Code=" + kBarCode.editableText.toString()
-        api.start()
-
-        while (api.run) {
-        }
-
-        if (!api.status) {
-            Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
-            return
-        }
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(view.windowToken, 0)
-
-        if (api.similar.length() > 0) {
-            listString.clear()
-            pictureURLList.clear()
-            for (i in 0 until api.similar.length()) {
-                try {
-                    json = api.similar.getJSONObject(i)
-                    listString.add(
-                        """
-                    سایز: ${json.getString("Size")}
-                    
-                    رنگ: ${json.getString("Color")}
-                    """.trimIndent()
-                    )
-                    pictureURLList.add(json.getString("ImgUrl"))
-                } catch (e: JSONException) {
-                    e.printStackTrace()
+        val wareHouseFilterOutput = when (wareHouseFilterValue) {
+            "فروشگاه" -> {
+                uiList.filter {
+                    it.shoppingNumber > 0
                 }
             }
-            findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
-            list.adapter = findingListAdapter
-            return
-        }
-
-        api = FindingProductAPI()
-        api.barcode = "kbarcode=" + kBarCode.editableText.toString()
-        api.start()
-        while (api.run) {
-        }
-        if (!api.status) {
-            Toast.makeText(this, api.response, Toast.LENGTH_LONG).show()
-            return
-        }
-        listString.clear()
-        pictureURLList.clear()
-
-        try {
-            kBarCode.setText(api.similar.getJSONObject(0).getString("K_Bar_Code"))
-        } catch (e: JSONException) {
-            e.printStackTrace()
-        }
-
-        for (i in 0 until api.similar.length()) {
-            try {
-                json = api.similar.getJSONObject(i)
-                listString.add(
-                    """
-                سایز: ${json.getString("Size")}
-                
-                رنگ: ${json.getString("Color")}
-                """.trimIndent()
-                )
-                pictureURLList.add(json.getString("ImgUrl"))
-            } catch (e: JSONException) {
-                e.printStackTrace()
+            "انبار" -> {
+                uiList.filter {
+                    it.warehouseNumber > 0
+                }
+            }
+            else -> {
+                uiList
             }
         }
-        findingListAdapter = MyListAdapterFind(this, listString, pictureURLList)
-        list.adapter = findingListAdapter
+
+        val sizeFilterOutput = if (sizeFilterValue == "همه سایز ها") {
+            wareHouseFilterOutput
+        } else {
+            wareHouseFilterOutput.filter {
+                it.size == sizeFilterValue
+            }
+        }
+
+        val colorFilterOutput = if (colorFilterValue == "همه رنگ ها") {
+            sizeFilterOutput
+        } else {
+            sizeFilterOutput.filter {
+                it.color == colorFilterValue
+            }
+
+        }
+
+        return colorFilterOutput.toMutableList()
+    }
+
+    private fun getSimilarProducts() {
+
+        uiList = mutableListOf()
+        filteredUiList = mutableListOf()
+        colorFilterValues = mutableListOf("همه رنگ ها")
+        sizeFilterValues = mutableListOf("همه سایز ها")
+
+        val url1 =
+            "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
+
+        val request1 = JsonObjectRequest(url1, { response1 ->
+
+            val products = response1.getJSONArray("products")
+
+            if (products.length() > 0) {
+                jsonArrayProcess(products)
+            } else {
+
+                val url2 =
+                    "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
+
+                val request2 = JsonObjectRequest(url2, { response2 ->
+
+                    val products2 = response2.getJSONArray("products")
+
+                    if (products2.length() > 0) {
+                        jsonArrayProcess(products2)
+                    }
+                }, { it2 ->
+                    Toast.makeText(this, it2.toString(), Toast.LENGTH_SHORT).show()
+                })
+                val queue2 = Volley.newRequestQueue(this)
+                queue2.add(request2)
+            }
+        }, {
+            Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+        })
+
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request1)
+    }
+
+    private fun jsonArrayProcess(similarProductsJsonArray: JSONArray) {
+
+        for (i in 0 until similarProductsJsonArray.length()) {
+
+            val json = similarProductsJsonArray.getJSONObject(i)
+
+            colorFilterValues.add(json.getString("Color"))
+            sizeFilterValues.add(json.getString("Size"))
+
+            uiList.add(
+                SearchResultProducts(
+                    name = json.getString("productName"),
+                    kbarcode = json.getString("KBarCode"),
+                    imageUrl = json.getString("ImgUrl"),
+                    shoppingNumber = json.getInt("dbCountStore"),
+                    warehouseNumber = json.getInt("dbCountDepo"),
+                    productCode = json.getString("K_Bar_Code"),
+                    size = json.getString("Size"),
+                    color = json.getString("Color"),
+                    originalPrice = json.getString("OrigPrice"),
+                    salePrice = json.getString("SalePrice"),
+                    primaryKey = json.getLong("BarcodeMain_ID"),
+                    rfidKey = json.getLong("RFID")
+                )
+            )
+        }
+
+        productCode = uiList[0].productCode
+        colorFilterValues = colorFilterValues.distinct().toMutableList()
+        sizeFilterValues = sizeFilterValues.distinct().toMutableList()
+        filteredUiList = filterUiList(uiList)
+    }
+
+    private fun openSearchActivity(product : SearchResultProducts) {
+
+        val productJson = JSONObject()
+        productJson.put("productName", product.name)
+        productJson.put("K_Bar_Code", product.productCode)
+        productJson.put("kbarcode", product.kbarcode)
+        productJson.put("OrigPrice", product.originalPrice)
+        productJson.put("SalePrice", product.salePrice)
+        productJson.put("BarcodeMain_ID", product.primaryKey)
+        productJson.put("RFID", product.rfidKey)
+        productJson.put("ImgUrl", product.imageUrl)
+        productJson.put("dbCountDepo", product.warehouseNumber)
+        productJson.put("dbCountStore", product.shoppingNumber)
+        productJson.put("Size", product.size)
+        productJson.put("Color", product.shoppingNumber)
+
+        val intent = Intent(this, FindingProductSubActivity::class.java)
+        intent.putExtra("product", productJson.toString())
+        startActivity(intent)
     }
 
     private fun back() {
@@ -244,6 +335,7 @@ class FindingProductActivity : AppCompatActivity(),
         finish()
     }
 
+    @ExperimentalCoilApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -263,7 +355,7 @@ class FindingProductActivity : AppCompatActivity(),
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 0.dp, end = 60.dp),
+                        .padding(start = 0.dp, end = 50.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -273,25 +365,27 @@ class FindingProductActivity : AppCompatActivity(),
                 }
             },
             navigationIcon = {
-                Box(
-                    modifier = Modifier.width(60.dp)
-                ) {
-                    IconButton(onClick = { back() }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
-                            contentDescription = ""
-                        )
-                    }
+                IconButton(onClick = { back() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                        contentDescription = ""
+                    )
                 }
             }
         )
     }
 
+    @ExperimentalCoilApi
     @Composable
     fun Content() {
+        val modifier = Modifier
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .wrapContentWidth()
+
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
+                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                     .background(
                         color = MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.medium
@@ -299,48 +393,42 @@ class FindingProductActivity : AppCompatActivity(),
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                ProductCodeTextField()
-                IconButton(onClick = { receive(View(this@FindingProductActivity)) }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_search_24),
-                        contentDescription = ""
-                    )
+                Column {
+                    ProductCodeTextField()
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = 5.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        StoreFilterDropDownList()
+                        WarehouseFilterDropDownList()
+                        ColorFilterDropDownList()
+                        SizeFilterDropDownList()
+                    }
                 }
             }
 
-            /*LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
-                items(uiList.size) { i ->
+                items(filteredUiList.size) { i ->
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                             .background(
-                                color = if (uiList[i].KBarCode !in signedProductCodes) {
-                                    MaterialTheme.colors.onPrimary
-                                } else {
-                                    MaterialTheme.colors.primary
-                                },
+                                color = MaterialTheme.colors.onPrimary,
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
+                            .clickable {
+                                openSearchActivity(uiList[i])
+                            },
 
-                                },
-                                onLongClick = {
-                                    if (uiList[i].KBarCode !in signedProductCodes) {
-                                        signedProductCodes.add(uiList[i].KBarCode)
-                                    } else {
-                                        signedProductCodes.remove(uiList[i].KBarCode)
-                                    }
-                                    uiList = filterResult(conflictResultProducts)
-                                },
-                            ),
-                    ) {
+                        ) {
                         Column {
                             Text(
-                                text = uiList[i].name,
+                                text = filteredUiList[i].name,
                                 fontSize = 20.sp,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
@@ -348,7 +436,7 @@ class FindingProductActivity : AppCompatActivity(),
                             )
 
                             Text(
-                                text = uiList[i].KBarCode,
+                                text = filteredUiList[i].size,
                                 fontSize = 18.sp,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
@@ -356,7 +444,7 @@ class FindingProductActivity : AppCompatActivity(),
                             )
 
                             Text(
-                                text = uiList[i].result,
+                                text = filteredUiList[i].color,
                                 fontSize = 18.sp,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
@@ -366,7 +454,7 @@ class FindingProductActivity : AppCompatActivity(),
 
                         Image(
                             painter = rememberImagePainter(
-                                uiList[i].imageUrl,
+                                filteredUiList[i].imageUrl,
                             ),
                             contentDescription = "",
                             modifier = Modifier
@@ -375,7 +463,7 @@ class FindingProductActivity : AppCompatActivity(),
                         )
                     }
                 }
-            }*/
+            }
         }
     }
 
@@ -387,9 +475,139 @@ class FindingProductActivity : AppCompatActivity(),
                 productCode = it
             },
             modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                .padding(top = 10.dp, start = 10.dp, end = 10.dp, bottom = 10.dp)
                 .fillMaxWidth(),
-            label = { Text(text = "کد محصول") }
+            label = { Text(text = "کد محصول") },
+            keyboardActions = KeyboardActions(onSearch = { getSimilarProducts() }),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
         )
+    }
+
+    @Composable
+    fun SizeFilterDropDownList() {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = sizeFilterValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                sizeFilterValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        sizeFilterValue = it
+                        filteredUiList = filterUiList(uiList)
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ColorFilterDropDownList() {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = colorFilterValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                colorFilterValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        colorFilterValue = it
+                        filteredUiList = filterUiList(uiList)
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun WarehouseFilterDropDownList() {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = wareHouseFilterValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                wareHouseFilterValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        wareHouseFilterValue = it
+                        filteredUiList = filterUiList(uiList)
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun StoreFilterDropDownList() {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = storeFilterValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                storeFilterValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        storeFilterValue = it
+                        getSimilarProducts()
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
     }
 }

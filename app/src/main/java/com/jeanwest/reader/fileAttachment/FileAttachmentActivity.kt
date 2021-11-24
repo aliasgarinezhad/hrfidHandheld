@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
+import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
@@ -117,6 +118,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
+        setRFEpcMode()
 
         if (intent.action == Intent.ACTION_SEND) {
 
@@ -183,6 +185,22 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             }
         }
         return true
+    }
+
+    private fun setRFEpcMode(): Boolean {
+        for (i in 0..11) {
+            if (rf.setEPCMode()) {
+                return true
+            }
+        }
+        CoroutineScope(Main).launch {
+            Toast.makeText(
+                this@FileAttachmentActivity,
+                "مشکلی در سخت افزار پیش آمده است",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        return false
     }
 
     private fun stopRFScan() {
@@ -280,6 +298,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                 return
             }
         }
+        setRFEpcMode()
     }
 
     private suspend fun startRFScan() {
@@ -1157,6 +1176,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
+    @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Content() {

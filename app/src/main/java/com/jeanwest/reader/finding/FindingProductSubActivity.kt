@@ -1,312 +1,443 @@
 package com.jeanwest.reader.finding
 
-import android.annotation.SuppressLint
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.os.Handler
 import android.view.KeyEvent
-import android.view.View
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.widget.CheckBox
-import android.widget.SeekBar
-import android.widget.SeekBar.OnSeekBarChangeListener
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.annotation.ExperimentalCoilApi
+import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
+import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
-//import import com.rscja.deviceapi.RFIDWithUHFUART
-import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
-import kotlinx.android.synthetic.main.activity_finding_sub.*
-import org.json.JSONException
+import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONObject
 import java.util.*
 
-class FindingProductSubActivity : AppCompatActivity() {
+class FindingProductSubActivity : ComponentActivity() {
 
-    lateinit var rf: RFIDWithUHFUART
-    var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var findingPower = 30
-    lateinit var status: TextView
-    lateinit var powerText: TextView
-    lateinit var powerSeekBar: SeekBar
-    lateinit var stuffSpec: TextView
-    private var stuffCode: Long = 0
-    lateinit var picture: WebView
-    lateinit var option: CheckBox
-    lateinit var stuff: JSONObject
-    private var epcTableFindingMatched: MutableMap<String?, Int> = HashMap()
-    private var ePCTableFinding: MutableMap<String, Int> = HashMap()
-    lateinit var setting: WebSettings
-    var isChecked = false
-    var findingInProgress = false
-    var readEnable = false
+    private var scannedNumber by mutableStateOf(0)
+    private var rfPower by mutableStateOf(30)
+    private var continious by mutableStateOf(false)
+    private var isScanning by mutableStateOf(false)
+    private lateinit var product: SearchResultProducts
+    private var scanningJob: Job? = null
+    private var matchedEpcTable = mutableListOf<String>()
+    private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+    private lateinit var rf: RFIDWithUHFUART
 
-    var header = 0
-    var companyNumber = 0
-    var itemNumber: Long = 0
-    var flag = false
-    var EPCInt1: Long = 0
-    var EPCInt2: Long = 0
-    var EPCInt3: Long = 0
-    lateinit var EPCHexString: String
-    lateinit var EPCBinaryString: String
-    lateinit var EPCBinaryString1: String
-    lateinit var EPCBinaryString2: String
-    lateinit var EPCBinaryString3: String
-    
-    var databaseBackgroundTaskHandler = Handler()
-    
-    var databaseBackgroundTask: Runnable = object : Runnable {
-        
-        @SuppressLint("SetTextI18n")
-        override fun run() {
-            
-            if (findingInProgress) {
-                
-                var uhfTagInfo: UHFTAGInfo?
-                
-                while (true) {
-                    
-                    uhfTagInfo = rf.readTagFromBuffer()
-                    if (uhfTagInfo != null) {
-                        ePCTableFinding[uhfTagInfo.epc] = 1
-                    } else {
-                        break
-                    }
-                }
-                if (ePCTableFinding.isNotEmpty()) {
-                    flag = false
-                    for ((key) in ePCTableFinding) {
-                        EPCHexString = key
-                        EPCInt1 = EPCHexString.substring(0, 8).toLong(16)
-                        EPCInt2 = EPCHexString.substring(8, 16).toLong(16)
-                        EPCInt3 = EPCHexString.substring(16, 24).toLong(16)
-                        EPCBinaryString1 = java.lang.Long.toBinaryString(EPCInt1)
-                        EPCBinaryString1 = String.format("%32s", EPCBinaryString1).replace(" ".toRegex(), "0")
-                        EPCBinaryString2 = java.lang.Long.toBinaryString(EPCInt2)
-                        EPCBinaryString2 = String.format("%32s", EPCBinaryString2).replace(" ".toRegex(), "0")
-                        EPCBinaryString3 = java.lang.Long.toBinaryString(EPCInt3)
-                        EPCBinaryString3 = String.format("%32s", EPCBinaryString3).replace(" ".toRegex(), "0")
-                        EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3
-                        header = EPCBinaryString.substring(0, 8).toInt(2)
-                        companyNumber = EPCBinaryString.substring(14, 26).toInt(2)
-                        itemNumber = EPCBinaryString.substring(26, 58).toLong(2)
-                        if (companyNumber == 100) {
-                            stuffCode = stuffPrimaryCode.toLong()
-                        } else if (companyNumber == 101) {
-                            stuffCode = stuffRFIDCode.toLong()
-                        }
-                        if (header == 48 && itemNumber == stuffCode) {
-                            epcTableFindingMatched[EPCHexString] = 1
-                            flag = true
-                        }
-                    }
-                    finding_sub_number_text.text = epcTableFindingMatched.size.toString()
-
-                    status.text = "در حال جست و جو ..."
-                    for ((key) in epcTableFindingMatched) {
-                        status.text = "${status.text}" + "\n$key"
-                    }
-                    if (flag) {
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                    }
-                    ePCTableFinding.clear()
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000)
-                } else {
-                    databaseBackgroundTaskHandler.postDelayed(this, 1000)
-                }
-            }
-        }
-    }
-
+    @ExperimentalCoilApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_finding_sub)
-        status = findViewById(R.id.finding_sub_epc_text)
-        stuffSpec = findViewById(R.id.findingSubProductSpec)
-        picture = findViewById(R.id.pictureView0)
-        powerText = findViewById(R.id.findingPowerTextView0)
-        powerSeekBar = findViewById(R.id.findingPowerSeekBar0)
-        option = findViewById(R.id.checkBox0)
-        powerSeekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
-            @SuppressLint("SetTextI18n")
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (!readEnable) {
-                    when (progress) {
-                        0 -> findingPower = 5
-                        1 -> findingPower = 10
-                        2 -> findingPower = 15
-                        3 -> findingPower = 20
-                        4 -> findingPower = 30
-                    }
-                    powerText.text = "قدرت سیگنال($findingPower)"
-                } else {
-                    rf.stopInventory()
-                    when (progress) {
-                        0 -> findingPower = 5
-                        1 -> findingPower = 10
-                        2 -> findingPower = 15
-                        3 -> findingPower = 20
-                        4 -> findingPower = 30
-                    }
-                    powerText.text = "قدرت سیگنال($findingPower)"
-                    while (!rf.setPower(findingPower)) {
-                    }
-                    rf.startInventoryTag(0, 0, 0)
-                }
-            }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
-        })
+        setContent {
+            Page()
+        }
+
+        rfInit()
+
+        val stuff = JSONObject(intent.getStringExtra("product")!!)
+        product = SearchResultProducts(
+            name = stuff.getString("productName"),
+            productCode = stuff.getString("K_Bar_Code"),
+            kbarcode = stuff.getString("kbarcode"),
+            originalPrice = stuff.getString("OrigPrice"),
+            salePrice = stuff.getString("SalePrice"),
+            shoppingNumber = stuff.getInt("dbCountStore"),
+            warehouseNumber = stuff.getInt("dbCountDepo"),
+            imageUrl = stuff.getString("ImgUrl"),
+            primaryKey = stuff.getLong("BarcodeMain_ID"),
+            rfidKey = stuff.getLong("RFID"),
+            color = stuff.getString("Color"),
+            size = stuff.getString("Size")
+        )
+    }
+
+    private fun rfInit() {
+
         try {
             rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        finding_sub_toolbar.setNavigationOnClickListener {
-            back()
-        }
+        setRFEpcMode()
     }
 
-    @SuppressLint("SetTextI18n")
-    override fun onResume() {
-        super.onResume()
-        while (!rf.setPower(findingPower)) {
+    private fun setRFEpcMode(): Boolean {
+        for (i in 0..11) {
+            if (rf.setEPCMode()) {
+                return true
+            }
         }
-        try {
-            stuff = JSONObject(intent.getStringExtra("product")!!)
-            stuffSpec.text = """
-                ${stuff.getString("productName")}
-                کد محصول: ${stuff.getString("K_Bar_Code")}
-                بارکد: ${stuff.getString("KBarCode")}
-                قیمت مصرف کننده: ${stuff.getString("OrigPrice")}
-                قیمت فروش: ${stuff.getString("SalePrice")}
-                موجودی فروشگاه: ${stuff.getString("dbCountStore")}
-                موجودی انبار: ${stuff.getString("dbCountDepo")}
-                """.trimIndent()
-            picture.loadUrl(stuff.getString("ImgUrl"))
-            stuffPrimaryCode = stuff.getString("BarcodeMain_ID")
-            stuffRFIDCode = stuff.getString("RFID")
-        } catch (e: JSONException) {
-            e.printStackTrace()
+        CoroutineScope(Main).launch {
+            Toast.makeText(
+                this@FindingProductSubActivity,
+                "مشکلی در سخت افزار پیش آمده است",
+                Toast.LENGTH_LONG
+            ).show()
         }
-        setting = picture.settings
-        setting.useWideViewPort = true
-        setting.loadWithOverviewMode = true
-        picture.isFocusable = false
-
-        when (findingPower) {
-            5 -> powerSeekBar.progress = 0
-            10 -> powerSeekBar.progress = 1
-            15 -> powerSeekBar.progress = 2
-            20 -> powerSeekBar.progress = 3
-            30 -> powerSeekBar.progress = 4
-        }
-        powerText.text = "قدرت سیگنال($findingPower)"
+        return false
     }
-    
-    @SuppressLint("SetTextI18n")
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
-            if (event.repeatCount == 0) {
-                status.text = ""
-                if (!readEnable) {
-                    ePCTableFinding.clear()
-                    if (!isChecked) {
-                        epcTableFindingMatched.clear()
-                        finding_sub_number_text.text = "0"
+
+        if (event.repeatCount == 0) {
+
+            if (keyCode == 280 || keyCode == 293 || keyCode == 139) {
+                if (!isScanning) {
+                    scanningJob = CoroutineScope(IO).launch {
+                        startFinding()
                     }
-                    while (!rf.setPower(findingPower)) {
-                    }
-                    readEnable = true
-                    rf.startInventoryTag(0, 0, 0)
-                    status.text = "در حال جست و جو ..."
-                    findingInProgress = true
-                    databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000)
                 } else {
-                    databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
-                    readEnable = false
-                    rf.stopInventory()
-                    findingInProgress = false
-                    flag = false
-                    for ((key) in ePCTableFinding) {
-                        EPCHexString = key
-                        EPCInt1 = EPCHexString.substring(0, 8).toLong(16)
-                        EPCInt2 = EPCHexString.substring(8, 16).toLong(16)
-                        EPCInt3 = EPCHexString.substring(16, 24).toLong(16)
-                        EPCBinaryString1 = java.lang.Long.toBinaryString(EPCInt1)
-                        EPCBinaryString1 = String.format("%32s", EPCBinaryString1).replace(" ".toRegex(), "0")
-                        EPCBinaryString2 = java.lang.Long.toBinaryString(EPCInt2)
-                        EPCBinaryString2 = String.format("%32s", EPCBinaryString2).replace(" ".toRegex(), "0")
-                        EPCBinaryString3 = java.lang.Long.toBinaryString(EPCInt3)
-                        EPCBinaryString3 = String.format("%32s", EPCBinaryString3).replace(" ".toRegex(), "0")
-                        EPCBinaryString = EPCBinaryString1 + EPCBinaryString2 + EPCBinaryString3
-                        header = EPCBinaryString.substring(0, 8).toInt(2)
-                        companyNumber = EPCBinaryString.substring(14, 26).toInt(2)
-                        itemNumber = EPCBinaryString.substring(26, 58).toLong(2)
-                        if (companyNumber == 100) {
-                            stuffCode = stuffPrimaryCode.toLong()
-                        } else if (companyNumber == 101) {
-                            stuffCode = stuffRFIDCode.toLong()
-                        }
-                        if (header == 48 && itemNumber == stuffCode) {
-                            epcTableFindingMatched[EPCHexString] = 1
-                            flag = true
-                        }
-                    }
-                    finding_sub_number_text.text = epcTableFindingMatched.size.toString()
-                    status.text = ""
-                    for ((key) in epcTableFindingMatched) {
-                        status.text = "${status.text}" + "\n$key"
-                    }
-                    if (flag) {
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                    }
-                    ePCTableFinding.clear()
+                    stopFinding()
                 }
+            } else if (keyCode == 4) {
+                back()
             }
-        } else if (keyCode == 4) {
-            back()
         }
         return true
     }
 
-    override fun onPause() {
-        super.onPause()
-        if (readEnable) {
-            rf.stopInventory()
-            readEnable = false
+    private suspend fun startFinding() {
+
+        isScanning = true
+        if (!setRFPower(rfPower)) {
+            isScanning = false
+            return
+        }
+
+        if (!continious) {
+            matchedEpcTable.clear()
+        }
+
+        rf.startInventoryTag(0, 0, 0)
+
+        while (isScanning) {
+
+            var epcTable = mutableListOf<String>()
+            var found = false
+
+            while (true) {
+                rf.readTagFromBuffer()?.let {
+                    epcTable.add(it.epc)
+                } ?: break
+            }
+            epcTable = epcTable.distinct().toMutableList()
+
+            epcTable = epcTable.filter {
+                it.startsWith("30")
+            }.toMutableList()
+
+            epcTable.forEach {
+                val decodedEpc = epcDecoder(it)
+                if ((decodedEpc.company == 101 && decodedEpc.item == product.rfidKey) ||
+                    (decodedEpc.company == 100 && decodedEpc.item == product.primaryKey)
+                ) {
+                    matchedEpcTable.add(it)
+                    matchedEpcTable = matchedEpcTable.distinct().toMutableList()
+                    found = true
+                }
+            }
+
+            if(found) {
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+            }
+
+            scannedNumber = matchedEpcTable.size
+
+            delay(1000)
+        }
+
+        rf.stopInventory()
+    }
+
+    private fun epcDecoder(epc: String): EPC {
+
+        val binaryEPC =
+            String.format("%64s", epc.substring(0, 16).toULong(16).toString(2))
+                .replace(" ".toRegex(), "0") +
+                    String.format("%32s", epc.substring(16, 24).toULong(16).toString(2))
+                        .replace(" ".toRegex(), "0")
+        val result = EPC(0, 0, 0, 0, 0L, 0L)
+        result.header = binaryEPC.substring(0, 8).toInt(2)
+        result.partition = binaryEPC.substring(8, 11).toInt(2)
+        result.filter = binaryEPC.substring(11, 14).toInt(2)
+        result.company = binaryEPC.substring(14, 26).toInt(2)
+        result.item = binaryEPC.substring(26, 58).toLong(2)
+        result.serial = binaryEPC.substring(58, 96).toLong(2)
+        return result
+    }
+
+    data class EPC(
+        var header: Int,
+        var filter: Int,
+        var partition: Int,
+        var company: Int,
+        var item: Long,
+        var serial: Long
+    )
+
+    private fun setRFPower(power: Int): Boolean {
+        if (rf.power != power) {
+
+            for (i in 0..11) {
+                if (rf.setPower(power)) {
+                    return true
+                }
+            }
+            CoroutineScope(Main).launch {
+                Toast.makeText(
+                    this@FindingProductSubActivity,
+                    "مشکلی در سخت افزار پیش آمده است",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return false
+        } else {
+            return true
         }
     }
 
-    fun clearEPCs(view: View?) {
-        ePCTableFinding.clear()
-        epcTableFindingMatched.clear()
-        status.text = ""
-        finding_sub_number_text.text = "0"
+    override fun onPause() {
+        super.onPause()
+        if (isScanning) {
+            rf.stopInventory()
+            isScanning = false
+        }
     }
 
-    fun optionChange(view: View?) {
-        isChecked = option.isChecked
+    private fun clearEPCs() {
+        matchedEpcTable.clear()
+        scannedNumber = 0
+    }
+
+    private fun stopFinding() {
+
+        scanningJob?.let {
+            if (it.isActive) {
+                isScanning = false // cause scanning routine loop to stop
+                runBlocking { it.join() }
+            }
+        }
     }
 
     private fun back() {
-        if (readEnable) {
-            rf.stopInventory()
-            readEnable = false
-        }
-        findingInProgress = false
-        databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask)
+        stopFinding()
         finish()
     }
 
-    companion object {
-        lateinit var stuffPrimaryCode: String
-        lateinit var stuffRFIDCode: String
+    @ExperimentalCoilApi
+    @Composable
+    fun Page() {
+        MyApplicationTheme {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Scaffold(
+                    topBar = { AppBar() },
+                    content = { Content() }
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun AppBar() {
+        TopAppBar(
+            navigationIcon = {
+                IconButton(onClick = { back() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                        contentDescription = ""
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "جست و جو",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(),
+                    textAlign = TextAlign.Right
+                )
+            },
+            actions = {
+                IconButton(onClick = { clearEPCs() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
+                        contentDescription = ""
+                    )
+                }
+            }
+        )
+    }
+
+    @ExperimentalCoilApi
+    @Composable
+    fun Content() {
+
+        val modifier = Modifier
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .wrapContentWidth()
+
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            Column(
+                modifier = Modifier
+                    .padding(start = 5.dp, end = 5.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colors.onPrimary,
+                        shape = MaterialTheme.shapes.medium
+                    ),
+            ) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Text(
+                        text = "قدرت آنتن($rfPower)",
+                        modifier = Modifier
+                            .padding(end = 8.dp, start = 8.dp)
+                            .align(Alignment.CenterVertically),
+                        textAlign = TextAlign.Center
+                    )
+                    Slider(
+                        modifier = Modifier.padding(end = 8.dp, start = 8.dp),
+                        value = rfPower.toFloat(),
+                        valueRange = 5f..30f,
+                        onValueChange = {
+                            rfPower = it.toInt()
+                        })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Text(text = "پیداشده: $scannedNumber")
+                    ContiniousSwitch()
+                }
+
+                if (isScanning) {
+                    Row(
+                        modifier = Modifier
+                            .padding(32.dp)
+                            .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colors.primary)
+                    }
+                }
+            }
+
+            Column(
+                Modifier
+                    .padding(start = 5.dp, end = 5.dp, top = 8.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colors.onPrimary,
+                        shape = MaterialTheme.shapes.medium
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colors.onPrimary,
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        .fillMaxWidth()
+                        .padding(5.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = product.name,
+                            fontSize = 20.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            color = colorResource(id = R.color.DarkSlateGray)
+                        )
+                        Text(
+                            text = product.kbarcode,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            color = colorResource(id = R.color.Goldenrod)
+                        )
+                        Text(
+                            text = product.originalPrice,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            color = colorResource(id = R.color.Brown)
+                        )
+                        Text(
+                            text = product.salePrice,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            color = colorResource(id = R.color.DarkGreen)
+                        )
+                        Text(
+                            text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            //color = colorResource(id = R.color.Brown)
+                        )
+                        Text(
+                            text = "موجودی انبار: " + product.warehouseNumber.toString(),
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            //color = colorResource(id = R.color.Brown)
+                        )
+                    }
+
+                    Image(
+                        painter = rememberImagePainter(data = product.imageUrl),
+                        contentDescription = "",
+                        modifier = Modifier
+                            .height(200.dp)
+                            .padding(vertical = 4.dp, horizontal = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ContiniousSwitch() {
+        Row {
+            Text(text = "پیوسته", modifier = Modifier.padding(end = 4.dp, bottom = 10.dp))
+            Switch(checked = continious, onCheckedChange = {
+                continious = it
+            })
+        }
+    }
+
+    @Composable
+    @Preview
+    fun PreviewFun() {
+        AppBar()
     }
 }

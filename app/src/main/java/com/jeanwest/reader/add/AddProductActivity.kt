@@ -1,9 +1,7 @@
 package com.jeanwest.reader.add
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -90,7 +88,6 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             "" +  it.get(Calendar.YEAR) + "-" + (it.get(Calendar.MONTH) + 1) + "-" + it.get(Calendar.DAY_OF_MONTH)
         }
 
-
         val util = JalaliDate()
         fileName = util.currentShamsidate
 
@@ -125,11 +122,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it)
             row.createCell(1).setCellValue(1.toDouble())
-            var dir = File(this.getExternalFilesDir(null), "/RFID")
-            dir.mkdir()
-            dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
-            dir.mkdir()
-
+            val dir = File(this.getExternalFilesDir(null), "/")
             val outFile = File(dir, "$fileName.xlsx")
 
             val outputStream = FileOutputStream(outFile.absolutePath)
@@ -289,11 +282,13 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                 return true
             }
             if (counterValue >= counterMaxValue) {
-                Toast.makeText(
-                    this@AddProductActivity,
-                    "تنظیمات نامعتبر است",
-                    Toast.LENGTH_LONG
-                ).show()
+                CoroutineScope(Main).launch {
+                    Toast.makeText(
+                        this@AddProductActivity,
+                        "تنظیمات نامعتبر است",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 return true
             }
 

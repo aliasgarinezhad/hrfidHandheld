@@ -227,8 +227,8 @@ public class JalaliDate {
         Locale loc = new Locale("en_US");
         JalaliDate util = new JalaliDate();
         SolarCalendar sc = util.new SolarCalendar();
-        return String.valueOf(sc.year) + "/" + String.format(loc, "%02d",
-                sc.month) + "/" + String.format(loc, "%02d", sc.date);
+        return String.valueOf(sc.year) + "-" + String.format(loc, "%02d",
+                sc.month) + "-" + String.format(loc, "%02d", sc.date);
     }
     public String day_of_week() {
         Date MiladiDate = new Date();
