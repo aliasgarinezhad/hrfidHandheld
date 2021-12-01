@@ -1,10 +1,9 @@
 package com.jeanwest.reader.add
 
-import com.jeanwest.reader.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -33,13 +32,14 @@ import com.google.gson.Gson
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.launch
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import java.io.File
@@ -85,7 +85,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         super.onResume()
 
         fileName = Calendar.getInstance(TimeZone.getDefault()).let {
-            "" +  it.get(Calendar.YEAR) + "-" + (it.get(Calendar.MONTH) + 1) + "-" + it.get(Calendar.DAY_OF_MONTH)
+            "" + it.get(Calendar.YEAR) + "-" + (it.get(Calendar.MONTH) + 1) + "-" + it.get(Calendar.DAY_OF_MONTH)
         }
 
         val util = JalaliDate()
@@ -355,15 +355,15 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
 
-        for (i in 0..1000) {
+        for (i in 0..600) {
             rf.readTagFromBuffer()?.also {
                 epcs.add(it.epc)
                 tidMap[it.epc] = it.tid
             } ?: break
         }
 
-        if (epcs.size > 990) {
-            Thread.sleep(100)
+        if (epcs.size > 590) {
+            Thread.sleep(10)
             rf.startInventoryTag(0, 0, 0)
             startBarcodeScan()
             barcodeIsScanning = true
@@ -389,21 +389,20 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
             epcs.clear()
             tidMap.clear()
-            Thread.sleep(100)
+            Thread.sleep(10)
             rf.startInventoryTag(0, 0, 0)
-            Thread.sleep(900)
 
-            for (i in 0..15) {
-
+            val timeout = System.currentTimeMillis() + 500
+            while (epcs.size < 5 && System.currentTimeMillis() < timeout ) {
                 rf.readTagFromBuffer()?.also {
                     epcs.add(it.epc)
                     tidMap[it.epc] = it.tid
-                } ?: break
+                }
             }
 
             rf.stopInventory()
 
-            if (epcs.size < 10) {
+            if (epcs.size < 3) {
                 result += "هیچ تگی یافت نشد"
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = R.color.Brown
@@ -445,6 +444,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             if (!setRFPower(30)) {
                 return
             }
+
             val itemNumber = it.getString("RFID").toLong()// 32 bit
             val serialNumber = counterValue // 38 bit
 
@@ -486,6 +486,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             counter = barcodeTable.size
             numberOfWrittenRfTags = counterValue - counterMinValue
             saveMemory()
+
         }, {
             result += "خطا در دیتابیس" + it.message
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
