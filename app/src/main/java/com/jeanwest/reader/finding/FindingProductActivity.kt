@@ -47,83 +47,81 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
     private var filteredUiList by mutableStateOf(mutableListOf<SearchResultProducts>())
     private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
     private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
-    private var storeFilterValues by mutableStateOf(mutableListOf(
-            "0",
-            "5",
-            "10",
-            "11",
-            "17",
-            "21",
-            "22",
-            "24",
-            "29",
-            "34",
-            "38",
-            "39",
-            "41",
-            "42",
-            "44",
-            "46",
-            "47",
-            "48",
-            "49",
-            "50",
-            "51",
-            "52",
-            "53",
-            "54",
-            "55",
-            "56",
-            "57",
-            "58",
-            "59",
-            "60",
-            "61",
-            "64",
-            "66",
-            "67",
-            "68",
-            "69",
-            "70",
-            "71",
-            "73",
-            "74",
-            "75",
-            "81",
-            "82",
-            "83",
-            "84",
-            "86",
-            "87",
-            "88",
-            "89",
-            "91",
-            "92",
-            "93",
-            "94",
-            "95",
-            "97",
-            "98",
-            "99",
-            "101",
-            "103",
-            "104",
-            "105",
-            "106",
-            "107",
-            "108",
-            "109",
-            "110",
-            "111",
-            "112"
+    private var storeFilterValues by mutableStateOf(mutableMapOf(
+            "0" to "دفتر مركزي",
+            "5" to "انبار (بالنو و ساموئل)",
+            "10" to "كرج مهستان",
+            "11" to "انبار (لوازم مصرفي)",
+            "17" to "شيراز ستارخان",
+            "20" to "دفتر رويال",
+            "21" to "اصفهان سيتي 1",
+            "22" to "تهران ميرداماد",
+            "24" to "رشت گلسار",
+            "29" to "تهران پالاديوم",
+            "34" to "نمك آبرود",
+            "38" to "انبار (اصفهان)",
+            "39" to "شيراز معالي آباد",
+            "41" to "تهران سعادت آباد",
+            "42" to "تهران كورش",
+            "44" to "فروشگاه مركزي",
+            "46" to "تهران آرتميس",
+            "47" to "اصفهان سيتي 2",
+            "48" to "بال كافه ميرداماد",
+            "49" to "بالكافه اصفهان",
+            "50" to "بال كافه نمك آبرود",
+            "51" to "انبار (شيراز)",
+            "52" to "تبريز اطلس",
+            "53" to "تهران بام لند",
+            "54" to "آمل اكسين",
+            "55" to "بال كافه آمل",
+            "56" to "اهواز تشريفات",
+            "57" to "بال كافه ستارخان",
+            "58" to "تهران امير 2",
+            "59" to "مشهد سجاد",
+            "60" to "تهران جردن",
+            "61" to "قم بازار شهر",
+            "64" to "انبار (ضايعات)",
+            "66" to "تهران سانا",
+            "67" to "تهران شميران",
+            "68" to "تهران مگامال 2",
+            "69" to "تهران سيوان",
+            "70" to "كرج اكومال",
+            "71" to "تهران ايران مال 1",
+            "73" to "تهران اپال",
+            "74" to "تبريز لاله پارك",
+            "75" to "اروميه سيتاديوم",
+            "81" to "انبار (تبريز)",
+            "82" to "انبار (اهواز)",
+            "83" to "كرج مهراد",
+            "84" to "بروجرد ديپلمات",
+            "86" to "تهران برج نگار",
+            "87" to "انزلي هپي مارت",
+            "88" to "اروميه سيتاديوم بچگانه",
+            "89" to "بال كافه شيراز خاكشناسي",
+            "91" to "كترينگ",
+            "92" to "مشهد(منزل سازماني)",
+            "93" to "تبريز (منزل سازماني)",
+            "94" to "شيراز (منزل سازماني)",
+            "95" to "اصفهان (منزل سازماني)",
+            "97" to "تهران كارخانه",
+            "98" to "دفتر امارت",
+            "99" to "تهران (منزل سازماني)",
+            "101" to "كرج مهراد بچگانه",
+            "103" to "شيراز شيرازمال",
+            "104" to "مشهد سيتي استار",
+            "105" to "اصفهان فدك مال",
+            "107" to "تهران ايران مال جين وست-باني مد G1/G2",
+            "108" to "تهران ايران مال ديجي واش G0",
+            "109" to "انبار (اروميه)",
+            "110" to "انبار(انزلي)",
+            "111" to "اهواز پارك سنتر",
+            "112" to "اپليكيشن جين وست"
         ))
     private var wareHouseFilterValues by mutableStateOf(mutableListOf("همه", "فروشگاه", "انبار"))
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue by mutableStateOf("68")
     private var wareHouseFilterValue by mutableStateOf("همه")
-
-    //11531052J-2410-L
 
     private var barcode2D = Barcode2D(this)
 
@@ -588,7 +586,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
 
         Box {
             Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = storeFilterValue)
+                storeFilterValues[storeFilterValue]?.let { Text(text = it) }
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
 
@@ -601,10 +599,10 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
                 storeFilterValues.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        storeFilterValue = it
+                        storeFilterValue = it.key
                         getSimilarProducts()
                     }) {
-                        Text(text = it)
+                        Text(text = it.value)
                     }
                 }
             }

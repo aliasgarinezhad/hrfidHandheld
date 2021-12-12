@@ -2,6 +2,7 @@ package com.jeanwest.reader
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -12,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -71,10 +71,6 @@ class UserLoginActivity : ComponentActivity() {
         logInRequest.add(jsonRequest)
     }
 
-    private fun back() {
-        finish()
-    }
-
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -106,9 +102,7 @@ class UserLoginActivity : ComponentActivity() {
 
             title = {
                 Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 0.dp, end = 60.dp),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -117,18 +111,6 @@ class UserLoginActivity : ComponentActivity() {
                     )
                 }
             },
-            navigationIcon = {
-                Box(
-                    modifier = Modifier.width(60.dp)
-                ) {
-                    IconButton(onClick = { back() }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
-                            contentDescription = ""
-                        )
-                    }
-                }
-            }
         )
     }
 

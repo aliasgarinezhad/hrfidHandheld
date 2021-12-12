@@ -56,6 +56,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Stack
 import kotlin.math.abs
 
 
@@ -1121,6 +1122,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         applicationContext.startActivity(shareIntent)
     }
 
+    @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Page() {
@@ -1165,7 +1167,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = "پیوست فایل",
+                    text = "شمارش",
                     modifier = Modifier
                         .padding(start = 35.dp)
                         .fillMaxSize()

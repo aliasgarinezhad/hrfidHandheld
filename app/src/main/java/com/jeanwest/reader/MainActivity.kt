@@ -10,12 +10,8 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +20,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -32,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
-import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.add.AddProductActivity
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
 import com.jeanwest.reader.fileAttachment.FileAttachmentActivity
@@ -42,11 +39,11 @@ import com.jeanwest.reader.transfer.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
-import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
 
+    private var openAccountDialog by mutableStateOf(false)
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences
 
@@ -87,6 +84,26 @@ class MainActivity : ComponentActivity() {
         }
 
         rfInit()
+
+        loadMemory()
+
+        if (username == "") {
+            val intent =
+                Intent(this@MainActivity, UserLoginActivity::class.java)
+            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        }
+    }
+
+    private fun loadMemory() {
+
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        if (memory.getString("username", "") != "") {
+
+            username = memory.getString("username", "")!!
+            token = memory.getString("accessToken", "")!!
+        }
     }
 
     private fun rfInit() {
@@ -164,6 +181,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             MainMenu()
         }
+
+        if (username == "") {
+            val intent =
+                Intent(this@MainActivity, UserLoginActivity::class.java)
+            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -183,36 +207,35 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainMenu() {
 
-        val scaffoldState = rememberScaffoldState()
-        val scope = rememberCoroutineScope()
-
         MyApplicationTheme {
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
 
                 Scaffold(
-                    scaffoldState = scaffoldState,
                     topBar = {
                         TopAppBar(
                             title = {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(start = 0.dp, end = 60.dp),
+                                        .padding(start = 40.dp, end = 0.dp),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "مدیریت محصولات", textAlign = TextAlign.Center,
+                                        "Jeanswest", textAlign = TextAlign.Center,
                                     )
                                 }
                             },
-                            navigationIcon = {
-
-                                IconButton(
-                                    onClick = { scope.launch { scaffoldState.drawerState.open() } },
-                                ) {
-                                    Icon(Icons.Filled.Menu, "")
+                            actions = {
+                                IconButton(onClick = {
+                                    openAccountDialog = true
+                                })
+                                {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_baseline_person_24),
+                                        contentDescription = "",
+                                    )
                                 }
                             }
                         )
@@ -222,6 +245,10 @@ class MainActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier.padding(vertical = 40.dp, horizontal = 20.dp)
                         ) {
+
+                            if (openAccountDialog) {
+                                AccountAlertDialog()
+                            }
 
                             Row(
                                 modifier = Modifier.weight(1F)
@@ -304,7 +331,7 @@ class MainActivity : ComponentActivity() {
                                         .weight(1F)
                                         .fillMaxSize(),
                                 ) {
-                                    FileAttachment()
+                                    Count()
                                 }
 
                                 Box(
@@ -323,32 +350,14 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-
-                    drawerContent = {
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1F)
-                        ) {}
-
-                        Column(
-                            modifier = Modifier
-                                .weight(2F)
-                                .background(color = MaterialTheme.colors.background)
-                        ) {
-                            LoginButton()
-                            AboutUsButton()
-                        }
-                    },
-                    drawerBackgroundColor = MaterialTheme.colors.primary,
-                    drawerContentColor = MaterialTheme.colors.onSecondary,
                 )
             }
         }
     }
 
     @Composable
-    fun FileAttachment() {
+    fun Count() {
+
         Button(
             onClick = {
                 if (memory.getString("username", "") == "") {
@@ -379,12 +388,13 @@ class MainActivity : ComponentActivity() {
                 )
                 Spacer(modifier = Modifier.weight(0.5F))
                 Text(
-                    "پیوست فایل",
+                    "شمارش",
                     modifier = Modifier
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
@@ -427,95 +437,11 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
-    }
-
-    @Composable
-    fun LoginButton() {
-
-        var loginButtonText by remember { mutableStateOf("") }
-
-        memory = PreferenceManager.getDefaultSharedPreferences(this)
-
-        if (memory.getString("username", "") != "") {
-
-            username = memory.getString("username", "")!!
-            token = memory.getString("accessToken", "")!!
-            loginButtonText = "خروج از حساب $username"
-        } else {
-
-            loginButtonText = "ورود به حساب کاربری"
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    if (memory.getString("username", "") != "") {
-
-                        val editor: SharedPreferences.Editor = memory.edit()
-                        editor.putString("accessToken", "")
-                        editor.putString("username", "")
-                        editor.apply()
-                        username = ""
-                        token = ""
-                        loginButtonText = "ورود به حساب کاربری"
-                    } else {
-
-                        val intent =
-                            Intent(this@MainActivity, UserLoginActivity::class.java)
-                        startActivity(intent)
-                    }
-                }
-                .padding(start = 20.dp, top = 10.dp, bottom = 10.dp)
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.ic_baseline_person_24),
-                tint = colorResource(id = R.color.MediumAquamarine),
-                contentDescription = "",
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Text(
-                text = loginButtonText,
-                textAlign = TextAlign.Center,
-                fontSize = 18.sp
-            )
-        }
-    }
-
-    @Composable
-    fun AboutUsButton() {
-
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                val intent =
-                    Intent(this@MainActivity, AboutUsActivity::class.java)
-                startActivity(intent)
-            }
-            .padding(start = 20.dp, top = 10.dp, bottom = 10.dp)) {
-
-            Icon(
-                painter = painterResource(R.drawable.ic_baseline_info_24),
-                tint = colorResource(id = R.color.DarkBlue),
-                contentDescription = "",
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Text(
-                "درباره ما",
-                textAlign = TextAlign.Center,
-                fontSize = 18.sp
-            )
-        }
-
     }
 
     @Composable
@@ -555,7 +481,8 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
@@ -598,7 +525,8 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
@@ -636,7 +564,8 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
@@ -681,10 +610,71 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.b_titr))
                 )
             }
         }
+    }
+
+    @Composable
+    fun AccountAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openAccountDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = username,
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 22.sp,
+                        fontFamily = FontFamily(Font(R.font.b_titr))
+                    )
+
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                        Button(onClick = {
+                            openAccountDialog = false
+
+                            val intent =
+                                Intent(this@MainActivity, UserLoginActivity::class.java)
+                            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "به روز رسانی")
+                        }
+                        Button(
+                            onClick = {
+                                openAccountDialog = false
+                                val editor: SharedPreferences.Editor = memory.edit()
+                                editor.putString("accessToken", "")
+                                editor.putString("username", "")
+                                editor.apply()
+                                username = ""
+                                token = ""
+                                val intent =
+                                    Intent(this@MainActivity, UserLoginActivity::class.java)
+                                startActivity(intent)
+                            },
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(text = "خروج از حساب")
+                        }
+                    }
+                }
+            }
+        )
     }
 
     @Preview(showBackground = true)
