@@ -1,4 +1,4 @@
-package com.jeanwest.reader.add
+package com.jeanwest.reader.write
 
 import org.junit.Test
 

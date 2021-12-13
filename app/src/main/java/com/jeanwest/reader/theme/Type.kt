@@ -12,21 +12,25 @@ import com.jeanwest.reader.R
 // Set of Material typography styles to start with
 val Typography = Typography(
     body1 = TextStyle(
-        fontFamily = FontFamily(Font(R.font.b_mitra)),
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
-        fontSize = 18.sp
+        fontSize = 14.sp
     ),
-    /* Other default text styles to override
+    /* Other default text styles to override*/
     button = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.W500,
         fontSize = 14.sp
     ),
     caption = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp
+    ),
+    defaultFontFamily = FontFamily(Font(R.font.sans_regular)),
+    h1 = TextStyle(
+        fontFamily = FontFamily(Font(R.font.sans_bold)),
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp
     )
-*/
-
 )

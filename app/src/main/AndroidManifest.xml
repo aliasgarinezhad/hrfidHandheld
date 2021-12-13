@@ -20,7 +20,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".fileAttachment.FileAttachmentActivity"
+            android:name=".count.CountActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -41,16 +41,16 @@
         <activity android:name=".transfer.TransferenceActivity" />
         <activity android:name=".transfer.TransferenceActivityLogIn" />
         <activity android:name=".UserLoginActivity" />
-        <activity android:name=".finding.FindingProductSubActivity" />
-        <activity android:name=".finding.FindingProductActivity" />
+        <activity android:name=".search.SearchSubActivity" />
+        <activity android:name=".search.SearchActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningSubResultActivity" />
-        <activity android:name=".add.AddProductSettingActivity" />
+        <activity android:name=".write.WriteSettingActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
         <activity android:name=".aboutUs.AboutUsActivity" />
         <activity android:name=".warehouseScanning.WareHouseScanningFindingProduct" />
         <activity android:name=".warehouseScanning.WarehouseScanningActivity" />
-        <activity android:name=".add.AddProductActivity" />
+        <activity android:name=".write.WriteActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

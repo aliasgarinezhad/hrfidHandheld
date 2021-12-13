@@ -1,4 +1,4 @@
-package com.jeanwest.reader.fileAttachment
+package com.jeanwest.reader.count
 
 import android.content.Intent
 import android.media.AudioManager
@@ -14,7 +14,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -56,11 +55,10 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.Stack
 import kotlin.math.abs
 
 
-class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
+class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private var lastScanEpcTable = mutableListOf<String>()
     private lateinit var rf: RFIDWithUHFUART
@@ -196,7 +194,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
         }
         CoroutineScope(Main).launch {
             Toast.makeText(
-                this@FileAttachmentActivity,
+                this@CountActivity,
                 "مشکلی در سخت افزار پیش آمده است",
                 Toast.LENGTH_LONG
             ).show()
@@ -555,7 +553,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             }
             CoroutineScope(Main).launch {
                 Toast.makeText(
-                    this@FileAttachmentActivity,
+                    this@CountActivity,
                     "مشکلی در سخت افزار پیش آمده است",
                     Toast.LENGTH_LONG
                 ).show()
@@ -608,12 +606,12 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
             if (excelBarcodes.isEmpty()) {
                 Toast.makeText(
-                    this@FileAttachmentActivity,
+                    this@CountActivity,
                     "هیچ بارکدی در فایل یافت نشد",
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
                     .show()
             }
         }) {
@@ -648,7 +646,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
+        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -716,7 +714,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
                     .show()
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
@@ -757,7 +755,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
+        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -781,7 +779,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             if (lastScanEpcTable.size == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@FileAttachmentActivity, response.toString(), Toast.LENGTH_LONG)
+                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
                     .show()
             }
         }) {
@@ -816,7 +814,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@FileAttachmentActivity)
+        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -1045,7 +1043,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                 row.createCell(4).setCellValue(it.matchedNumber.toDouble())
             }
 
-            if(it.KBarCode in signedProductCodes) {
+            if (it.KBarCode in signedProductCodes) {
                 row.createCell(5).setCellValue("نشانه دار")
             }
         }
@@ -1064,11 +1062,12 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
             if (it.scan == "کسری") {
                 val row = sheet2.createRow(sheet2.physicalNumberOfRows)
                 row.createCell(0).setCellValue(it.KBarCode)
-                row.createCell(1).setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
+                row.createCell(1)
+                    .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
                 row.createCell(2).setCellValue(it.category)
                 row.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
-                if(it.KBarCode in signedProductCodes) {
+                if (it.KBarCode in signedProductCodes) {
                     row.createCell(4).setCellValue("نشانه دار")
                 }
             }
@@ -1092,7 +1091,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                 row.createCell(2).setCellValue(it.category)
                 row.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
-                if(it.KBarCode in signedProductCodes) {
+                if (it.KBarCode in signedProductCodes) {
                     row.createCell(4).setCellValue("نشانه دار")
                 }
             }
@@ -1201,10 +1200,10 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                    .padding(start = 5.dp, end = 5.dp, top = 5.dp, bottom = 5.dp)
                     .background(
                         MaterialTheme.colors.onPrimary,
-                        shape = RoundedCornerShape(10.dp)
+                        shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()
             ) {
@@ -1241,15 +1240,28 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         text = "تعداد اسکن شده: $number",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(horizontal = 8.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .align(Alignment.CenterVertically),
                     )
 
-                    Row {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .padding(
+                                start =
+                                8.dp, end = 8.dp, bottom = 10.dp
+                            )
+                    ) {
+                        Row(modifier = Modifier.clickable { getZoneItems() }) {
+                            Icon(painterResource(id = R.drawable.ic_baseline_crop_16_9_24), "")
+                        }
+                    }
+
+                    Row(modifier = Modifier.align(Alignment.CenterVertically)) {
                         Text(
                             text = "بارکد",
                             modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp)
-                                .align(Alignment.CenterVertically),
+                                .padding(end = 4.dp, bottom = 10.dp),
                         )
 
                         Switch(
@@ -1262,11 +1274,6 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         )
                     }
 
-                    Box {
-                        Row(modifier = Modifier.clickable { getZoneItems() }) {
-                            Icon(painterResource(id = R.drawable.ic_baseline_crop_16_9_24), "")
-                        }
-                    }
                 }
 
                 Row(
@@ -1275,25 +1282,13 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "کسری: $shortagesNumber",
+                        text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
                     )
                     Text(
-                        text = "کد: $shortageCodesNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
-                    )
-                    Text(
-                        text = "اضافی: $additionalNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
-                    )
-                    Text(
-                        text = "کد: $additionalCodesNumber",
+                        text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
@@ -1336,7 +1331,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                                 } else {
                                     MaterialTheme.colors.primary
                                 },
-                                shape = RoundedCornerShape(10.dp)
+                                shape = MaterialTheme.shapes.small
                             )
                             .fillMaxWidth()
                             .combinedClickable(
@@ -1356,7 +1351,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
                         Column {
                             Text(
                                 text = uiList[i].name,
-                                fontSize = 20.sp,
+                                style = MaterialTheme.typography.h1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.Brown)
@@ -1364,7 +1359,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
                             Text(
                                 text = uiList[i].KBarCode,
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.DarkGreen)
@@ -1372,7 +1367,7 @@ class FileAttachmentActivity : ComponentActivity(), IBarcodeResult {
 
                             Text(
                                 text = uiList[i].result,
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.Goldenrod)

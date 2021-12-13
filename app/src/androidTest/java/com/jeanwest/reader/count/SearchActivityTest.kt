@@ -1,21 +1,20 @@
-package com.jeanwest.reader.fileAttachment
+package com.jeanwest.reader.count
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.MainActivity
-import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 
-class FileAttachmentTest {
+class SearchActivityTest {
 
     @get:Rule
     var activity = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun fileAttachmentFirstTest() {
-        activity.onNodeWithText("پیوست فایل").performClick()
+        activity.onNodeWithText("شمارش").performClick()
     }
 
 }

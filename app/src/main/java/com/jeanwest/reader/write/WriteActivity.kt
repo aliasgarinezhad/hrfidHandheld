@@ -1,16 +1,14 @@
-package com.jeanwest.reader.add
+package com.jeanwest.reader.write
 
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,6 +34,8 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.*
@@ -46,7 +46,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 
-class AddProductActivity : ComponentActivity(), IBarcodeResult {
+class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     private var barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
@@ -196,7 +196,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             }
             CoroutineScope(Main).launch {
                 Toast.makeText(
-                    this@AddProductActivity,
+                    this@WriteActivity,
                     "مشکلی در سخت افزار پیش آمده است",
                     Toast.LENGTH_LONG
                 ).show()
@@ -216,7 +216,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
         }
         CoroutineScope(Main).launch {
             Toast.makeText(
-                this@AddProductActivity,
+                this@WriteActivity,
                 "مشکلی در سخت افزار پیش آمده است",
                 Toast.LENGTH_LONG
             ).show()
@@ -284,7 +284,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             if (counterValue >= counterMaxValue) {
                 CoroutineScope(Main).launch {
                     Toast.makeText(
-                        this@AddProductActivity,
+                        this@WriteActivity,
                         "تنظیمات نامعتبر است",
                         Toast.LENGTH_LONG
                     ).show()
@@ -393,7 +393,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
             rf.startInventoryTag(0, 0, 0)
 
             val timeout = System.currentTimeMillis() + 500
-            while (epcs.size < 5 && System.currentTimeMillis() < timeout ) {
+            while (epcs.size < 5 && System.currentTimeMillis() < timeout) {
                 rf.readTagFromBuffer()?.also {
                     epcs.add(it.epc)
                     tidMap[it.epc] = it.tid
@@ -561,9 +561,12 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
             actions = {
 
-                IconButton(onClick = {
-                    openSettingDialog = true
-                }) {
+                IconButton(
+                    onClick = {
+                        openSettingDialog = true
+                    },
+                    modifier = Modifier.testTag("WriteSettingButton")
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_settings_24),
                         contentDescription = ""
@@ -587,7 +590,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = "اضافه کردن",
+                    text = "رایت",
                     modifier = Modifier
                         .wrapContentSize(),
                     textAlign = TextAlign.Right,
@@ -605,10 +608,10 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
                     .background(
                         MaterialTheme.colors.onPrimary,
-                        shape = RoundedCornerShape(10.dp)
+                        shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()
             ) {
@@ -654,7 +657,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "تعداد اضافه شده: $numberOfWrittenRfTags",
+                        text = "کل تگ های رایت شده: $numberOfWrittenRfTags",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(horizontal = 8.dp),
@@ -666,26 +669,32 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                         modifier = Modifier
                             .padding(horizontal = 8.dp),
                     )
+                }
 
-                    Row {
-                        Text(
-                            text = "اصلاح",
-                            modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp)
-                                .align(Alignment.CenterVertically),
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 5.dp)
+                ) {
+                    Text(
+                        text = "رایت مجدد تگ های استفاده شده",
+                        modifier = Modifier
+                            .padding(end = 4.dp, bottom = 10.dp)
+                            .align(Alignment.CenterVertically),
+                    )
 
-                        Switch(
-                            checked = switchValue,
-                            onCheckedChange = {
-                                edit = it
-                                switchValue = it
-                            },
-                            modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp)
-                                .testTag("switch"),
-                        )
-                    }
+                    Switch(
+                        checked = switchValue,
+                        onCheckedChange = {
+                            edit = it
+                            switchValue = it
+                        },
+                        modifier = Modifier
+                            .padding(end = 4.dp, bottom = 10.dp)
+                            .testTag("switch"),
+                    )
                 }
 
                 if (barcodeIsScanning || rfIsScanning) {
@@ -704,7 +713,7 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                     .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                     .background(
                         color = colorResource(id = resultColor),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()
                     .height(300.dp)
@@ -742,22 +751,24 @@ class AddProductActivity : ComponentActivity(), IBarcodeResult {
                         modifier = Modifier
                             .padding(top = 10.dp, start = 10.dp, end = 10.dp)
                             .align(Alignment.CenterHorizontally)
+                            .testTag("WritePasswordTextField")
                     )
 
                     Button(modifier = Modifier
                         .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally),
+                        .align(Alignment.CenterHorizontally)
+                        .testTag("WriteEnterWriteSettingButton"),
                         onClick = {
                             if (password == "123456") {
                                 openSettingDialog = false
                                 val nextActivityIntent = Intent(
-                                    this@AddProductActivity,
-                                    AddProductSettingActivity::class.java
+                                    this@WriteActivity,
+                                    WriteSettingActivity::class.java
                                 )
                                 startActivity(nextActivityIntent)
                             } else {
                                 Toast.makeText(
-                                    this@AddProductActivity,
+                                    this@WriteActivity,
                                     "رمز عبور اشتباه است",
                                     Toast.LENGTH_SHORT
                                 ).show()

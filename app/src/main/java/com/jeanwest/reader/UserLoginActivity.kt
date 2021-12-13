@@ -1,9 +1,8 @@
 package com.jeanwest.reader
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.view.KeyEvent
-import androidx.preference.PreferenceManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +15,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -44,9 +44,14 @@ class UserLoginActivity : ComponentActivity() {
             editor.putString("accessToken", response.getString("accessToken"))
             editor.putString("username", username)
             editor.apply()
-            finish()
 
-        },{ response ->
+            val intent =
+                Intent(this@UserLoginActivity, MainActivity::class.java)
+            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+
+
+        }, { response ->
 
             Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
             editor.putString("accessToken", "")
@@ -86,10 +91,15 @@ class UserLoginActivity : ComponentActivity() {
     @Composable
     fun Content() {
 
-        Column (modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             UsernameTextField()
             PasswordTextField()
-            Button(onClick = {signIn()}, modifier = Modifier.padding(top = 20.dp).align(Alignment.CenterHorizontally)) {
+            Button(
+                onClick = { signIn() },
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
                 Text(text = "ورود")
             }
         }

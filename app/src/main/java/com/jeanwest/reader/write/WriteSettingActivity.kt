@@ -1,7 +1,6 @@
-package com.jeanwest.reader.add
+package com.jeanwest.reader.write
 
 import android.view.KeyEvent
-import androidx.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -14,14 +13,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.preference.PreferenceManager
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
 
-class AddProductSettingActivity : ComponentActivity() {
+class WriteSettingActivity : ComponentActivity() {
 
     private var filterNumber by mutableStateOf(0)
     private var partitionNumber by mutableStateOf(0)
@@ -72,7 +73,7 @@ class AddProductSettingActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if(keyCode == 4) {
+        if (keyCode == 4) {
             back()
         }
         return true
@@ -98,17 +99,19 @@ class AddProductSettingActivity : ComponentActivity() {
     @Composable
     fun Content() {
 
-        Column (modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
             HeaderTextField()
             CompanyTextField()
             PasswordTextField()
             SerialNumberMinTextField()
             SerialNumberMaxTextField()
-            Row ( modifier = Modifier
-                .padding(top = 20.dp)
-                .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround) {
+            Row(
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
                 Text(text = "سریال:${serialNumber}")
                 FilterDropDownList()
                 PartitionDropDownList()
@@ -123,10 +126,12 @@ class AddProductSettingActivity : ComponentActivity() {
             mutableStateOf(false)
         }
 
-        val filterValues = listOf(0,1,2,3,4,5,6,7)
+        val filterValues = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier
+                .clickable { expanded = true }
+                .testTag("WriteSettingFilterDropDownList")) {
                 Text(text = "فیلتر($filterNumber)")
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -134,7 +139,8 @@ class AddProductSettingActivity : ComponentActivity() {
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
+                modifier = Modifier
+                    .wrapContentWidth()
             ) {
 
                 filterValues.forEach {
@@ -156,10 +162,12 @@ class AddProductSettingActivity : ComponentActivity() {
             mutableStateOf(false)
         }
 
-        val partitionValues = listOf(0,1,2,3,4,5,6,7)
+        val partitionValues = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier
+                .clickable { expanded = true }
+                .testTag("WriteSettingPartitionDropDownList")) {
                 Text(text = "پارتیشن($partitionNumber)")
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -167,7 +175,9 @@ class AddProductSettingActivity : ComponentActivity() {
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .testTag("WriteSettingPartitionDropDownList")
             ) {
 
                 partitionValues.forEach {
@@ -191,8 +201,9 @@ class AddProductSettingActivity : ComponentActivity() {
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth(),
-            label = {Text(text = "هدر")}
+                .fillMaxWidth()
+                .testTag("WriteSettingHeaderTextField"),
+            label = { Text(text = "هدر") }
         )
     }
 
@@ -205,8 +216,9 @@ class AddProductSettingActivity : ComponentActivity() {
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth(),
-            label = {Text(text = "سریال کارخانه")}
+                .fillMaxWidth()
+                .testTag("WriteSettingCompanyTextField"),
+            label = { Text(text = "سریال کارخانه") }
         )
     }
 
@@ -220,7 +232,7 @@ class AddProductSettingActivity : ComponentActivity() {
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
                 .fillMaxWidth(),
-            label = {Text(text = "رمز تگ ها")}
+            label = { Text(text = "رمز تگ ها") }
         )
     }
 
@@ -233,8 +245,9 @@ class AddProductSettingActivity : ComponentActivity() {
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth(),
-            label = {Text(text = "شروع بازه شماره سریال")}
+                .fillMaxWidth()
+                .testTag("WriteSettingSerialNumberMinTextField"),
+            label = { Text(text = "شروع بازه شماره سریال") }
         )
     }
 
@@ -247,8 +260,9 @@ class AddProductSettingActivity : ComponentActivity() {
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth(),
-            label = {Text(text = "پایان بازه شماره سریال")}
+                .fillMaxWidth()
+                .testTag("WriteSettingSerialNumberMaxTextField"),
+            label = { Text(text = "پایان بازه شماره سریال") }
         )
     }
 
@@ -266,7 +280,7 @@ class AddProductSettingActivity : ComponentActivity() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "تنظیمات پیشرفته", textAlign = TextAlign.Center,
+                        "تنظیمات رایت", textAlign = TextAlign.Center,
                     )
                 }
             },
@@ -274,7 +288,10 @@ class AddProductSettingActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier.width(60.dp)
                 ) {
-                    IconButton(onClick = { back() }) {
+                    IconButton(
+                        onClick = { back() },
+                        modifier = Modifier.testTag("WriteSettingBackButton")
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
                             contentDescription = ""

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.fileAttachment
+package com.jeanwest.reader.count
 
 data class ScannedProduct(
     var name: String,

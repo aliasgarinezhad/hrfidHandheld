@@ -1,4 +1,4 @@
-package com.jeanwest.reader.finding
+package com.jeanwest.reader.search
 
 import android.content.Intent
 import android.os.Bundle
@@ -40,7 +40,7 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONArray
 import org.json.JSONObject
 
-class FindingProductActivity : ComponentActivity(), IBarcodeResult {
+class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
     private var uiList by mutableStateOf(mutableListOf<SearchResultProducts>())
@@ -64,28 +64,23 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
             "41" to "تهران سعادت آباد",
             "42" to "تهران كورش",
             "44" to "فروشگاه مركزي",
-            "46" to "تهران آرتميس",
+            "46" to "آرتميس",
             "47" to "اصفهان سيتي 2",
-            "48" to "بال كافه ميرداماد",
-            "49" to "بالكافه اصفهان",
-            "50" to "بال كافه نمك آبرود",
             "51" to "انبار (شيراز)",
             "52" to "تبريز اطلس",
             "53" to "تهران بام لند",
             "54" to "آمل اكسين",
-            "55" to "بال كافه آمل",
             "56" to "اهواز تشريفات",
-            "57" to "بال كافه ستارخان",
             "58" to "تهران امير 2",
             "59" to "مشهد سجاد",
-            "60" to "تهران جردن",
+            "60" to "جردن",
             "61" to "قم بازار شهر",
             "64" to "انبار (ضايعات)",
-            "66" to "تهران سانا",
-            "67" to "تهران شميران",
-            "68" to "تهران مگامال 2",
-            "69" to "تهران سيوان",
-            "70" to "كرج اكومال",
+            "66" to "سانا",
+            "67" to "تشميران",
+            "68" to "مگامال",
+            "69" to "سيوان",
+            "70" to "اكومال",
             "71" to "تهران ايران مال 1",
             "73" to "تهران اپال",
             "74" to "تبريز لاله پارك",
@@ -97,21 +92,14 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
             "86" to "تهران برج نگار",
             "87" to "انزلي هپي مارت",
             "88" to "اروميه سيتاديوم بچگانه",
-            "89" to "بال كافه شيراز خاكشناسي",
-            "91" to "كترينگ",
-            "92" to "مشهد(منزل سازماني)",
-            "93" to "تبريز (منزل سازماني)",
-            "94" to "شيراز (منزل سازماني)",
-            "95" to "اصفهان (منزل سازماني)",
             "97" to "تهران كارخانه",
             "98" to "دفتر امارت",
-            "99" to "تهران (منزل سازماني)",
             "101" to "كرج مهراد بچگانه",
             "103" to "شيراز شيرازمال",
             "104" to "مشهد سيتي استار",
             "105" to "اصفهان فدك مال",
-            "107" to "تهران ايران مال جين وست-باني مد G1/G2",
-            "108" to "تهران ايران مال ديجي واش G0",
+            "107" to "ايران مال جين وست-باني مد",
+            "108" to "ايران مال ديجي واش",
             "109" to "انبار (اروميه)",
             "110" to "انبار(انزلي)",
             "111" to "اهواز پارك سنتر",
@@ -323,7 +311,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
         productJson.put("Size", product.size)
         productJson.put("Color", product.shoppingNumber)
 
-        val intent = Intent(this, FindingProductSubActivity::class.java)
+        val intent = Intent(this, SearchSubActivity::class.java)
         intent.putExtra("product", productJson.toString())
         startActivity(intent)
     }
@@ -383,10 +371,10 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
                     .background(
                         color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
@@ -416,7 +404,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
                             .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
                             .background(
                                 color = MaterialTheme.colors.onPrimary,
-                                shape = RoundedCornerShape(10.dp)
+                                shape = MaterialTheme.shapes.small
                             )
                             .fillMaxWidth()
                             .clickable {
@@ -427,7 +415,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
                         Column {
                             Text(
                                 text = filteredUiList[i].name,
-                                fontSize = 20.sp,
+                                style = MaterialTheme.typography.h1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.Brown)
@@ -435,7 +423,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
 
                             Text(
                                 text = filteredUiList[i].size,
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.DarkGreen)
@@ -443,7 +431,7 @@ class FindingProductActivity : ComponentActivity(), IBarcodeResult {
 
                             Text(
                                 text = filteredUiList[i].color,
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
                                 color = colorResource(id = R.color.Goldenrod)

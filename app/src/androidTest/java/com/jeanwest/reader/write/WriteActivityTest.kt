@@ -1,26 +1,24 @@
-package com.jeanwest.reader.add
+package com.jeanwest.reader.write
 
 
 import android.view.KeyEvent
 import android.view.KeyEvent.ACTION_DOWN
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
-class AddProductTest {
+class WriteActivityTest {
 
     @get:Rule
-    var addProductActivity = createAndroidComposeRule<AddProductActivity>()
+    var writeActivity = createAndroidComposeRule<WriteActivity>()
 
     //Write one stuff and check whether result is correct
 
     @Test
     fun addProductTest1() {
-        //activity.onNodeWithText("اضافه کردن").performClick()
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -33,18 +31,17 @@ class AddProductTest {
             RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
         }
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
         Thread.sleep(1000)
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
 
-        //Log.e("Error", RFIDWithUHFUART.writtenUhfTagInfo.epc)
         assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }
 
@@ -52,7 +49,6 @@ class AddProductTest {
 
     @Test
     fun addProductTest2() {
-        //activity.onNodeWithText("اضافه کردن").performClick()
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -83,16 +79,16 @@ class AddProductTest {
         uhfTagInfo.tid = "E28011702000015F195D0A15"
         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         Thread.sleep(1000)
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
     }
@@ -101,7 +97,6 @@ class AddProductTest {
 
     @Test
     fun addProductTest3() {
-        //activity.onNodeWithText("اضافه کردن").performClick()
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -132,49 +127,81 @@ class AddProductTest {
         uhfTagInfo.tid = "E28011702000015F195D0A15"
         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
 
-        addProductActivity.onNodeWithTag("switch").performClick()
+        writeActivity.onNodeWithTag("switch").performClick()
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         Thread.sleep(1000)
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid != "E28011702000015F195D0A17")
     }
 
     @Test
-    fun addProductTest5() {
+    fun addProductTest4() {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
-        addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         Thread.sleep(2000)
-        addProductActivity.waitForIdle()
+        writeActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.epc == "")
     }
 
     @Test
-    fun addProductTest4() {
+    fun addProductTest5() {
+
+        val header = 50
+        val company = 32
+        val partition = 7
+        val filter = 6
+
+        writeActivity.onNodeWithTag("WriteSettingButton").performClick()
+        writeActivity.waitForIdle()
+        writeActivity.onNodeWithTag("WritePasswordTextField").performTextClearance()
+        writeActivity.onNodeWithTag("WritePasswordTextField").performTextInput("123456")
+        writeActivity.onNodeWithTag("WriteEnterWriteSettingButton").performClick()
+
+        writeActivity.onNodeWithTag("WriteSettingPartitionDropDownList").performClick()
+        writeActivity.onNodeWithText(partition.toString()).performClick()
+
+        writeActivity.onNodeWithTag("WriteSettingFilterDropDownList").performClick()
+        writeActivity.onNodeWithText(filter.toString()).performClick()
+
+        writeActivity.onNodeWithTag("WriteSettingHeaderTextField").performTextClearance()
+        writeActivity.onNodeWithTag("WriteSettingHeaderTextField").performTextInput(header.toString())
+
+        writeActivity.onNodeWithTag("WriteSettingCompanyTextField").performTextClearance()
+        writeActivity.onNodeWithTag("WriteSettingCompanyTextField").performTextInput(company.toString())
+
+        writeActivity.onNodeWithTag("WriteSettingSerialNumberMinTextField").performTextClearance()
+        writeActivity.onNodeWithTag("WriteSettingSerialNumberMinTextField").performTextInput("1000000")
+
+        writeActivity.onNodeWithTag("WriteSettingSerialNumberMaxTextField").performTextClearance()
+        writeActivity.onNodeWithTag("WriteSettingSerialNumberMaxTextField").performTextInput("1000100")
+        writeActivity.waitForIdle()
+        writeActivity.onNodeWithTag("WriteSettingBackButton").performClick()
+        writeActivity.waitForIdle()
 
         for (i in 1000000L..1000100L) {
 
@@ -190,21 +217,25 @@ class AddProductTest {
                 RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
             }
 
-            addProductActivity.waitForIdle()
+            writeActivity.waitForIdle()
 
-            addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-            addProductActivity.waitForIdle()
+            writeActivity.waitForIdle()
 
-            addProductActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
-            addProductActivity.waitForIdle()
+            writeActivity.waitForIdle()
 
             Thread.sleep(500)
-            addProductActivity.waitForIdle()
+            writeActivity.waitForIdle()
 
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).header == header)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).company == 32)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).filter == filter)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).partition == partition)
         }
     }
 

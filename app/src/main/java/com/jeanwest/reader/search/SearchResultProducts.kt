@@ -1,4 +1,4 @@
-package com.jeanwest.reader.finding
+package com.jeanwest.reader.search
 
 data class SearchResultProducts(
     var name: String,

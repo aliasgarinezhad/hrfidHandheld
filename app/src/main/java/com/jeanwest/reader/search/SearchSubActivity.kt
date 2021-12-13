@@ -1,4 +1,4 @@
-package com.jeanwest.reader.finding
+package com.jeanwest.reader.search
 
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -34,7 +34,7 @@ import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONObject
 import java.util.*
 
-class FindingProductSubActivity : ComponentActivity() {
+class SearchSubActivity : ComponentActivity() {
 
     private var scannedNumber by mutableStateOf(0)
     private var rfPower by mutableStateOf(30)
@@ -91,7 +91,7 @@ class FindingProductSubActivity : ComponentActivity() {
         }
         CoroutineScope(Main).launch {
             Toast.makeText(
-                this@FindingProductSubActivity,
+                this@SearchSubActivity,
                 "مشکلی در سخت افزار پیش آمده است",
                 Toast.LENGTH_LONG
             ).show()
@@ -207,7 +207,7 @@ class FindingProductSubActivity : ComponentActivity() {
             }
             CoroutineScope(Main).launch {
                 Toast.makeText(
-                    this@FindingProductSubActivity,
+                    this@SearchSubActivity,
                     "مشکلی در سخت افزار پیش آمده است",
                     Toast.LENGTH_LONG
                 ).show()
@@ -304,11 +304,11 @@ class FindingProductSubActivity : ComponentActivity() {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp)
+                    .padding(start = 5.dp, end = 5.dp, top = 5.dp)
                     .fillMaxWidth()
                     .background(
                         color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     ),
             ) {
 
@@ -335,7 +335,7 @@ class FindingProductSubActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Text(text = "پیداشده: $scannedNumber")
+                    Text(text = "پیدا شده: $scannedNumber")
                     ContiniousSwitch()
                 }
 
@@ -356,57 +356,58 @@ class FindingProductSubActivity : ComponentActivity() {
                     .fillMaxWidth()
                     .background(
                         color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     ),
             ) {
                 Row(
                     modifier = Modifier
                         .background(
                             color = MaterialTheme.colors.onPrimary,
-                            shape = MaterialTheme.shapes.medium
+                            shape = MaterialTheme.shapes.small
                         )
                         .fillMaxWidth()
-                        .padding(5.dp)
+                        .padding(5.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
                         Text(
                             text = product.name,
-                            fontSize = 20.sp,
+                            style = MaterialTheme.typography.h1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             color = colorResource(id = R.color.DarkSlateGray)
                         )
                         Text(
                             text = product.kbarcode,
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.body1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             color = colorResource(id = R.color.Goldenrod)
                         )
                         Text(
                             text = product.originalPrice,
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.body1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             color = colorResource(id = R.color.Brown)
                         )
                         Text(
                             text = product.salePrice,
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.body1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             color = colorResource(id = R.color.DarkGreen)
                         )
                         Text(
                             text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.body1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             //color = colorResource(id = R.color.Brown)
                         )
                         Text(
                             text = "موجودی انبار: " + product.warehouseNumber.toString(),
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.body1,
                             textAlign = TextAlign.Right,
                             modifier = modifier,
                             //color = colorResource(id = R.color.Brown)
@@ -428,7 +429,7 @@ class FindingProductSubActivity : ComponentActivity() {
     @Composable
     fun ContiniousSwitch() {
         Row {
-            Text(text = "پیوسته", modifier = Modifier.padding(end = 4.dp, bottom = 10.dp))
+            Text(text = "ذخیره تگ های پیدا شده", modifier = Modifier.padding(end = 4.dp, bottom = 10.dp))
             Switch(checked = continious, onCheckedChange = {
                 continious = it
             })

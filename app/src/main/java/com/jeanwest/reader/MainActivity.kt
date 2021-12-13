@@ -30,10 +30,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
-import com.jeanwest.reader.add.AddProductActivity
+import com.jeanwest.reader.aboutUs.AboutUsActivity
+import com.jeanwest.reader.write.WriteActivity
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
-import com.jeanwest.reader.fileAttachment.FileAttachmentActivity
-import com.jeanwest.reader.finding.FindingProductActivity
+import com.jeanwest.reader.count.CountActivity
+import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.transfer.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
@@ -331,7 +332,7 @@ class MainActivity : ComponentActivity() {
                                         .weight(1F)
                                         .fillMaxSize(),
                                 ) {
-                                    Count()
+                                    CountButton()
                                 }
 
                                 Box(
@@ -356,7 +357,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun Count() {
+    fun CountButton() {
 
         Button(
             onClick = {
@@ -367,12 +368,13 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, FileAttachmentActivity::class.java)
+                    val intent = Intent(this, CountActivity::class.java)
                     startActivity(intent)
                 }
             },
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -393,8 +395,7 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1
                 )
             }
         }
@@ -416,7 +417,8 @@ class MainActivity : ComponentActivity() {
                 }
             },
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -437,8 +439,7 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1,
                 )
             }
         }
@@ -460,7 +461,8 @@ class MainActivity : ComponentActivity() {
                 }
             },
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -481,8 +483,7 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1
                 )
             }
         }
@@ -504,7 +505,8 @@ class MainActivity : ComponentActivity() {
                 }
             },
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -525,8 +527,7 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1
                 )
             }
         }
@@ -538,12 +539,13 @@ class MainActivity : ComponentActivity() {
             onClick = {
                 val intent = Intent(
                     this@MainActivity,
-                    FindingProductActivity::class.java
+                    SearchActivity::class.java
                 )
                 startActivity(intent)
             },
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -564,8 +566,7 @@ class MainActivity : ComponentActivity() {
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1,
                 )
             }
         }
@@ -583,13 +584,14 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, AddProductActivity::class.java)
+                    val intent = Intent(this, WriteActivity::class.java)
                     startActivity(intent)
                 }
             },
 
             modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+            shape = MaterialTheme.shapes.medium
         ) {
             Column {
 
@@ -605,13 +607,12 @@ class MainActivity : ComponentActivity() {
                 )
                 Spacer(modifier = Modifier.weight(0.5F))
                 Text(
-                    "اضافه کردن",
+                    "رایت",
                     modifier = Modifier
                         .weight(2F)
                         .fillMaxSize(),
                     textAlign = TextAlign.Center,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily(Font(R.font.b_titr))
+                    style = MaterialTheme.typography.h1
                 )
             }
         }
@@ -637,18 +638,19 @@ class MainActivity : ComponentActivity() {
                     Text(
                         text = username,
                         modifier = Modifier.padding(bottom = 10.dp),
-                        fontSize = 22.sp,
-                        fontFamily = FontFamily(Font(R.font.b_titr))
+                        style = MaterialTheme.typography.h1,
+                        fontSize = 24.sp
                     )
 
                     Row(horizontalArrangement = Arrangement.SpaceAround) {
 
                         Button(onClick = {
                             openAccountDialog = false
-
                             val intent =
-                                Intent(this@MainActivity, UserLoginActivity::class.java)
-                            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                Intent(
+                                    this@MainActivity,
+                                    AboutUsActivity::class.java
+                                )
                             startActivity(intent)
 
                         }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
@@ -665,6 +667,7 @@ class MainActivity : ComponentActivity() {
                                 token = ""
                                 val intent =
                                     Intent(this@MainActivity, UserLoginActivity::class.java)
+                                intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
                             },
                             modifier = Modifier.padding(top = 10.dp)
