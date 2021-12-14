@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -22,19 +21,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
+//import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONArray
@@ -409,7 +409,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                             .fillMaxWidth()
                             .clickable {
                                 openSearchActivity(uiList[i])
-                            },
+                            }
+                            .testTag("SearchItems"),
 
                         ) {
                         Column {
@@ -462,7 +463,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp, bottom = 10.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .testTag("SearchProductCodeTextField"),
             label = { Text(text = "کد محصول") },
             keyboardActions = KeyboardActions(onSearch = { getSimilarProducts() }),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
@@ -477,7 +479,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier.clickable { expanded = true }
+                .testTag("SearchSizeFilterDropDownList"),) {
                 Text(text = sizeFilterValue)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -509,7 +512,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier.clickable { expanded = true }
+                .testTag("SearchColorFilterDropDownList")) {
                 Text(text = colorFilterValue)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -541,7 +545,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier.clickable { expanded = true }
+                .testTag("SearchWarehouseFilterDropDownList")) {
                 Text(text = wareHouseFilterValue)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -573,7 +578,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier.clickable { expanded = true }
+                .testTag("SearchStoreFilterDropDownList")) {
                 storeFilterValues[storeFilterValue]?.let { Text(text = it) }
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }

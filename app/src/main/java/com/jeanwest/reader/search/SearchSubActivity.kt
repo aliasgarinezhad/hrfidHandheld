@@ -1,5 +1,6 @@
 package com.jeanwest.reader.search
 
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -15,18 +16,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -56,7 +57,24 @@ class SearchSubActivity : ComponentActivity() {
 
         rfInit()
 
-        val stuff = JSONObject(intent.getStringExtra("product")!!)
+        val stuff = JSONObject(
+            intent.getStringExtra("product") ?: """{
+                "RFID": 130290,
+                "BarcodeMain_ID": 9514289,
+                "K_Bar_Code": "64822109",
+                "kbarcode": "64822109J-8010-F",
+                "productName": "ساپورت",
+                "Title2": "ساپورت",
+                "Color": "8010",
+                "Size": "F",
+                "ImgUrl": "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
+                "dbCountStore": 0,
+                "dbCountDepo": -5,
+                "OrigPrice": 1490000,
+                "SalePrice": 1490000,
+                "SalePercent": 0
+            }"""
+        )
         product = SearchResultProducts(
             name = stuff.getString("productName"),
             productCode = stuff.getString("K_Bar_Code"),
@@ -159,7 +177,7 @@ class SearchSubActivity : ComponentActivity() {
                 }
             }
 
-            if(found) {
+            if (found) {
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
             }
 
@@ -280,7 +298,10 @@ class SearchSubActivity : ComponentActivity() {
                 )
             },
             actions = {
-                IconButton(onClick = { clearEPCs() }) {
+                IconButton(
+                    onClick = { clearEPCs() },
+                    modifier = Modifier.testTag("SearchSubClearButton")
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
@@ -429,8 +450,11 @@ class SearchSubActivity : ComponentActivity() {
     @Composable
     fun ContiniousSwitch() {
         Row {
-            Text(text = "ذخیره تگ های پیدا شده", modifier = Modifier.padding(end = 4.dp, bottom = 10.dp))
-            Switch(checked = continious, onCheckedChange = {
+            Text(
+                text = "ذخیره تگ های پیدا شده",
+                modifier = Modifier.padding(end = 4.dp, bottom = 10.dp)
+            )
+            Switch(checked = continious, modifier = Modifier.testTag("SearchSubSaveSwitch"), onCheckedChange = {
                 continious = it
             })
         }
