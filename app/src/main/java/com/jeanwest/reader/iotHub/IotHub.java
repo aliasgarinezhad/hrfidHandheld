@@ -50,9 +50,16 @@ public class IotHub extends Service {
         // Print details when a property value changes
         @Override
         public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
+
+            if(propertyKey.equals("appVersion")) {
+                appVersion = propertyValue.toString();
+            }
+
             Log.e("error", propertyKey + " changed to " + propertyValue);
         }
     };
+    @org.jetbrains.annotations.Nullable
+    public static String appVersion = "";
 
     public IotHub() {
 

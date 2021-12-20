@@ -97,6 +97,10 @@ class MainActivity : ComponentActivity() {
         Intent(this, IotHub::class.java).also { intent ->
             startService(intent)
         }
+
+        if(BuildConfig.VERSION_NAME != IotHub.appVersion) {
+            Toast.makeText(this, "به روز رسانی موجود است", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun loadMemory() {

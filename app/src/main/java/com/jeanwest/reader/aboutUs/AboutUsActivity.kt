@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.jeanwest.reader.R
+import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 
@@ -71,7 +72,7 @@ class AboutUsActivity : ComponentActivity() {
             file.delete()
         }
 
-        val serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug.apk"
+        val serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug-"+ IotHub.appVersion + ".apk"
         val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
         val downloadManagerRequest = DownloadManager.Request(Uri.parse(serverAddress))
         downloadManagerRequest.setTitle("بروزرسانی RFID")
