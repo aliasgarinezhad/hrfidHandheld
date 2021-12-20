@@ -20,8 +20,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -34,6 +32,7 @@ import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.write.WriteActivity
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
 import com.jeanwest.reader.count.CountActivity
+import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.transfer.TransferenceActivityLogIn
@@ -93,6 +92,10 @@ class MainActivity : ComponentActivity() {
                 Intent(this@MainActivity, UserLoginActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
+        }
+
+        Intent(this, IotHub::class.java).also { intent ->
+            startService(intent)
         }
     }
 

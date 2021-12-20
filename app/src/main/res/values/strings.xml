@@ -8,5 +8,7 @@
     <string name="xls">application/vnd.ms-excel</string>
     <string name="EXARK">EXARKXK650</string>
     <string name="chainway">c72</string>
+    <string name="start">START</string>
+    <string name="stop">STOP</string>
 
 </resources>

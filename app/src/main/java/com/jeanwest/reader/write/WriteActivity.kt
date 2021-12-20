@@ -69,7 +69,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     private var step2 = false
     private var rfPower = 5
-    private var edit = false
+    private var switchValue by mutableStateOf(false)
 
     private var counterMaxValue = 0L
     private var counterMinValue = 0L
@@ -373,7 +373,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             epcs = epcs.distinct().toMutableList()
 
-            if (!edit) {
+            if (!switchValue) {
                 epcs = epcs.filter {
                     !it.startsWith("30")
                 }.toMutableList()
@@ -411,7 +411,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                 epcs = epcs.distinct().toMutableList()
 
-                if (!edit) {
+                if (!switchValue) {
                     epcs = epcs.filter {
                         !it.startsWith("30")
                     }.toMutableList()
@@ -440,6 +440,20 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v2?kbarcode=$barcodeID"
         val request = object : JsonObjectRequest(Method.GET, url, null, fun(it) {
+
+            if (switchValue) {
+
+                val decodedTagEpc = epcDecoder(epc)
+
+                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
+                    (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID").toLong())
+                ) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                    resultColor = R.color.DarkGreen
+                    result += "با موفقیت اضافه شد" + "\n"
+                    return
+                }
+            }
 
             if (!setRFPower(30)) {
                 return
@@ -534,6 +548,32 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     }
 
+    private fun epcDecoder(epc: String): EPC {
+
+        val binaryEPC =
+            String.format("%64s", epc.substring(0, 16).toULong(16).toString(2))
+                .replace(" ".toRegex(), "0") +
+                    String.format("%32s", epc.substring(16, 24).toULong(16).toString(2))
+                        .replace(" ".toRegex(), "0")
+        val result = EPC(0, 0, 0, 0, 0L, 0L)
+        result.header = binaryEPC.substring(0, 8).toInt(2)
+        result.partition = binaryEPC.substring(8, 11).toInt(2)
+        result.filter = binaryEPC.substring(11, 14).toInt(2)
+        result.company = binaryEPC.substring(14, 26).toInt(2)
+        result.item = binaryEPC.substring(26, 58).toLong(2)
+        result.serial = binaryEPC.substring(58, 96).toLong(2)
+        return result
+    }
+
+    data class EPC(
+        var header: Int,
+        var filter: Int,
+        var partition: Int,
+        var company: Int,
+        var item: Long,
+        var serial: Long
+    )
+
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -602,7 +642,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
         var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
-        var switchValue by rememberSaveable { mutableStateOf(false) }
 
         Column {
 
@@ -688,7 +727,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     Switch(
                         checked = switchValue,
                         onCheckedChange = {
-                            edit = it
                             switchValue = it
                         },
                         modifier = Modifier
