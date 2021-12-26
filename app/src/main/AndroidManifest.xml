@@ -46,7 +46,7 @@
         <activity android:name=".search.SearchSubActivity" />
         <activity android:name=".search.SearchActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningSubResultActivity" />
-        <activity android:name=".write.WriteSettingActivity" />
+        <activity android:name=".OperatorLoginActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
         <activity android:name=".aboutUs.AboutUsActivity" />

@@ -1,5 +1,7 @@
 package com.jeanwest.reader.write
 
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -24,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.JalaliDate.JalaliDate
@@ -34,8 +35,6 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
-//import com.jeanwest.reader.testClasses.Barcode2D
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.*
@@ -45,6 +44,7 @@ import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
+import com.android.volley.toolbox.JsonObjectRequest as JsonObjectRequest1
 
 class WriteActivity : ComponentActivity(), IBarcodeResult {
 
@@ -59,7 +59,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var counter by mutableStateOf(0)
     private var numberOfWrittenRfTags by mutableStateOf(0L)
     private var result by mutableStateOf("")
-    private var openSettingDialog by mutableStateOf(false)
     private var openClearDialog by mutableStateOf(false)
     private var openFileDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
@@ -439,14 +438,15 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v2?kbarcode=$barcodeID"
-        val request = object : JsonObjectRequest(Method.GET, url, null, fun(it) {
+        val request = object : JsonObjectRequest1(Method.GET, url, null, fun(it) {
 
             if (switchValue) {
 
                 val decodedTagEpc = epcDecoder(epc)
 
                 if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
-                    (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID").toLong())
+                    (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
+                        .toLong())
                 ) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                     resultColor = R.color.DarkGreen
@@ -559,9 +559,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         result.header = binaryEPC.substring(0, 8).toInt(2)
         result.partition = binaryEPC.substring(8, 11).toInt(2)
         result.filter = binaryEPC.substring(11, 14).toInt(2)
-        result.company = binaryEPC.substring(14, 26).toInt(2)
-        result.item = binaryEPC.substring(26, 58).toLong(2)
-        result.serial = binaryEPC.substring(58, 96).toLong(2)
         return result
     }
 
@@ -601,17 +598,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             actions = {
 
-                IconButton(
-                    onClick = {
-                        openSettingDialog = true
-                    },
-                    modifier = Modifier.testTag("WriteSettingButton")
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_settings_24),
-                        contentDescription = ""
-                    )
-                }
                 IconButton(onClick = { openFileDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
@@ -654,10 +640,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .fillMaxWidth()
             ) {
-
-                if (openSettingDialog) {
-                    SettingAlertDialog()
-                }
 
                 if (openFileDialog) {
                     FileAlertDialog()
@@ -764,63 +746,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 )
             }
         }
-    }
-
-    @Composable
-    fun SettingAlertDialog() {
-
-        var password by remember { mutableStateOf("") }
-
-        AlertDialog(
-
-            buttons = {
-
-                Column {
-
-                    Text(
-                        text = "رمز عبور را وارد کنید", modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = password, onValueChange = {
-                            password = it
-                        },
-                        modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                            .align(Alignment.CenterHorizontally)
-                            .testTag("WritePasswordTextField")
-                    )
-
-                    Button(modifier = Modifier
-                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .testTag("WriteEnterWriteSettingButton"),
-                        onClick = {
-                            if (password == "123456") {
-                                openSettingDialog = false
-                                val nextActivityIntent = Intent(
-                                    this@WriteActivity,
-                                    WriteSettingActivity::class.java
-                                )
-                                startActivity(nextActivityIntent)
-                            } else {
-                                Toast.makeText(
-                                    this@WriteActivity,
-                                    "رمز عبور اشتباه است",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }) {
-                        Text(text = "ورود")
-                    }
-                }
-            },
-
-            onDismissRequest = {
-                openSettingDialog = false
-            }
-        )
     }
 
     @Composable

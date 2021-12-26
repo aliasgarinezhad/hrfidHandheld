@@ -23,9 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -34,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 
@@ -48,11 +46,22 @@ class AboutUsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val rf = RFIDWithUHFUART()
+        rf.stopInventory()
+        rf.free()
+
+        Toast.makeText(
+            applicationContext,
+            "نسخه جدید (${IotHub.appVersion.toString()}) موجود است",
+            Toast.LENGTH_LONG
+        ).show()
+
         setContent {
             AboutUsUI()
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             if (!packageManager.canRequestPackageInstalls()) {
                 startActivityForResult(
                     Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
@@ -61,7 +70,10 @@ class AboutUsActivity : ComponentActivity() {
             }
         }
 
-        registerReceiver(onDownloadComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        registerReceiver(
+            onDownloadComplete,
+            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+        );
     }
 
     private fun downloadApkFile() {
@@ -72,7 +84,8 @@ class AboutUsActivity : ComponentActivity() {
             file.delete()
         }
 
-        val serverAddress = "http://rfid-api-0-1.avakatan.ir/apk/app-debug-"+ IotHub.appVersion + ".apk"
+        val serverAddress =
+            "http://rfid-api-0-1.avakatan.ir/apk/app-debug-" + IotHub.appVersion + ".apk"
         val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
         val downloadManagerRequest = DownloadManager.Request(Uri.parse(serverAddress))
         downloadManagerRequest.setTitle("بروزرسانی RFID")
@@ -134,7 +147,7 @@ class AboutUsActivity : ComponentActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
 
-        if(keyCode == 4) {
+        if (keyCode == 4) {
             back()
         }
         return true
@@ -184,6 +197,11 @@ class AboutUsActivity : ComponentActivity() {
                                 modifier = Modifier.padding(bottom = 20.dp, top = 20.dp),
                                 fontSize = 20.sp
                             )
+                            Text(
+                                text = "ورژن جدید: " + IotHub.appVersion.toString(),
+                                modifier = Modifier.padding(bottom = 20.dp, top = 20.dp),
+                                fontSize = 20.sp
+                            )
                             Button(
                                 onClick = {
                                     openDialog.value = true
@@ -220,11 +238,13 @@ class AboutUsActivity : ComponentActivity() {
             },
             buttons = {
 
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.SpaceAround) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
 
                     Text(
                         text = "نرم افزار به روز رسانی شود؟",

@@ -29,7 +29,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.jeanwest.reader.aboutUs.AboutUsActivity
-import com.jeanwest.reader.write.WriteActivity
 import com.jeanwest.reader.confirm.ConfirmScanningLogin
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
@@ -37,6 +36,7 @@ import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.transfer.TransferenceActivityLogIn
 import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
+import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 
@@ -46,10 +46,16 @@ class MainActivity : ComponentActivity() {
     private var openAccountDialog by mutableStateOf(false)
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences
+    private var deviceId = ""
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        Intent(this, IotHub::class.java).also { intent ->
+            startService(intent)
+        }
 
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -86,32 +92,15 @@ class MainActivity : ComponentActivity() {
         rfInit()
 
         loadMemory()
-
-        if (username == "") {
-            val intent =
-                Intent(this@MainActivity, UserLoginActivity::class.java)
-            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-        }
-
-        Intent(this, IotHub::class.java).also { intent ->
-            startService(intent)
-        }
-
-        if(BuildConfig.VERSION_NAME != IotHub.appVersion) {
-            Toast.makeText(this, "به روز رسانی موجود است", Toast.LENGTH_LONG).show()
-        }
     }
 
     private fun loadMemory() {
 
         memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        if (memory.getString("username", "") != "") {
-
-            username = memory.getString("username", "")!!
-            token = memory.getString("accessToken", "")!!
-        }
+        username = memory.getString("username", "") ?: ""
+        token = memory.getString("accessToken", "") ?: ""
+        deviceId = memory.getString("deviceId", "") ?: ""
     }
 
     private fun rfInit() {
@@ -190,7 +179,14 @@ class MainActivity : ComponentActivity() {
             MainMenu()
         }
 
-        if (username == "") {
+        if (deviceId == "") {
+            val intent =
+                Intent(this@MainActivity, OperatorLoginActivity::class.java)
+            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        }
+
+        else if (username == "") {
             val intent =
                 Intent(this@MainActivity, UserLoginActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
