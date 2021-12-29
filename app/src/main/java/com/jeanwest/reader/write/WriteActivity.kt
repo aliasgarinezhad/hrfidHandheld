@@ -2,9 +2,14 @@ package com.jeanwest.reader.write
 
 //import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 //import com.jeanwest.reader.testClasses.Barcode2D
+import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Intent
+import android.content.ServiceConnection
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.os.IBinder
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -28,11 +33,13 @@ import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -40,20 +47,22 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
 import java.util.*
 import com.android.volley.toolbox.JsonObjectRequest as JsonObjectRequest1
 
 class WriteActivity : ComponentActivity(), IBarcodeResult {
 
+    private var deviceSerialNumber = ""
     private var barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
     private var epc = ""
     private var tid = ""
     private var barcodeID = ""
     private var barcodeTable = mutableListOf<String>()
+    private lateinit var iotHubService: IotHub
 
     private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var counter by mutableStateOf(0)
@@ -65,6 +74,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(R.color.white)
     private var fileName by mutableStateOf("خروجی")
+    private var writeRecords = mutableListOf<WriteRecord>()
+    private var userWriteRecords = mutableListOf<WriteRecord>()
 
     private var step2 = false
     private var rfPower = 5
@@ -78,6 +89,22 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var partitionNumber = 0 // 3bit
     private var headerNumber = 48 // 8bit
     private var companyNumber = 101 // 12bit
+
+    private var iotHubConnected = false
+    private val serviceConnection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Log.e("service connection", "onServiceConnected")
+            val binder = service as IotHub.LocalBinder
+            iotHubService = binder.service
+            iotHubConnected = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.e("service connection", "onServiceDisconnected")
+            iotHubConnected = false
+        }
+    }
 
     override fun onResume() {
 
@@ -98,6 +125,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
 
         loadMemory()
+
+        val intent = Intent(this, IotHub::class.java)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
     private fun rfInit() {
@@ -115,39 +145,56 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         val sheet = workbook.createSheet("کالا های رایت شده")
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
         headerRow.createCell(0).setCellValue("بارکد کالا")
-        headerRow.createCell(1).setCellValue("تعداد")
+        headerRow.createCell(1).setCellValue("EPC")
+        headerRow.createCell(2).setCellValue("تاریخ")
+        headerRow.createCell(3).setCellValue("کاربر")
+        headerRow.createCell(4).setCellValue("شماره سریال دستگاه")
 
-        barcodeTable.forEach {
+        val dir = File(this.getExternalFilesDir(null), "/")
+        val outFile = File(dir, "$fileName.xlsx")
+
+        userWriteRecords.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it)
-            row.createCell(1).setCellValue(1.toDouble())
-            val dir = File(this.getExternalFilesDir(null), "/")
-            val outFile = File(dir, "$fileName.xlsx")
+            row.createCell(0).setCellValue(it.barcode)
+            row.createCell(1).setCellValue(it.epc)
+            row.createCell(2).setCellValue(it.dateAndTime)
+            row.createCell(3).setCellValue(it.username)
+            row.createCell(4).setCellValue(it.deviceSerialNumber)
 
             val outputStream = FileOutputStream(outFile.absolutePath)
             workbook.write(outputStream)
             outputStream.flush()
             outputStream.close()
-
-            val uri = FileProvider.getUriForFile(
-                this,
-                this.applicationContext.packageName + ".provider",
-                outFile
-            )
-            val shareIntent = Intent(Intent.ACTION_SEND)
-            shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
-            shareIntent.type = "application/octet-stream"
-            shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            applicationContext.startActivity(shareIntent)
         }
+
+        val uri = FileProvider.getUriForFile(
+            this,
+            this.applicationContext.packageName + ".provider",
+            outFile
+        )
+
+        if (iotHubConnected) {
+            if (iotHubService.sendLogFile(writeRecords)) {
+                writeRecords.clear()
+                saveMemory()
+            }
+        }
+
+        val shareIntent = Intent(Intent.ACTION_SEND)
+        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
+        shareIntent.type = "application/octet-stream"
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        applicationContext.startActivity(shareIntent)
     }
 
     private fun loadMemory() {
+        val type = object : TypeToken<List<WriteRecord>>() {}.type
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         if (memory.getLong("value", -1L) != -1L) {
 
+            deviceSerialNumber = memory.getString("deviceSerialNumber", "") ?: ""
             counterValue = memory.getLong("value", -1L)
             counterMaxValue = memory.getLong("max", -1L)
             counterMinValue = memory.getLong("min", -1L)
@@ -156,12 +203,20 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             partitionNumber = memory.getInt("partition", -1)
             companyNumber = memory.getInt("company", -1)
             tagPassword = memory.getString("password", "") ?: "00000000"
-            barcodeTable = Gson().fromJson(
-                memory.getString("AddProductBarcodeTable", ""),
-                barcodeTable.javaClass
+
+            userWriteRecords = Gson().fromJson(
+                memory.getString("WriteActivityUserWriteRecords", ""),
+                type
             ) ?: mutableListOf()
-            counter = barcodeTable.size
+            writeRecords = Gson().fromJson(
+                memory.getString("WriteActivityWriteRecords", ""),
+                type
+            ) ?: mutableListOf()
+
+            counter = userWriteRecords.size
         }
+
+        Log.e("json", userWriteRecords.toString())
 
         numberOfWrittenRfTags = counterValue - counterMinValue
     }
@@ -171,11 +226,18 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
         memoryEditor.putLong("value", counterValue)
-        memoryEditor.putString("AddProductBarcodeTable", JSONArray(barcodeTable).toString())
+
+        memoryEditor.putString(
+            "WriteActivityUserWriteRecords",
+            Gson().toJson(userWriteRecords).toString()
+        )
+        memoryEditor.putString("WriteActivityWriteRecords", Gson().toJson(writeRecords).toString())
+
         memoryEditor.apply()
     }
 
     private fun back() {
+        unbindService(serviceConnection)
         stopBarcodeScan()
         step2 = false
         if (barcodeIsScanning || rfIsScanning) {
@@ -268,8 +330,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun clear() {
-        barcodeTable.clear()
-        counter = barcodeTable.size
+        userWriteRecords.clear()
+        counter = userWriteRecords.size
         saveMemory()
     }
 
@@ -348,6 +410,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         return false
     }
 
+    @SuppressLint("SimpleDateFormat")
     @Throws(InterruptedException::class)
     private fun addNewTag() {
 
@@ -438,74 +501,95 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
 
         val url = "http://rfid-api-0-1.avakatan.ir/products/v2?kbarcode=$barcodeID"
-        val request = object : JsonObjectRequest1(Method.GET, url, null, fun(it) {
+        val request = object : JsonObjectRequest1(Method.GET, url, null,
+            fun(it) {
 
-            if (switchValue) {
+                if (switchValue) {
 
-                val decodedTagEpc = epcDecoder(epc)
+                    val decodedTagEpc = epcDecoder(epc)
 
-                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
-                    (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
-                        .toLong())
-                ) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    resultColor = R.color.DarkGreen
-                    result += "با موفقیت اضافه شد" + "\n"
+                    if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
+                        (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
+                            .toLong())
+                    ) {
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                        resultColor = R.color.DarkGreen
+                        result += "با موفقیت اضافه شد" + "\n"
+                        return
+                    }
+                }
+
+                if (!setRFPower(30)) {
                     return
                 }
-            }
 
-            if (!setRFPower(30)) {
-                return
-            }
+                val itemNumber = it.getString("RFID").toLong()// 32 bit
+                val serialNumber = counterValue // 38 bit
 
-            val itemNumber = it.getString("RFID").toLong()// 32 bit
-            val serialNumber = counterValue // 38 bit
+                val productEPC = epcGenerator(
+                    headerNumber,
+                    filterNumber,
+                    partitionNumber,
+                    companyNumber,
+                    itemNumber,
+                    serialNumber
+                )
 
-            val productEPC = epcGenerator(
-                headerNumber,
-                filterNumber,
-                partitionNumber,
-                companyNumber,
-                itemNumber,
-                serialNumber
-            )
+                if (!rfWrite(productEPC)) {
+                    result += "خطا در نوشتن"
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                    resultColor = R.color.Brown
+                    return
+                }
 
-            if (!rfWrite(productEPC)) {
-                result += "خطا در نوشتن"
+                if (!rfWriteVerify(productEPC)) {
+                    result += "خطا در تطبیق"
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                    resultColor = R.color.Brown
+                    return
+                }
+
+                if (!setRFPower(rfPower)) {
+                    return
+                }
+
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                resultColor = R.color.DarkGreen
+
+                result += "با موفقیت اضافه شد" + "\n"
+                result += "سریال جدید: $productEPC"
+
+                counterValue++
+                barcodeTable.add(it.getString("KBarCode"))
+
+                val sdf = SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ")
+                val writeRecord = WriteRecord(
+                    barcode = it.getString("KBarCode"),
+                    epc = productEPC,
+                    dateAndTime = sdf.format(Date()),
+                    username = MainActivity.username,
+                    deviceSerialNumber = deviceSerialNumber
+                )
+                writeRecords.add(writeRecord)
+                userWriteRecords.add(writeRecord)
+
+                counter = userWriteRecords.size
+                numberOfWrittenRfTags = counterValue - counterMinValue
+                saveMemory()
+                if (writeRecords.size > 100) {
+                    if (iotHubConnected) {
+                        if (iotHubService.sendLogFile(writeRecords)) {
+                            writeRecords.clear()
+                            saveMemory()
+                        }
+                    }
+                }
+
+            }, {
+                result += "خطا در دیتابیس" + it.message
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = R.color.Brown
-                return
-            }
-
-            if (!rfWriteVerify(productEPC)) {
-                result += "خطا در تطبیق"
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
-                return
-            }
-
-            if (!setRFPower(rfPower)) {
-                return
-            }
-
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            resultColor = R.color.DarkGreen
-
-            result += "با موفقیت اضافه شد" + "\n"
-            result += "سریال جدید: $productEPC"
-
-            counterValue++
-            barcodeTable.add(it.getString("KBarCode"))
-            counter = barcodeTable.size
-            numberOfWrittenRfTags = counterValue - counterMinValue
-            saveMemory()
-
-        }, {
-            result += "خطا در دیتابیس" + it.message
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = R.color.Brown
-        }) {
+            }) {
             override fun getHeaders(): MutableMap<String, String> {
                 return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
             }
@@ -561,15 +645,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         result.filter = binaryEPC.substring(11, 14).toInt(2)
         return result
     }
-
-    data class EPC(
-        var header: Int,
-        var filter: Int,
-        var partition: Int,
-        var company: Int,
-        var item: Long,
-        var serial: Long
-    )
 
     @Composable
     fun Page() {

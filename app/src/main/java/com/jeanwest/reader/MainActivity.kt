@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,6 +40,8 @@ import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class MainActivity : ComponentActivity() {

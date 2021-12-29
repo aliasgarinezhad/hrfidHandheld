@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -26,10 +27,11 @@ class OperatorLoginActivity : ComponentActivity() {
 
     private var password by mutableStateOf("")
     private var username by mutableStateOf("")
-    private var imei by mutableStateOf("")
+    private var deviceSerialNumber by mutableStateOf("")
     private var deviceId by mutableStateOf("")
     private var iotToken by mutableStateOf("")
     private var advanceSettingToken = ""
+    private val apiTimeout = 30000
 
     override fun onResume() {
         super.onResume()
@@ -64,10 +66,16 @@ class OperatorLoginActivity : ComponentActivity() {
 
             override fun getBody(): ByteArray {
                 val body = JSONObject()
-                body.put("serialNumber", imei)
+                body.put("serialNumber", deviceSerialNumber)
                 return body.toString().toByteArray()
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
 
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
@@ -109,7 +117,7 @@ class OperatorLoginActivity : ComponentActivity() {
 
         memoryEditor.putString("deviceId", deviceId)
         memoryEditor.putString("iotToken", iotToken)
-        memoryEditor.putString("imei", imei)
+        memoryEditor.putString("deviceSerialNumber", deviceSerialNumber)
         memoryEditor.apply()
     }
 
@@ -151,7 +159,7 @@ class OperatorLoginActivity : ComponentActivity() {
             ImeiTextField()
 
             Button(modifier = Modifier
-                .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
+                .padding(top = 20.dp)
                 .align(Alignment.CenterHorizontally)
                 .testTag("WriteEnterWriteSettingButton"),
                 onClick = { advanceUserAuthenticate() }) {
@@ -192,9 +200,9 @@ class OperatorLoginActivity : ComponentActivity() {
     fun ImeiTextField() {
 
         OutlinedTextField(
-            value = imei,
+            value = deviceSerialNumber,
             onValueChange = {
-                imei = it
+                deviceSerialNumber = it
             },
             modifier = Modifier
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)

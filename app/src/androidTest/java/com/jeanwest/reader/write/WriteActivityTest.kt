@@ -171,12 +171,13 @@ class WriteActivityTest {
     @Test
     fun addProductTest5() {
 
-        val header = 50
-        val company = 32
-        val partition = 7
-        val filter = 6
+        val header = 48
+        val company = 101
+        val partition = 0
+        val filter = 0
+        val serialNumberRange = 1000000L..1000100L
 
-        writeActivity.onNodeWithTag("WriteSettingButton").performClick()
+        /*writeActivity.onNodeWithTag("WriteSettingButton").performClick()
         writeActivity.waitForIdle()
         writeActivity.onNodeWithTag("WritePasswordTextField").performTextClearance()
         writeActivity.onNodeWithTag("WritePasswordTextField").performTextInput("123456")
@@ -201,9 +202,9 @@ class WriteActivityTest {
         writeActivity.onNodeWithTag("WriteSettingSerialNumberMaxTextField").performTextInput("1000100")
         writeActivity.waitForIdle()
         writeActivity.onNodeWithTag("WriteSettingBackButton").performClick()
-        writeActivity.waitForIdle()
+        writeActivity.waitForIdle()*/
 
-        for (i in 1000000L..1000100L) {
+        for (i in serialNumberRange) {
 
             RFIDWithUHFUART.uhfTagInfo.clear()
             RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -233,7 +234,7 @@ class WriteActivityTest {
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).header == header)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).company == 32)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).company == company)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).filter == filter)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).partition == partition)
         }
