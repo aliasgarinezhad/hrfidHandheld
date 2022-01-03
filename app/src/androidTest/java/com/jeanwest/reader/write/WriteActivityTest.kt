@@ -175,7 +175,7 @@ class WriteActivityTest {
         val company = 101
         val partition = 0
         val filter = 0
-        val serialNumberRange = 1000000L..1000100L
+        val serialNumberRange = 1000000L..1000100L // copy range in iot hub
 
         /*writeActivity.onNodeWithTag("WriteSettingButton").performClick()
         writeActivity.waitForIdle()

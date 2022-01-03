@@ -2,7 +2,7 @@
     <string name="app_name">RFID</string>
     <string name="colorPrimary">#008080</string>
     <string name="transferText">ثبت حواله</string>
-    <string name="confirmText">تایید حواله</string>
+    <string name="checkInText">تایید حواله</string>
     <string name="title_activity_file_attachment">FileAttachment</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
     <string name="xls">application/vnd.ms-excel</string>

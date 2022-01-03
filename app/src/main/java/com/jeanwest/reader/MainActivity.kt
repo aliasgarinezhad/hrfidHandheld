@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,17 +29,15 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.jeanwest.reader.aboutUs.AboutUsActivity
-import com.jeanwest.reader.confirm.ConfirmScanningLogin
+import com.jeanwest.reader.checkIn.CheckInActivity
+import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.jeanwest.reader.transfer.TransferenceActivityLogIn
-import com.jeanwest.reader.warehouseScanning.WarehouseScanningUserLogin
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
-import java.text.SimpleDateFormat
 import java.util.*
 
 
@@ -50,7 +47,6 @@ class MainActivity : ComponentActivity() {
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences
     private var deviceId = ""
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -418,7 +414,7 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, ConfirmScanningLogin::class.java)
+                    val intent = Intent(this, GetBarcodesByCheckInNumberActivity::class.java)
                     startActivity(intent)
                 }
             },
@@ -440,7 +436,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Spacer(modifier = Modifier.weight(0.5F))
                 Text(
-                    stringResource(R.string.confirmText),
+                    stringResource(R.string.checkInText),
                     modifier = Modifier
                         .weight(2F)
                         .fillMaxSize(),
@@ -462,8 +458,9 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, WarehouseScanningUserLogin::class.java)
-                    startActivity(intent)
+                    //TODO()
+                    /*val intent = Intent(this, WarehouseScanningUserLogin::class.java)
+                    startActivity(intent)*/
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -506,8 +503,9 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    val intent = Intent(this, TransferenceActivityLogIn::class.java)
-                    startActivity(intent)
+                    //TODO()
+                    /*val intent = Intent(this, TransferenceActivityLogIn::class.java)
+                    startActivity(intent)*/
                 }
             },
             modifier = Modifier.fillMaxSize(),

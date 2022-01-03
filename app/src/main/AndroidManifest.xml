@@ -36,10 +36,8 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".confirm.ConfirmScanningLogin" />
-        <activity android:name=".confirm.ConfirmScanningActivity" />
-        <activity android:name=".confirm.ConfirmScanningResultActivity" />
-        <activity android:name=".confirm.ConfirmScanningFindingProduct" />
+        <activity android:name=".checkIn.CheckInActivity" />
+        <activity android:name=".checkIn.GetBarcodesByCheckInNumberActivity" />
         <activity android:name=".transfer.TransferenceActivity" />
         <activity android:name=".transfer.TransferenceActivityLogIn" />
         <activity android:name=".UserLoginActivity" />
