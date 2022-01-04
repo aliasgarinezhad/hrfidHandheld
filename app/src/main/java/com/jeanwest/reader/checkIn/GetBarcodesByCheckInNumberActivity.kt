@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -18,11 +19,16 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -40,10 +46,54 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
         setContent {
             Page()
         }
+        loadMemory()
     }
 
     private fun back() {
         finish()
+    }
+
+    private fun loadMemory() {
+
+        val type = object : TypeToken<List<CheckInProperties>>() {}.type
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        barcodeTable = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
+            barcodeTable.javaClass
+        ) ?: mutableListOf()
+
+        uiList = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
+        ) ?: mutableListOf()
+
+        uiListTemp = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
+        ) ?: mutableListOf()
+    }
+
+    private fun saveMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val edit = memory.edit()
+
+        edit.putString(
+            "GetBarcodesByCheckInNumberActivityBarcodeTable",
+            JSONArray(barcodeTable).toString()
+        )
+        edit.putString("GetBarcodesByCheckInNumberActivityUiList", Gson().toJson(uiList).toString())
+
+        edit.apply()
+    }
+
+    private fun clear() {
+        uiList = mutableListOf()
+        uiListTemp = mutableListOf()
+        barcodeTable = mutableListOf()
+        saveMemory()
     }
 
     private fun getCheckInNumberDetails(checkInNumber: String) {
@@ -61,7 +111,15 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
             val source = it.getJSONObject(0).getInt("FromWareHouse_ID")
             val destination = it.getJSONObject(0).getInt("ToWareHouse_ID")
-            val dateAndTime = it.getJSONObject(0).getString("CreateDate")
+            val miladiCreateDate = it.getJSONObject(0).getString("CreateDate").substring(0, 10)
+            val intArrayFormatJalaliCreateDate = JalaliDateConverter.gregorian_to_jalali(
+                miladiCreateDate.substring(0, 4).toInt(),
+                miladiCreateDate.substring(5, 7).toInt(),
+                miladiCreateDate.substring(8, 10).toInt()
+            )
+
+            val jalaliCreateDate =
+                "${intArrayFormatJalaliCreateDate[0]}/${intArrayFormatJalaliCreateDate[1]}/${intArrayFormatJalaliCreateDate[2]}"
 
             var numberOfItems = 0
             for (i in 0 until it.length()) {
@@ -73,7 +131,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
             val checkInProperties = CheckInProperties(
                 number = number,
-                dateAndTime = dateAndTime,
+                date = jalaliCreateDate,
                 source = source,
                 destination = destination,
                 numberOfItems = numberOfItems
@@ -82,6 +140,8 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             uiListTemp.add(checkInProperties)
             uiList = mutableListOf()
             uiList = uiListTemp
+
+            saveMemory()
 
         }, {
             Toast.makeText(this, "خطا در دریافت حواله", Toast.LENGTH_LONG).show()
@@ -118,15 +178,25 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 Text(
                     text = stringResource(id = R.string.checkInText),
                     modifier = Modifier
-                        .padding(end = 50.dp)
-                        .fillMaxWidth()
-                        .wrapContentWidth()
+                        .padding(end = 10.dp)
+                        .fillMaxSize()
+                        .wrapContentSize()
                 )
             },
             navigationIcon = {
                 IconButton(onClick = { back() }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
+                        contentDescription = ""
+                    )
+                }
+            },
+            actions = {
+                IconButton(onClick = {
+                    clear()
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
                     )
                 }
@@ -224,12 +294,15 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = "تاریخ ثبت: " + uiList[i].dateAndTime,
+                                    text = "تاریخ ثبت: " + uiList[i].date,
                                     style = MaterialTheme.typography.body1,
                                     textAlign = TextAlign.Right,
-                                    modifier = modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                                    modifier = modifier.padding(
+                                        start = 8.dp,
+                                        top = 4.dp,
+                                        bottom = 4.dp,
+                                        end = 0.dp
+                                    ),
                                 )
                             }
                         }
@@ -248,6 +321,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             },
             modifier = modifier,
             label = { Text(text = "شماره حواله") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
     }
 

@@ -110,10 +110,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
         super.onResume()
 
-        fileName = Calendar.getInstance(TimeZone.getDefault()).let {
-            "" + it.get(Calendar.YEAR) + "-" + (it.get(Calendar.MONTH) + 1) + "-" + it.get(Calendar.DAY_OF_MONTH)
-        }
-
         val util = JalaliDate()
         fileName = util.currentShamsidate
 

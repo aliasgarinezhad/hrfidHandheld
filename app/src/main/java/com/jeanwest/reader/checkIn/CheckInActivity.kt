@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -35,6 +36,7 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
@@ -77,7 +79,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var shortageCodesNumber by mutableStateOf(0)
     private var additionalCodesNumber by mutableStateOf(0)
     private var number by mutableStateOf(0)
-    private var fileName by mutableStateOf("خروجی")
+    private var fileName by mutableStateOf("حواله تایید شده تاریخ ")
     private var openDialog by mutableStateOf(false)
     private var uiList by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
     private val scanValues =
@@ -108,6 +110,9 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
         loadMemory()
         syncInputItemsToServer()
+
+        val util = JalaliDate()
+        fileName += util.currentShamsidate
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -349,6 +354,24 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     conflictResult
                 }
             }
+
+        shortagesNumber = 0
+        signedFilterOutput.filter {
+            it.scan == "کسری"
+        }.forEach {
+            shortagesNumber += it.matchedNumber
+        }
+
+        additionalNumber = 0
+        signedFilterOutput.filter {
+            it.scan == "اضافی" || it.scan == "اضافی فایل"
+        }.forEach {
+            additionalNumber += it.matchedNumber
+        }
+
+        shortageCodesNumber = signedFilterOutput.filter { it.scan == "کسری" }.size
+        additionalCodesNumber =
+            signedFilterOutput.filter { it.scan == "اضافی" || it.scan == "اضافی فایل" }.size
 
         val uiListParameters =
             when {
@@ -598,7 +621,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             "CheckInSignedCodesTable",
             JSONArray(signedProductCodes).toString()
         )
-        //edit.putString("CheckInFileBarcodeTable", JSONArray(excelBarcodes).toString())
         edit.apply()
     }
 
@@ -622,11 +644,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             memory.getString("CheckInSignedCodesTable", ""),
             signedProductCodes.javaClass
         ) ?: mutableListOf()
-
-        /*excelBarcodes = Gson().fromJson(
-            memory.getString("CheckInFileBarcodeTable", ""),
-            excelBarcodes.javaClass
-        ) ?: mutableListOf()*/
 
         number = epcTable.size + barcodeTable.size
     }
@@ -684,15 +701,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private fun exportFile() {
 
         val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("conflicts")
+        val sheet = workbook.createSheet("تروفالس")
 
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
         headerRow.createCell(0).setCellValue("کد جست و جو")
         headerRow.createCell(1).setCellValue("تعداد")
-        headerRow.createCell(2).setCellValue("دسته")
-        headerRow.createCell(3).setCellValue("کسری")
-        headerRow.createCell(4).setCellValue("اضافی")
-        headerRow.createCell(5).setCellValue("نشانه")
+        headerRow.createCell(2).setCellValue("کسری")
+        headerRow.createCell(3).setCellValue("اضافی")
+        headerRow.createCell(4).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
@@ -700,13 +716,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             row.createCell(1).setCellValue(it.scannedNumber.toDouble())
 
             if (it.scan == "کسری") {
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
             } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
-                row.createCell(4).setCellValue(it.matchedNumber.toDouble())
+                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
             }
 
             if (it.KBarCode in signedProductCodes) {
-                row.createCell(5).setCellValue("نشانه دار")
+                row.createCell(4).setCellValue("نشانه دار")
             }
         }
 
@@ -715,9 +731,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
         header2Row.createCell(0).setCellValue("کد جست و جو")
         header2Row.createCell(1).setCellValue("موجودی")
-        header2Row.createCell(2).setCellValue("دسته")
-        header2Row.createCell(3).setCellValue("کسری")
-        headerRow.createCell(4).setCellValue("نشانه")
+        header2Row.createCell(2).setCellValue("کسری")
+        headerRow.createCell(3).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 
@@ -726,10 +741,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 row.createCell(0).setCellValue(it.KBarCode)
                 row.createCell(1)
                     .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(4).setCellValue("نشانه دار")
+                    row.createCell(3).setCellValue("نشانه دار")
                 }
             }
         }
@@ -739,9 +754,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
         header3Row.createCell(0).setCellValue("کد جست و جو")
         header3Row.createCell(1).setCellValue("موجودی")
-        header3Row.createCell(2).setCellValue("دسته")
-        header3Row.createCell(3).setCellValue("اضافی")
-        headerRow.createCell(4).setCellValue("نشانه")
+        header3Row.createCell(2).setCellValue("اضافی")
+        headerRow.createCell(3).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 
@@ -749,10 +763,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 val row = sheet3.createRow(sheet3.physicalNumberOfRows)
                 row.createCell(0).setCellValue(it.KBarCode)
                 row.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(4).setCellValue("نشانه دار")
+                    row.createCell(3).setCellValue("نشانه دار")
                 }
             }
         }
@@ -826,7 +840,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = "شمارش",
+                    text = stringResource(id = R.string.checkInText),
                     modifier = Modifier
                         .padding(start = 35.dp)
                         .fillMaxSize()

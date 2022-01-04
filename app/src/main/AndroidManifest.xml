@@ -40,11 +40,11 @@
         <activity android:name=".checkIn.GetBarcodesByCheckInNumberActivity" />
         <activity android:name=".transfer.TransferenceActivity" />
         <activity android:name=".transfer.TransferenceActivityLogIn" />
-        <activity android:name=".UserLoginActivity" />
+        <activity android:name=".logIn.UserLoginActivity" />
         <activity android:name=".search.SearchSubActivity" />
         <activity android:name=".search.SearchActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningSubResultActivity" />
-        <activity android:name=".OperatorLoginActivity" />
+        <activity android:name=".logIn.OperatorLoginActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
         <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
         <activity android:name=".aboutUs.AboutUsActivity" />

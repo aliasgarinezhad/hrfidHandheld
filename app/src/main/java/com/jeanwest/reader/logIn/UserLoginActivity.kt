@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.logIn
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONObject
 
