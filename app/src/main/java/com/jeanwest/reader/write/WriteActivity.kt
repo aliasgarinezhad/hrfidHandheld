@@ -145,6 +145,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         headerRow.createCell(2).setCellValue("تاریخ")
         headerRow.createCell(3).setCellValue("کاربر")
         headerRow.createCell(4).setCellValue("شماره سریال دستگاه")
+        headerRow.createCell(5).setCellValue("روی تگ خام رایت شده است")
 
         val dir = File(this.getExternalFilesDir(null), "/")
         val outFile = File(dir, "$fileName.xlsx")
@@ -156,6 +157,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             row.createCell(2).setCellValue(it.dateAndTime)
             row.createCell(3).setCellValue(it.username)
             row.createCell(4).setCellValue(it.deviceSerialNumber)
+            row.createCell(5).setCellValue(it.wroteOnRawTag)
 
             val outputStream = FileOutputStream(outFile.absolutePath)
             workbook.write(outputStream)
@@ -564,7 +566,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     epc = productEPC,
                     dateAndTime = sdf.format(Date()),
                     username = MainActivity.username,
-                    deviceSerialNumber = deviceSerialNumber
+                    deviceSerialNumber = deviceSerialNumber,
+                    wroteOnRawTag = switchValue
                 )
                 writeRecords.add(writeRecord)
                 userWriteRecords.add(writeRecord)

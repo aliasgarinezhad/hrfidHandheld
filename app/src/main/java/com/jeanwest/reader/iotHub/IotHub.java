@@ -26,6 +26,7 @@ import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
 import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
 import com.microsoft.azure.sdk.iot.device.IotHubEventCallback;
 import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
+import com.microsoft.azure.sdk.iot.device.Message;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -68,7 +69,6 @@ public class IotHub extends Service {
     IotHubClientProtocol protocol = IotHubClientProtocol.MQTT;
 
     Device dataCollector = new Device() {
-        // Print details when a property value changes
         @Override
         public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
 
@@ -172,6 +172,8 @@ public class IotHub extends Service {
         headerRow.createCell(2).setCellValue("date and time");
         headerRow.createCell(3).setCellValue("username");
         headerRow.createCell(4).setCellValue("device serial number");
+        headerRow.createCell(5).setCellValue("wrote on raw tag");
+
 
         @SuppressLint("SimpleDateFormat")
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ");
@@ -185,6 +187,8 @@ public class IotHub extends Service {
             row.createCell(2).setCellValue(it.getDateAndTime());
             row.createCell(3).setCellValue(it.getUsername());
             row.createCell(4).setCellValue(it.getDeviceSerialNumber());
+            row.createCell(5).setCellValue(it.getWroteOnRawTag());
+
 
             FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
             workbook.write(outputStream);
@@ -219,9 +223,11 @@ public class IotHub extends Service {
                                     .buildClient();
                     Log.e("error", blobClient.toString());
 
-
                     blobClient.uploadFromFile(outFile.getAbsolutePath());
                     sendLogFileSuccess = true;
+                    JSONObject json = new JSONObject();
+                    json.put("Blob name", sasUriResponse.getBlobName());
+                    sendMessage(json.toString());
 
                 } catch (Exception e) {
                     Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
@@ -230,10 +236,6 @@ public class IotHub extends Service {
 
                     Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
 
-                    // Note that this is done even when the file upload fails. IoT Hub has a fixed number of SAS URIs allowed active
-                    // at any given time. Once you are done with the file upload, you should free your SAS URI so that other
-                    // SAS URIs can be generated. If a SAS URI is not freed through this API, then it will free itself eventually
-                    // based on how long SAS URIs are configured to live on your IoT Hub.
                     FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
                     client.completeFileUpload(completionNotification);
 
@@ -313,17 +315,15 @@ public class IotHub extends Service {
 
     private void initClient() throws URISyntaxException, IOException {
 
-        final String connString = "HostName=WavecountIoTHub-eastus2.azure-devices.net;DeviceId=" + deviceId +
+        final String connString = "HostName=rfid-frce.azure-devices.net;DeviceId=" + deviceId +
                 ";SharedAccessKey=" + iotToken;
 
         client = new DeviceClient(connString, protocol);
 
         try {
-            // Open the DeviceClient and start the device twin services.
             client.open();
             client.startDeviceTwin(new DeviceTwinStatusCallBack(), null, dataCollector, null);
 
-            // Create a reported property and send it to your IoT hub.
             dataCollector.setReportedProp(new Property("connectivityType", null));
             dataCollector.setReportedProp(new Property("installedAppVersion", getPackageManager().getPackageInfo(getPackageName(), 0).versionName));
             dataCollector.setReportedProp(new Property("Serial", Serial));
@@ -337,10 +337,37 @@ public class IotHub extends Service {
         }
     }
 
+    private void sendMessage(String message) {
+        Message sendMessage = new Message(message);
+        sendMessage.setProperty("message-type", "writeTagsFileUploadNotification");
+        sendMessage.setMessageId(java.util.UUID.randomUUID().toString());
+        sendMessage.setContentTypeFinal("application/json");
+        sendMessage.setContentEncoding("utf-8");
+        System.out.println("Message Sent: " + message);
+        EventCallback eventCallback = new EventCallback();
+        client.sendEventAsync(sendMessage, eventCallback, 0);
+    }
+
     protected static class DeviceTwinStatusCallBack implements IotHubEventCallback {
         @Override
         public void execute(IotHubStatusCode status, Object context) {
             Log.e("error", "IoT Hub responded to device twin operation with status " + status.name());
+        }
+    }
+
+    static class EventCallback implements IotHubEventCallback
+    {
+        public void execute(IotHubStatusCode status, Object context)
+        {
+
+            if((status == IotHubStatusCode.OK) || (status == IotHubStatusCode.OK_EMPTY))
+            {
+
+            }
+            else
+            {
+
+            }
         }
     }
 }

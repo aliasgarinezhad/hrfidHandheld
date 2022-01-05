@@ -6,4 +6,5 @@ data class WriteRecord(
     val dateAndTime: String,
     val username: String,
     val deviceSerialNumber: String,
+    val wroteOnRawTag : Boolean
 )

@@ -98,6 +98,11 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
     private fun getCheckInNumberDetails(checkInNumber: String) {
 
+        if(checkInNumber.isEmpty()) {
+            Toast.makeText(this, "لطفا شماره حواله را وارد کنید", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val number = checkInNumber.toLong()
         uiListTemp.forEach { it ->
             if (it.number == number) {

@@ -459,7 +459,6 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    //TODO()
                     /*val intent = Intent(this, WarehouseScanningUserLogin::class.java)
                     startActivity(intent)*/
                 }
@@ -504,7 +503,6 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    //TODO()
                     /*val intent = Intent(this, TransferenceActivityLogIn::class.java)
                     startActivity(intent)*/
                 }
