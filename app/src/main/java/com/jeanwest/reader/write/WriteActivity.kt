@@ -22,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -47,6 +47,7 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -70,16 +71,17 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var result by mutableStateOf("")
     private var openClearDialog by mutableStateOf(false)
     private var openFileDialog by mutableStateOf(false)
+    private var openRewriteDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(R.color.white)
     private var fileName by mutableStateOf("خروجی")
     private var writeRecords = mutableListOf<WriteRecord>()
     private var userWriteRecords = mutableListOf<WriteRecord>()
+    private var barcodeInformation = JSONObject()
 
     private var step2 = false
     private var rfPower = 5
-    private var switchValue by mutableStateOf(false)
 
     private var counterMaxValue = 0L
     private var counterMinValue = 0L
@@ -299,7 +301,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
             barcodeIsScanning = false
             barcodeID = barcode
-            result = "اسکن بارکد با موفقیت انجام شد\nID: $barcodeID\n"
+            result = "$barcodeID\n"
             resultColor = R.color.DarkGreen
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             step2 = true
@@ -308,7 +310,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             barcodeIsScanning = false
             rf.stopInventory()
             rfIsScanning = false
-            result = "بارکدی پیدا نشد"
+            result = "بارکدی پیدا نشد. لطفا لیزر اسکنر را روبروی بارکد قرار دهید."
             resultColor = R.color.Brown
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
         }
@@ -408,91 +410,163 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         return false
     }
 
+    private fun write(barcodeInformation: JSONObject) {
+
+        if (!setRFPower(30)) {
+            return
+        }
+
+        val itemNumber = barcodeInformation.getString("RFID").toLong()
+        val serialNumber = counterValue
+
+        val productEPC = epcGenerator(
+            headerNumber,
+            filterNumber,
+            partitionNumber,
+            companyNumber,
+            itemNumber,
+            serialNumber
+        )
+
+        if (!rfWrite(productEPC)) {
+            result += "تگ رایت نشده است. لطفا دوباره امتحان کنید"
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+            resultColor = R.color.Brown
+            return
+        }
+
+        if (!rfWriteVerify(productEPC)) {
+            result += "تگ رایت نشده است. لطفا دوباره امتحان کنید"
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+            resultColor = R.color.Brown
+            return
+        }
+
+        if (!setRFPower(rfPower)) {
+            return
+        }
+
+        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+        resultColor = R.color.DarkGreen
+
+        result += "تگ با موفقیت رایت شد" + "\n"
+        result += "سریال جدید: $productEPC"
+
+        counterValue++
+        barcodeTable.add(barcodeInformation.getString("KBarCode"))
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+        val writeRecord = WriteRecord(
+            barcode = barcodeInformation.getString("KBarCode"),
+            epc = productEPC,
+            dateAndTime = sdf.format(Date()),
+            username = MainActivity.username,
+            deviceSerialNumber = deviceSerialNumber,
+            wroteOnRawTag = false
+        )
+        writeRecords.add(writeRecord)
+        userWriteRecords.add(writeRecord)
+
+        counter = userWriteRecords.size
+        numberOfWrittenRfTags = counterValue - counterMinValue
+        saveMemory()
+        if (writeRecords.size > 100) {
+            if (iotHubConnected) {
+                if (iotHubService.sendLogFile(writeRecords)) {
+                    writeRecords.clear()
+                    saveMemory()
+                }
+            }
+        }
+    }
+
     @SuppressLint("SimpleDateFormat")
     @Throws(InterruptedException::class)
     private fun addNewTag() {
 
+        var rawEpcs: MutableList<String>
         val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
 
         for (i in 0..600) {
+
             rf.readTagFromBuffer()?.also {
                 epcs.add(it.epc)
                 tidMap[it.epc] = it.tid
             } ?: break
+
+            if (i > 590) {
+                Thread.sleep(10)
+                rf.startInventoryTag(0, 0, 0)
+                startBarcodeScan()
+                barcodeIsScanning = true
+                rfIsScanning = true
+                return
+            }
         }
 
-        if (epcs.size > 590) {
-            Thread.sleep(10)
-            rf.startInventoryTag(0, 0, 0)
-            startBarcodeScan()
-            barcodeIsScanning = true
-            rfIsScanning = true
-            return
-        } else if (epcs.size > 2) {
+        epcs = epcs.distinct().toMutableList()
+        rawEpcs = epcs.filter {
+            !it.startsWith("30")
+        }.toMutableList()
 
-            epcs = epcs.distinct().toMutableList()
-
-            if (!switchValue) {
-                epcs = epcs.filter {
-                    !it.startsWith("30")
-                }.toMutableList()
+        when {
+            rawEpcs.size == 1 -> {
+                epc = rawEpcs[0]
+                tid = tidMap[epc] ?: "null"
             }
-
-            if (epcs.size == 1) {
+            epcs.size == 1 -> {
                 epc = epcs[0]
                 tid = tidMap[epc] ?: "null"
             }
-        }
+            else -> {
 
-        if (epcs.size != 1) {
+                epcs.clear()
+                tidMap.clear()
+                Thread.sleep(10)
+                rf.startInventoryTag(0, 0, 0)
 
-            epcs.clear()
-            tidMap.clear()
-            Thread.sleep(10)
-            rf.startInventoryTag(0, 0, 0)
-
-            val timeout = System.currentTimeMillis() + 500
-            while (epcs.size < 5 && System.currentTimeMillis() < timeout) {
-                rf.readTagFromBuffer()?.also {
-                    epcs.add(it.epc)
-                    tidMap[it.epc] = it.tid
+                val timeout = System.currentTimeMillis() + 500
+                while (epcs.size < 5 && System.currentTimeMillis() < timeout) {
+                    rf.readTagFromBuffer()?.also {
+                        epcs.add(it.epc)
+                        tidMap[it.epc] = it.tid
+                    }
                 }
-            }
 
-            rf.stopInventory()
-
-            if (epcs.size < 3) {
-                result += "هیچ تگی یافت نشد"
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
-                return
-            } else {
+                rf.stopInventory()
 
                 epcs = epcs.distinct().toMutableList()
-
-                if (!switchValue) {
-                    epcs = epcs.filter {
-                        !it.startsWith("30")
-                    }.toMutableList()
-                }
+                rawEpcs = epcs.filter {
+                    !it.startsWith("30")
+                }.toMutableList()
 
                 when {
                     epcs.isEmpty() -> {
-                        result += "هیچ تگ جدیدی یافت نشد"
+                        result += "هیج تگی پیدا نشد. لطفا دستگاه را نزدیک تگ قرار دهید و دوباره تلاش کنید."
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                         resultColor = R.color.Brown
                         return
                     }
-                    epcs.size > 1 -> {
-                        result += "تعداد تگ های یافت شده بیشتر از یک عدد است"
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                        resultColor = R.color.Brown
-                        return
-                    }
-                    else -> {
+                    epcs.size == 1 -> {
                         epc = epcs[0]
                         tid = tidMap[epc] ?: "null"
+                    }
+                    rawEpcs.size > 1 -> {
+                        result += "تعداد تگ های خام پیدا شده بیشتر از یک است. لطفا تگ مورد نظرتان را جدا از بقیه قرار دهید و دوباره تلاش کنید."
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                        resultColor = R.color.Brown
+                        return
+                    }
+                    rawEpcs.size == 1 -> {
+                        epc = rawEpcs[0]
+                        tid = tidMap[epc] ?: "null"
+                    }
+                    rawEpcs.isEmpty() -> {
+                        result += "همه تگ های این محدوده رایت شده هستند. لطفا تگ مورد نظرتان را جدا از بقیه قرار دهید و دوباره تلاش کنید."
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                        resultColor = R.color.Brown
+                        return
                     }
                 }
             }
@@ -502,90 +576,34 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         val request = object : JsonObjectRequest1(Method.GET, url, null,
             fun(it) {
 
-                if (switchValue) {
+                val decodedTagEpc = epcDecoder(epc)
 
-                    val decodedTagEpc = epcDecoder(epc)
-
+                if (decodedTagEpc.header == 48) {
                     if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
                         (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
                             .toLong())
                     ) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                         resultColor = R.color.DarkGreen
-                        result += "با موفقیت اضافه شد" + "\n"
+                        result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
+                        return
+                    } else {
+                        Log.e("error", decodedTagEpc.company.toString())
+                        result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
+                        barcodeInformation = it
+                        openRewriteDialog = true
                         return
                     }
+                } else {
+                    barcodeInformation = it
+                    write(barcodeInformation)
                 }
-
-                if (!setRFPower(30)) {
-                    return
-                }
-
-                val itemNumber = it.getString("RFID").toLong()// 32 bit
-                val serialNumber = counterValue // 38 bit
-
-                val productEPC = epcGenerator(
-                    headerNumber,
-                    filterNumber,
-                    partitionNumber,
-                    companyNumber,
-                    itemNumber,
-                    serialNumber
-                )
-
-                if (!rfWrite(productEPC)) {
-                    result += "خطا در نوشتن"
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                    resultColor = R.color.Brown
-                    return
-                }
-
-                if (!rfWriteVerify(productEPC)) {
-                    result += "خطا در تطبیق"
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                    resultColor = R.color.Brown
-                    return
-                }
-
-                if (!setRFPower(rfPower)) {
-                    return
-                }
-
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                resultColor = R.color.DarkGreen
-
-                result += "با موفقیت اضافه شد" + "\n"
-                result += "سریال جدید: $productEPC"
-
-                counterValue++
-                barcodeTable.add(it.getString("KBarCode"))
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
-                val writeRecord = WriteRecord(
-                    barcode = it.getString("KBarCode"),
-                    epc = productEPC,
-                    dateAndTime = sdf.format(Date()),
-                    username = MainActivity.username,
-                    deviceSerialNumber = deviceSerialNumber,
-                    wroteOnRawTag = switchValue
-                )
-                writeRecords.add(writeRecord)
-                userWriteRecords.add(writeRecord)
-
-                counter = userWriteRecords.size
-                numberOfWrittenRfTags = counterValue - counterMinValue
-                saveMemory()
-                if (writeRecords.size > 100) {
-                    if (iotHubConnected) {
-                        if (iotHubService.sendLogFile(writeRecords)) {
-                            writeRecords.clear()
-                            saveMemory()
-                        }
-                    }
-                }
-
             }, {
-                result += "خطا در دیتابیس" + it.message
+                result += if(it is NoConnectionError) {
+                    "اینترنت قطع است. شبکه وای فای را بررسی کنید."
+                } else {
+                    "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                }
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = R.color.Brown
             }) {
@@ -642,6 +660,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         result.header = binaryEPC.substring(0, 8).toInt(2)
         result.partition = binaryEPC.substring(8, 11).toInt(2)
         result.filter = binaryEPC.substring(11, 14).toInt(2)
+        result.company = binaryEPC.substring(14, 26).toInt(2)
+        result.item = binaryEPC.substring(26, 58).toLong(2)
+        result.serial = binaryEPC.substring(58, 96).toLong(2)
         return result
     }
 
@@ -692,8 +713,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = "رایت",
                     modifier = Modifier
+                        .padding(start = 35.dp)
+                        .fillMaxSize()
                         .wrapContentSize(),
-                    textAlign = TextAlign.Right,
+                    textAlign = TextAlign.Center,
                 )
             }
         )
@@ -723,6 +746,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     ClearAlertDialog()
                 }
 
+                if (openRewriteDialog) {
+                    RewriteAlertDialog()
+                }
+
                 Row {
 
                     Text(
@@ -747,47 +774,23 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    modifier = Modifier.fillMaxWidth()
                 ) {
 
                     Text(
                         text = "کل تگ های رایت شده: $numberOfWrittenRfTags",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(horizontal = 8.dp),
+                            .padding(bottom = 10.dp, start = 8.dp)
+                            .weight(1F),
                     )
 
                     Text(
                         text = "شمارنده: $counter",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(horizontal = 8.dp),
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 5.dp)
-                ) {
-                    Text(
-                        text = "رایت مجدد تگ های استفاده شده",
-                        modifier = Modifier
-                            .padding(end = 4.dp, bottom = 10.dp)
-                            .align(Alignment.CenterVertically),
-                    )
-
-                    Switch(
-                        checked = switchValue,
-                        onCheckedChange = {
-                            switchValue = it
-                        },
-                        modifier = Modifier
-                            .padding(end = 4.dp, bottom = 10.dp)
-                            .testTag("switch"),
+                            .padding(bottom = 10.dp, start = 8.dp)
+                            .weight(1F),
                     )
                 }
 
@@ -817,6 +820,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     textAlign = TextAlign.Right,
                     modifier = Modifier
                         .padding(horizontal = 8.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.body2
                 )
             }
         }
@@ -897,6 +901,50 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         }
                         Button(
                             onClick = { openClearDialog = false },
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(text = "خیر")
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun RewriteAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openRewriteDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = "این تگ قبلا با بارکد دیگری رایت شده است. مقدار جدید جایگزین قبلی شود؟",
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 18.sp
+                    )
+
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                        Button(onClick = {
+                            openRewriteDialog = false
+                            write(barcodeInformation)
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "بله")
+                        }
+                        Button(
+                            onClick = { openRewriteDialog = false },
                             modifier = Modifier.padding(top = 10.dp)
                         ) {
                             Text(text = "خیر")

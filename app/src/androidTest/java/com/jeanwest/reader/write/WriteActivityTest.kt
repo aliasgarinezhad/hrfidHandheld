@@ -93,7 +93,7 @@ class WriteActivityTest {
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
     }
 
-    //Do last test again with option checked (you should face with programming error)
+    //rewrite programmed tag
 
     @Test
     fun addProductTest3() {
@@ -102,34 +102,12 @@ class WriteActivityTest {
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
-        var uhfTagInfo = UHFTAGInfo()
+        val uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = "308011702000015F195D0A17"
-        uhfTagInfo.tid = "E28011702000015F195D0A18"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = "308011702000015F195D0A17"
-        uhfTagInfo.tid = "E28011702000015F195D0A19"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = "E28011702000015F195D0A17"
         uhfTagInfo.tid = "E28011702000015F195D0A17"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = "308011702000015F195D0A17"
-        uhfTagInfo.tid = "E28011702000015F195D0A16"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = "308011702000015F195D0A17"
-        uhfTagInfo.tid = "E28011702000015F195D0A15"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        writeActivity.onNodeWithTag("switch").performClick()
-
-        writeActivity.waitForIdle()
+        repeat(5) {
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
 
         writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
@@ -138,11 +116,16 @@ class WriteActivityTest {
         writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
         writeActivity.waitForIdle()
-
         Thread.sleep(1000)
         writeActivity.waitForIdle()
 
-        assert(RFIDWithUHFUART.writtenUhfTagInfo.tid != "E28011702000015F195D0A17")
+        writeActivity.onNodeWithText("بله").performClick()
+
+        writeActivity.waitForIdle()
+        Thread.sleep(1000)
+        writeActivity.waitForIdle()
+
+        assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }
 
     @Test
@@ -175,34 +158,7 @@ class WriteActivityTest {
         val company = 101
         val partition = 0
         val filter = 0
-        val serialNumberRange = 1000000L..1000100L // copy range in iot hub
-
-        /*writeActivity.onNodeWithTag("WriteSettingButton").performClick()
-        writeActivity.waitForIdle()
-        writeActivity.onNodeWithTag("WritePasswordTextField").performTextClearance()
-        writeActivity.onNodeWithTag("WritePasswordTextField").performTextInput("123456")
-        writeActivity.onNodeWithTag("WriteEnterWriteSettingButton").performClick()
-
-        writeActivity.onNodeWithTag("WriteSettingPartitionDropDownList").performClick()
-        writeActivity.onNodeWithText(partition.toString()).performClick()
-
-        writeActivity.onNodeWithTag("WriteSettingFilterDropDownList").performClick()
-        writeActivity.onNodeWithText(filter.toString()).performClick()
-
-        writeActivity.onNodeWithTag("WriteSettingHeaderTextField").performTextClearance()
-        writeActivity.onNodeWithTag("WriteSettingHeaderTextField").performTextInput(header.toString())
-
-        writeActivity.onNodeWithTag("WriteSettingCompanyTextField").performTextClearance()
-        writeActivity.onNodeWithTag("WriteSettingCompanyTextField").performTextInput(company.toString())
-
-        writeActivity.onNodeWithTag("WriteSettingSerialNumberMinTextField").performTextClearance()
-        writeActivity.onNodeWithTag("WriteSettingSerialNumberMinTextField").performTextInput("1000000")
-
-        writeActivity.onNodeWithTag("WriteSettingSerialNumberMaxTextField").performTextClearance()
-        writeActivity.onNodeWithTag("WriteSettingSerialNumberMaxTextField").performTextInput("1000100")
-        writeActivity.waitForIdle()
-        writeActivity.onNodeWithTag("WriteSettingBackButton").performClick()
-        writeActivity.waitForIdle()*/
+        val serialNumberRange = 1000000L..1000100L // copy range +1  in iot hub
 
         for (i in serialNumberRange) {
 

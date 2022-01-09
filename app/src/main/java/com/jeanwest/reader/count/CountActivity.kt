@@ -1049,6 +1049,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
+        val row = sheet.createRow(sheet.physicalNumberOfRows)
+        row.createCell(0).setCellValue("مجموع")
+        row.createCell(1).setCellValue(number.toDouble())
+        row.createCell(3).setCellValue(shortagesNumber.toDouble())
+        row.createCell(4).setCellValue(additionalNumber.toDouble())
+
         val sheet2 = workbook.createSheet("کسری")
 
         val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
@@ -1056,7 +1062,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         header2Row.createCell(1).setCellValue("موجودی")
         header2Row.createCell(2).setCellValue("دسته")
         header2Row.createCell(3).setCellValue("کسری")
-        headerRow.createCell(4).setCellValue("نشانه")
+        header2Row.createCell(4).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 
@@ -1081,7 +1087,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         header3Row.createCell(1).setCellValue("موجودی")
         header3Row.createCell(2).setCellValue("دسته")
         header3Row.createCell(3).setCellValue("اضافی")
-        headerRow.createCell(4).setCellValue("نشانه")
+        header3Row.createCell(4).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 

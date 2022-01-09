@@ -726,13 +726,19 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
+        val row = sheet.createRow(sheet.physicalNumberOfRows)
+        row.createCell(0).setCellValue("مجموع")
+        row.createCell(1).setCellValue(number.toDouble())
+        row.createCell(2).setCellValue(shortagesNumber.toDouble())
+        row.createCell(3).setCellValue(additionalNumber.toDouble())
+
         val sheet2 = workbook.createSheet("کسری")
 
         val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
         header2Row.createCell(0).setCellValue("کد جست و جو")
         header2Row.createCell(1).setCellValue("موجودی")
         header2Row.createCell(2).setCellValue("کسری")
-        headerRow.createCell(3).setCellValue("نشانه")
+        header2Row.createCell(3).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 
@@ -755,7 +761,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         header3Row.createCell(0).setCellValue("کد جست و جو")
         header3Row.createCell(1).setCellValue("موجودی")
         header3Row.createCell(2).setCellValue("اضافی")
-        headerRow.createCell(3).setCellValue("نشانه")
+        header3Row.createCell(3).setCellValue("نشانه")
 
         conflictResultProducts.forEach {
 
