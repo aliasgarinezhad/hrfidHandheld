@@ -10,12 +10,13 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -48,6 +49,9 @@ class MainActivity : ComponentActivity() {
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences
     private var deviceId = ""
+    private var buttonSize = 140.dp
+    private var iconSize = 70.dp
+    private var pageSize = buttonSize * 3 + 60.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -184,9 +188,7 @@ class MainActivity : ComponentActivity() {
                 Intent(this@MainActivity, OperatorLoginActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
-        }
-
-        else if (username == "") {
+        } else if (username == "") {
             val intent =
                 Intent(this@MainActivity, UserLoginActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -221,8 +223,8 @@ class MainActivity : ComponentActivity() {
                             title = {
                                 Row(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(start = 40.dp, end = 0.dp),
+                                        .padding(start = 40.dp)
+                                        .fillMaxSize(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -247,7 +249,8 @@ class MainActivity : ComponentActivity() {
                     content = {
 
                         Column(
-                            modifier = Modifier.padding(vertical = 40.dp, horizontal = 20.dp)
+                            verticalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxSize(),
                         ) {
 
                             if (openAccountDialog) {
@@ -255,102 +258,27 @@ class MainActivity : ComponentActivity() {
                             }
 
                             Row(
-                                modifier = Modifier.weight(1F)
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(
-                                            top = 0.dp,
-                                            bottom = 10.dp,
-                                            start = 0.dp,
-                                            end = 10.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize(),
-                                ) {
-                                    AddProductButton()
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(
-                                            top = 0.dp,
-                                            bottom = 10.dp,
-                                            start = 10.dp,
-                                            end = 0.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize(),
-                                ) {
-                                    FindingButton()
-                                }
+                                WriteTagButton()
+                                SearchButton()
                             }
 
                             Row(
-                                modifier = Modifier.weight(1F)
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-
-                                Box(
-                                    Modifier
-                                        .padding(
-                                            top = 10.dp,
-                                            bottom = 10.dp,
-                                            start = 0.dp,
-                                            end = 10.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize(),
-                                ) {
-                                    TransferButton()
-                                }
-
-                                Box(
-                                    Modifier
-                                        .padding(
-                                            top = 10.dp,
-                                            bottom = 10.dp,
-                                            start = 10.dp,
-                                            end = 0.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize(),
-                                ) {
-                                    WarehouseScanning()
-                                }
+                                RefillButton()
+                                WarehouseScanning()
                             }
 
                             Row(
-                                modifier = Modifier.weight(1F)
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(
-                                            top = 10.dp,
-                                            bottom = 10.dp,
-                                            start = 0.dp,
-                                            end = 10.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize(),
-                                ) {
-                                    CountButton()
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(
-                                            top = 10.dp,
-                                            bottom = 10.dp,
-                                            start = 10.dp,
-                                            end = 0.dp
-                                        )
-                                        .weight(1F)
-                                        .fillMaxSize()
-                                ) {
-                                    ConfirmButton()
-                                }
+                                CountButton()
+                                CheckInButton()
                             }
                         }
                     },
@@ -362,262 +290,241 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun CountButton() {
 
-        Button(
-            onClick = {
-                if (memory.getString("username", "") == "") {
-                    Toast.makeText(
-                        this,
-                        "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
                     val intent = Intent(this, CountActivity::class.java)
                     startActivity(intent)
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
+                )
         ) {
-            Column {
 
-                Spacer(modifier = Modifier.weight(0.5F))
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_attach_file_24),
-                    tint = colorResource(id = R.color.OrangeRed),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    "شمارش",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.counter),
+                tint = colorResource(id = R.color.OrangeRed),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                "شمارش",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1
+            )
         }
     }
 
     @Composable
-    fun ConfirmButton() {
-        Button(
-            onClick = {
-                if (memory.getString("username", "") == "") {
-                    Toast.makeText(
-                        this,
-                        "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+    fun CheckInButton() {
+
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
                     val intent = Intent(this, GetBarcodesByCheckInNumberActivity::class.java)
                     startActivity(intent)
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
+                )
         ) {
-            Column {
-
-                Spacer(modifier = Modifier.weight(0.5F))
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_playlist_add_check_24),
-                    tint = colorResource(id = R.color.DarkGreen),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    stringResource(R.string.checkInText),
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1,
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.true_flase),
+                tint = colorResource(id = R.color.DarkGreen),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                stringResource(R.string.checkInText),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1,
+            )
         }
     }
 
+
     @Composable
     fun WarehouseScanning() {
-        Button(
-            onClick = {
-                if (memory.getString("username", "") == "") {
-                    Toast.makeText(
-                        this,
-                        "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
                     /*val intent = Intent(this, WarehouseScanningUserLogin::class.java)
                     startActivity(intent)*/
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
+                )
         ) {
-            Column {
 
-                Spacer(modifier = Modifier.weight(0.5F))
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_format_list_bulleted_24),
-                    tint = colorResource(id = R.color.Purple),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    "انبارگردانی",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.inventory),
+                contentDescription = "",
+                tint = colorResource(id = R.color.Purple),
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                "انبارگردانی",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1,
+            )
         }
     }
 
     @Composable
     fun TransferButton() {
-        Button(
-            onClick = {
-                if (memory.getString("username", "") == "") {
-                    Toast.makeText(
-                        this,
-                        "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
                     /*val intent = Intent(this, TransferenceActivityLogIn::class.java)
                     startActivity(intent)*/
                 }
-            },
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
+                )
         ) {
-            Column {
 
-                Spacer(modifier = Modifier.weight(0.5F))
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_playlist_add_24),
-                    tint = colorResource(id = R.color.YellowGreen),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    stringResource(R.string.transferText),
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.check_in),
+                tint = colorResource(id = R.color.YellowGreen),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                stringResource(R.string.transferText),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1
+            )
         }
     }
 
     @Composable
-    fun FindingButton() {
-        Button(
-            onClick = {
-                val intent = Intent(
-                    this@MainActivity,
-                    SearchActivity::class.java
+    fun SearchButton() {
+
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
+                    val intent = Intent(
+                        this@MainActivity,
+                        SearchActivity::class.java
+                    )
+                    startActivity(intent)
+                }
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
                 )
-                startActivity(intent)
-            },
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
         ) {
-            Column {
 
-                Spacer(modifier = Modifier.weight(0.5F))
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_search_24),
-                    tint = colorResource(id = R.color.Goldenrod),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    "جست و جو",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1,
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.search),
+                tint = colorResource(id = R.color.Goldenrod),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                "جست و جو",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1,
+            )
         }
     }
 
     @Composable
-    fun AddProductButton() {
+    fun WriteTagButton() {
 
-        Button(
-            onClick = {
-                if (memory.getString("username", "") == "") {
-                    Toast.makeText(
-                        this,
-                        "دسترسی به این امکان برای حساب کاربری شما تعریف نشده است!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
                     val intent = Intent(this, WriteActivity::class.java)
                     startActivity(intent)
                 }
-            },
-
-            modifier = Modifier.fillMaxSize(),
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-            shape = MaterialTheme.shapes.medium
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
+                )
         ) {
-            Column {
 
-                Spacer(modifier = Modifier.weight(0.5F))
+            Icon(
+                painter = painterResource(R.drawable.write),
+                tint = colorResource(id = R.color.Brown),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                "رایت",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1
+            )
+        }
+    }
 
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_add_circle_outline_24),
-                    tint = colorResource(id = R.color.Brown),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize()
+    @Composable
+    fun RefillButton() {
+
+        Column(
+            verticalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .size(buttonSize)
+                .clickable {
+                    /*val intent = Intent(this, WriteActivity::class.java)
+                    startActivity(intent)*/
+                }
+                .background(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colors.onPrimary,
                 )
-                Spacer(modifier = Modifier.weight(0.5F))
-                Text(
-                    "رایت",
-                    modifier = Modifier
-                        .weight(2F)
-                        .fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.h1
-                )
-            }
+        ) {
+
+            Icon(
+                painter = painterResource(R.drawable.refill),
+                tint = colorResource(id = R.color.YellowGreen),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(70.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                stringResource(id = R.string.refill),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.h1
+            )
         }
     }
 

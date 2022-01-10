@@ -19,7 +19,7 @@ val Typography = Typography(
     body2 = TextStyle(
         fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
+        fontSize = 18.sp
     ),
     /* Other default text styles to override*/
     button = TextStyle(

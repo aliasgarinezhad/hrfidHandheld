@@ -923,7 +923,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        .height(150.dp)
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.SpaceAround
                 ) {
