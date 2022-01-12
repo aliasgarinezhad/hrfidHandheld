@@ -15,6 +15,7 @@ import androidx.preference.PreferenceManager;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
+import com.jeanwest.reader.MainActivity;
 import com.jeanwest.reader.aboutUs.AboutUsActivity;
 import com.jeanwest.reader.write.WriteRecord;
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification;
@@ -59,6 +60,8 @@ public class IotHub extends Service {
     DeviceClient client;
     private final IBinder binder = new LocalBinder();
     public boolean sendLogFileSuccess = false;
+    private int deviceLocationCode = 0;
+    private String deviceLocation = "";
 
     public class LocalBinder extends Binder {
         public IotHub getService() {
@@ -262,20 +265,6 @@ public class IotHub extends Service {
         return sendLogFileSuccess;
     }
 
-    /*public void stop() {
-        new Thread(() -> {
-            try {
-                sendThread.interrupt();
-                dataCollector.clean();
-                client.closeNow();
-                Log.e("error", "Shutting down...");
-            } catch (Exception e) {
-                lastException = "Exception while closing IoTHub connection: " + e;
-                Toast.makeText(context, lastException, Toast.LENGTH_LONG).show();
-            }
-        }).start();
-    }*/
-
     private void loadMemory() {
 
         SharedPreferences memory = PreferenceManager.getDefaultSharedPreferences(this);
@@ -291,6 +280,8 @@ public class IotHub extends Service {
         deviceId = memory.getString("deviceId", "");
         iotToken = memory.getString("iotToken", "");
         Serial = memory.getString("deviceSerialNumber", "");
+        deviceLocationCode = memory.getInt("deviceLocationCode", 0);
+        deviceLocation = memory.getString("deviceLocation", "");
     }
 
     private void saveToMemory() {
@@ -324,10 +315,16 @@ public class IotHub extends Service {
             client.open();
             client.startDeviceTwin(new DeviceTwinStatusCallBack(), null, dataCollector, null);
 
+            JSONObject location = new JSONObject();
+            location.put("deviceLocationCode", deviceLocationCode);
+            location.put("deviceLocation", deviceLocation);
+
             dataCollector.setReportedProp(new Property("connectivityType", null));
             dataCollector.setReportedProp(new Property("installedAppVersion", getPackageManager().getPackageInfo(getPackageName(), 0).versionName));
             dataCollector.setReportedProp(new Property("Serial", Serial));
             dataCollector.setReportedProp(new Property("nextTagSerialNumber", serialNumber));
+            dataCollector.setReportedProp(new Property("location", location));
+            dataCollector.setReportedProp(new Property("username", ""));
             client.sendReportedProperties(dataCollector.getReportedProp());
         } catch (Exception e) {
             Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \n" + e.getMessage());

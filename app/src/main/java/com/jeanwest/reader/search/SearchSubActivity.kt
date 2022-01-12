@@ -119,7 +119,7 @@ class SearchSubActivity : ComponentActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
-        if (event.repeatCount == 0) {
+         if (event.repeatCount == 0) {
 
             if (keyCode == 280 || keyCode == 293 || keyCode == 139) {
                 if (!isScanning) {

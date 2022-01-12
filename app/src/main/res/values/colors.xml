@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="White">#FFFFFF</color>
     <color name="Ivory">#FFFFF0</color>
     <color name="LightYellow">#FFFFE0</color>
     <color name="Yellow">#FFFF00</color>
@@ -140,7 +132,7 @@
     <color name="DeepSkyBlue">#00BFFF</color>
     <color name="DarkCyan">#008B8B</color>
     <color name="Teal">#008080</color>
-    <color name="Primary">#008080</color>
+    <color name="Primary">#003974</color>
     <color name="Green">#008000</color>
     <color name="DarkGreen">#006400</color>
     <color name="Blue">#0000FF</color>
@@ -150,16 +142,7 @@
     <color name="Black">#000000</color>
     <color name="jeanswest">#003974</color>
     <color name="jeanswest_status_bar">#194C81</color>
-
-
-    <color name="colorPrimary">@color/Teal</color>
-    <color name="colorPrimaryVariant">@color/White</color>
-    <color name="colorOnPrimary">@color/Black</color>
-    <color name="pagesBackground">#E6E6FA</color>
-    <color name="colorPrimaryDark">@color/teal_700</color>
-
-    <color name="colorSecondary">@color/teal_200</color>
-    <color name="colorSecondaryVariant">@color/teal_700</color>
-    <color name="colorOnSecondary">@color/white</color>
+    <color name="jeanswestBackground">#0xE5EBF1</color>
+    <color name="White">#FFFFFF</color>
 
 </resources>

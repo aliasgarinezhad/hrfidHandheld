@@ -74,7 +74,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var openRewriteDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
-    private var resultColor by mutableStateOf(R.color.white)
+    private var resultColor by mutableStateOf(R.color.White)
     private var fileName by mutableStateOf("خروجی")
     private var writeRecords = mutableListOf<WriteRecord>()
     private var userWriteRecords = mutableListOf<WriteRecord>()
@@ -470,7 +470,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         counter = userWriteRecords.size
         numberOfWrittenRfTags = counterValue - counterMinValue
         saveMemory()
-        if (writeRecords.size > 100) {
+        if (writeRecords.size % 100 == 0) {
             if (iotHubConnected) {
                 if (iotHubService.sendLogFile(writeRecords)) {
                     writeRecords.clear()

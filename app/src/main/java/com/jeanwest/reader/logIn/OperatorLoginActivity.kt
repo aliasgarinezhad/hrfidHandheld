@@ -29,66 +29,22 @@ class OperatorLoginActivity : ComponentActivity() {
 
     private var password by mutableStateOf("")
     private var username by mutableStateOf("")
-    private var deviceSerialNumber by mutableStateOf("")
-    private var deviceId by mutableStateOf("")
-    private var iotToken by mutableStateOf("")
     private var advanceSettingToken = ""
-    private val apiTimeout = 30000
 
     override fun onResume() {
         super.onResume()
         setContent { Page() }
     }
 
-    //868969010014520
-
-    private fun registerDeviceToIotHub() {
-        val url = "https://wavecountbackend.azurewebsites.net/api/devices/handheld"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-            deviceId = it.getString("deviceId")
-            iotToken = it.getJSONObject("authentication").getJSONObject("symmetricKey")
-                .getString("primaryKey")
-            saveToMemory()
-            Toast.makeText(this, "دستگاه با موفقیت رجیستر شد", Toast.LENGTH_SHORT).show()
-
-            val nextActivityIntent = Intent(this, MainActivity::class.java)
-            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(nextActivityIntent)
-        }, {
-            Toast.makeText(this, "خطا در رجیستر کردن دستگاه", Toast.LENGTH_SHORT).show()
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val header = mutableMapOf<String, String>()
-                header["accept"] = "application/json"
-                header["Content-Type"] = "application/json"
-                header["Authorization"] = "Bearer $advanceSettingToken"
-                return header
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                body.put("serialNumber", deviceSerialNumber)
-                return body.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
-    }
-
     private fun advanceUserAuthenticate() {
 
-        val url = "https://wavecountbackend.azurewebsites.net/api/auth/login"
+        val url = "http://rfid-api-0-1.avakatan.ir/login/operators"
         val request = object : JsonObjectRequest(Method.POST, url, null, fun(it) {
             advanceSettingToken = it.getString("accessToken")
-            registerDeviceToIotHub()
+            Intent(this, DeviceRegisterActivity::class.java).also {
+                it.putExtra("advanceSettingToken", advanceSettingToken)
+                startActivity(it)
+            }
         }, {
             Toast.makeText(this, "رمز عبور اشتباه است", Toast.LENGTH_SHORT).show()
         }) {
@@ -102,7 +58,7 @@ class OperatorLoginActivity : ComponentActivity() {
 
             override fun getBody(): ByteArray {
                 val body = JSONObject()
-                body.put("user", username)
+                body.put("username", username)
                 body.put("password", password)
                 return body.toString().toByteArray()
             }
@@ -110,17 +66,6 @@ class OperatorLoginActivity : ComponentActivity() {
 
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
-    }
-
-    private fun saveToMemory() {
-
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        val memoryEditor = memory.edit()
-
-        memoryEditor.putString("deviceId", deviceId)
-        memoryEditor.putString("iotToken", iotToken)
-        memoryEditor.putString("deviceSerialNumber", deviceSerialNumber)
-        memoryEditor.apply()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -131,7 +76,6 @@ class OperatorLoginActivity : ComponentActivity() {
     }
 
     private fun back() {
-        saveToMemory()
         finish()
     }
 
@@ -158,7 +102,6 @@ class OperatorLoginActivity : ComponentActivity() {
 
             UsernameTextField()
             PasswordTextField()
-            ImeiTextField()
 
             Button(modifier = Modifier
                 .padding(top = 20.dp)
@@ -195,22 +138,6 @@ class OperatorLoginActivity : ComponentActivity() {
                 .padding(top = 10.dp, start = 10.dp, end = 10.dp)
                 .fillMaxWidth(),
             label = { Text(text = "رمز عبور") }
-        )
-    }
-
-    @Composable
-    fun ImeiTextField() {
-
-        OutlinedTextField(
-            value = deviceSerialNumber,
-            onValueChange = {
-                deviceSerialNumber = it
-            },
-            modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth()
-                .testTag("WriteSettingImeiTextField"),
-            label = { Text(text = "شماره سریال دستگاه") },
         )
     }
 

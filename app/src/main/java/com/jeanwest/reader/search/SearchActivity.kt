@@ -299,7 +299,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         val productJson = JSONObject()
         productJson.put("productName", product.name)
-        productJson.put("K_Bar_Code", product.productCode)
+        productJson.put(  "K_Bar_Code", product.productCode)
         productJson.put("kbarcode", product.kbarcode)
         productJson.put("OrigPrice", product.originalPrice)
         productJson.put("SalePrice", product.salePrice)
@@ -309,7 +309,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         productJson.put("dbCountDepo", product.warehouseNumber)
         productJson.put("dbCountStore", product.shoppingNumber)
         productJson.put("Size", product.size)
-        productJson.put("Color", product.shoppingNumber)
+        productJson.put("Color", product.color)
 
         val intent = Intent(this, SearchSubActivity::class.java)
         intent.putExtra("product", productJson.toString())

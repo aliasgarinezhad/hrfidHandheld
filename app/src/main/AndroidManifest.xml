@@ -36,20 +36,15 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".refill.RefillActivity" />
+        <activity android:name=".logIn.OperatorLoginActivity" />
         <activity android:name=".checkIn.CheckInActivity" />
         <activity android:name=".checkIn.GetBarcodesByCheckInNumberActivity" />
-        <activity android:name=".transfer.TransferenceActivity" />
-        <activity android:name=".transfer.TransferenceActivityLogIn" />
         <activity android:name=".logIn.UserLoginActivity" />
         <activity android:name=".search.SearchSubActivity" />
         <activity android:name=".search.SearchActivity" />
-        <activity android:name=".warehouseScanning.WarehouseScanningSubResultActivity" />
-        <activity android:name=".logIn.OperatorLoginActivity" />
-        <activity android:name=".warehouseScanning.WarehouseScanningResultActivity" />
-        <activity android:name=".warehouseScanning.WarehouseScanningUserLogin" />
+        <activity android:name=".logIn.DeviceRegisterActivity" />
         <activity android:name=".aboutUs.AboutUsActivity" />
-        <activity android:name=".warehouseScanning.WareHouseScanningFindingProduct" />
-        <activity android:name=".warehouseScanning.WarehouseScanningActivity" />
         <activity android:name=".write.WriteActivity" />
         <activity
             android:name=".MainActivity"

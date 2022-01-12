@@ -33,8 +33,10 @@ import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
+import com.jeanwest.reader.logIn.DeviceRegisterActivity
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
+import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.write.WriteActivity
@@ -502,7 +504,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .size(buttonSize)
                 .clickable {
-                    /*val intent = Intent(this, WriteActivity::class.java)
+                    /*val intent = Intent(this, RefillActivity::class.java)
                     startActivity(intent)*/
                 }
                 .background(

@@ -1,6 +1,5 @@
 package com.jeanwest.reader.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
@@ -12,7 +11,6 @@ private val DarkColorPalette = darkColors(
     primaryVariant = JeanswestStatusBar,
     background = JeanswestBackground,
     surface = JeanswestBackground,
-    secondary = Teal200,
     onPrimary = Color.White,
     onSecondary = Color.Black,
     onBackground = Color.Black,

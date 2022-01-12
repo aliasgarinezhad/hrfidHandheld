@@ -1,15 +1,11 @@
 <resources>
     <string name="app_name">RFID</string>
-    <string name="colorPrimary">#008080</string>
     <string name="transferText">ثبت حواله</string>
     <string name="checkInText">تروفالس</string>
     <string name="refill">خطی</string>
-    <string name="title_activity_file_attachment">FileAttachment</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
     <string name="xls">application/vnd.ms-excel</string>
     <string name="EXARK">EXARKXK650</string>
     <string name="chainway">c72</string>
-    <string name="start">START</string>
-    <string name="stop">STOP</string>
 
 </resources>

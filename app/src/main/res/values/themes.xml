@@ -2,12 +2,12 @@
 
     <style name="Theme.Handheld" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
-        <item name="colorPrimary">@color/Teal</item>
+        <item name="colorPrimary">@color/jeanswest</item>
         <item name="colorPrimaryVariant">@color/White</item>
         <item name="colorOnPrimary">@color/Black</item>
-        <item name="android:windowBackground">@color/pagesBackground</item>
+        <item name="android:windowBackground">@color/jeanswestBackground</item>
         <item name="colorPrimaryDark">@color/jeanswest_status_bar</item>
-        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondary">@color/jeanswest</item>
         <item name="colorSecondaryVariant">@color/jeanswest_status_bar</item>
         <item name="colorOnSecondary">@color/White</item>
     </style>
