@@ -504,8 +504,8 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .size(buttonSize)
                 .clickable {
-                    /*val intent = Intent(this, RefillActivity::class.java)
-                    startActivity(intent)*/
+                    val intent = Intent(this, RefillActivity::class.java)
+                    startActivity(intent)
                 }
                 .background(
                     shape = MaterialTheme.shapes.medium,

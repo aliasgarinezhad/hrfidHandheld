@@ -42,6 +42,7 @@ import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class IotHub extends Service {
 
@@ -179,7 +180,7 @@ public class IotHub extends Service {
 
 
         @SuppressLint("SimpleDateFormat")
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
         File dir = new File(this.getExternalFilesDir(null), "/");
         File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
 

@@ -455,7 +455,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         counterValue++
         barcodeTable.add(barcodeInformation.getString("KBarCode"))
 
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)
         val writeRecord = WriteRecord(
             barcode = barcodeInformation.getString("KBarCode"),
             epc = productEPC,
