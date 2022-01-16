@@ -24,7 +24,7 @@ private val LightColorPalette = lightColors(
     background = JeanswestBackground,
     surface = JeanswestBackground,
     onPrimary = Color.White,
-    onSecondary = Color.Black,
+    onSecondary = JeanswestSelected,
     onBackground = Color.Black,
     onSurface = Color.Black,
 )

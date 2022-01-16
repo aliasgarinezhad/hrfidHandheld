@@ -410,7 +410,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         return false
     }
 
-    private fun write(barcodeInformation: JSONObject) {
+    private fun write(barcodeInformation: JSONObject, writeOnRawTag : Boolean) {
 
         if (!setRFPower(30)) {
             return
@@ -462,7 +462,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             dateAndTime = sdf.format(Date()),
             username = MainActivity.username,
             deviceSerialNumber = deviceSerialNumber,
-            wroteOnRawTag = false
+            wroteOnRawTag = writeOnRawTag
         )
         writeRecords.add(writeRecord)
         userWriteRecords.add(writeRecord)
@@ -596,7 +596,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     }
                 } else {
                     barcodeInformation = it
-                    write(barcodeInformation)
+                    write(barcodeInformation, false)
                 }
             }, {
                 result += if(it is NoConnectionError) {
@@ -938,7 +938,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                         Button(onClick = {
                             openRewriteDialog = false
-                            write(barcodeInformation)
+                            write(barcodeInformation, true)
 
                         }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
                             Text(text = "بله")

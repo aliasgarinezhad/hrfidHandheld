@@ -33,7 +33,6 @@ import com.jeanwest.reader.aboutUs.AboutUsActivity
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.logIn.DeviceRegisterActivity
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.refill.RefillActivity
@@ -63,6 +62,14 @@ class MainActivity : ComponentActivity() {
             startService(intent)
         }
 
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -85,14 +92,6 @@ class MainActivity : ComponentActivity() {
                 arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                 1
             )
-        }
-
-        memory = PreferenceManager.getDefaultSharedPreferences(this)
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
         }
 
         rfInit()

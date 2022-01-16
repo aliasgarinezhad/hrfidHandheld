@@ -143,6 +143,7 @@
     <color name="jeanswest">#003974</color>
     <color name="jeanswest_status_bar">#194C81</color>
     <color name="jeanswestBackground">#0xE5EBF1</color>
+    <color name="jeanswestSelectedItems">#0x6688ab</color>
     <color name="White">#FFFFFF</color>
 
 </resources>

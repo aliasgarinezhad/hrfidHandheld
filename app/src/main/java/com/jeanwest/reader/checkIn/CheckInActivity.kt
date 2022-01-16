@@ -1009,7 +1009,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                                 color = if (uiList[i].KBarCode !in signedProductCodes) {
                                     MaterialTheme.colors.onPrimary
                                 } else {
-                                    MaterialTheme.colors.primary
+                                    MaterialTheme.colors.onSecondary
                                 },
                                 shape = MaterialTheme.shapes.small
                             )

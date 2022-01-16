@@ -34,8 +34,8 @@ class UserLoginActivity : ComponentActivity() {
 
     private fun signIn() {
 
-        val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val editor: SharedPreferences.Editor = memory.edit()
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val editor = memory.edit()
 
         val logInRequest = Volley.newRequestQueue(this)
         val url = "http://rfid-api-0-1.avakatan.ir/login"
