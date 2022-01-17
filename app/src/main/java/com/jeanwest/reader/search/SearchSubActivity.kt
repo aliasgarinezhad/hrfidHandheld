@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -39,7 +39,6 @@ class SearchSubActivity : ComponentActivity() {
 
     private var scannedNumber by mutableStateOf(0)
     private var rfPower by mutableStateOf(30)
-    private var continious by mutableStateOf(false)
     private var isScanning by mutableStateOf(false)
     private lateinit var product: SearchResultProducts
     private var scanningJob: Job? = null
@@ -119,7 +118,7 @@ class SearchSubActivity : ComponentActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
-         if (event.repeatCount == 0) {
+        if (event.repeatCount == 0) {
 
             if (keyCode == 280 || keyCode == 293 || keyCode == 139) {
                 if (!isScanning) {
@@ -142,10 +141,6 @@ class SearchSubActivity : ComponentActivity() {
         if (!setRFPower(rfPower)) {
             isScanning = false
             return
-        }
-
-        if (!continious) {
-            matchedEpcTable.clear()
         }
 
         rf.startInventoryTag(0, 0, 0)
@@ -338,26 +333,19 @@ class SearchSubActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Text(
-                        text = "قدرت آنتن($rfPower)",
+                        text = "توان آنتن (" + rfPower + ")  ",
                         modifier = Modifier
                             .padding(end = 8.dp, start = 8.dp)
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.Center
                     )
                     Slider(
-                        modifier = Modifier.padding(end = 8.dp, start = 8.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         value = rfPower.toFloat(),
                         valueRange = 5f..30f,
                         onValueChange = {
                             rfPower = it.toInt()
                         })
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    Text(text = "پیدا شده: $scannedNumber")
-                    ContiniousSwitch()
                 }
 
                 if (isScanning) {
@@ -433,6 +421,13 @@ class SearchSubActivity : ComponentActivity() {
                             modifier = modifier,
                             //color = colorResource(id = R.color.Brown)
                         )
+                        Text(
+                            text = "پیدا شده: $scannedNumber",
+                            style = MaterialTheme.typography.body1,
+                            textAlign = TextAlign.Right,
+                            modifier = modifier,
+                            //color = colorResource(id = R.color.Brown)
+                        )
                     }
 
                     Image(
@@ -444,19 +439,6 @@ class SearchSubActivity : ComponentActivity() {
                     )
                 }
             }
-        }
-    }
-
-    @Composable
-    fun ContiniousSwitch() {
-        Row {
-            Text(
-                text = "ذخیره تگ های پیدا شده",
-                modifier = Modifier.padding(end = 4.dp, bottom = 10.dp)
-            )
-            Switch(checked = continious, modifier = Modifier.testTag("SearchSubSaveSwitch"), onCheckedChange = {
-                continious = it
-            })
         }
     }
 

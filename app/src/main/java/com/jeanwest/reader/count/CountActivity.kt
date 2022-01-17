@@ -1104,10 +1104,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        var dir = File(this.getExternalFilesDir(null), "/RFID")
-        dir.mkdir()
-        dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
-        dir.mkdir()
+        val dir = File(this.getExternalFilesDir(null), "/")
 
         val outFile = File(dir, "$fileName.xlsx")
 
@@ -1215,60 +1212,48 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                Row {
-
-                    Text(
-                        text = "اندازه توان(" + slideValue.toInt() + ")",
-                        modifier = Modifier
-                            .wrapContentSize()
-                            .padding(start = 8.dp, end = 8.dp)
-                            .align(Alignment.CenterVertically),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Slider(
-                        value = slideValue,
-                        onValueChange = {
-                            slideValue = it
-                            rfPower = it.toInt()
-                        },
-                        enabled = true,
-                        valueRange = 5f..30f,
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                    )
-                }
-
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    modifier = Modifier.height(40.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
 
-                    Text(
-                        text = "تعداد اسکن شده: $number",
-                        textAlign = TextAlign.Right,
+                    Row(
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
-                            .align(Alignment.CenterVertically),
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .padding(
-                                start =
-                                8.dp, end = 8.dp, bottom = 10.dp
-                            )
+                            .weight(2.5F)
+                            .fillMaxHeight()
                     ) {
-                        Row(modifier = Modifier.clickable { getZoneItems() }) {
-                            Icon(painterResource(id = R.drawable.ic_baseline_crop_16_9_24), "")
-                        }
+
+                        Text(
+                            text = "توان (" + slideValue.toInt() + ")  ",
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .align(Alignment.CenterVertically),
+                            textAlign = TextAlign.Center
+                        )
+
+                        Slider(
+                            value = slideValue,
+                            onValueChange = {
+                                slideValue = it
+                                rfPower = it.toInt()
+                            },
+                            enabled = true,
+                            valueRange = 5f..30f,
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
                     }
 
-                    Row(modifier = Modifier.align(Alignment.CenterVertically)) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1F)
+                            .padding(start = 8.dp)
+                            .fillMaxHeight()
+                    ) {
                         Text(
                             text = "بارکد",
                             modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp),
+                                .padding(end = 4.dp)
+                                .align(Alignment.CenterVertically),
                         )
 
                         Switch(
@@ -1277,28 +1262,53 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                                 barcodeIsEnabled = it
                                 switchValue = it
                             },
-                            modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
+                            modifier = Modifier.align(Alignment.CenterVertically),
                         )
                     }
-
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+
+                    Text(
+                        text = "تعداد اسکن شده: $number",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .weight(1F),
+                    )
 
                     Text(
                         text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .weight(1F),
                     )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+
+                    Text(
+                        text = "تعریف به عنوان ناحیه",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .clickable { getZoneItems() }
+                            .weight(1F),
+                    )
+
                     Text(
                         text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .weight(1F),
                     )
                 }
 
@@ -1306,12 +1316,24 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     modifier = Modifier
                         .padding(bottom = 10.dp)
                         .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    ScanFilterDropDownList()
-                    CategoryFilterDropDownList()
-                    ZoneFilterDropDownList()
-                    SignedFilterDropDownList()
+
+                    Row(
+                        modifier = Modifier
+                            .weight(1F)
+                            .padding(start = 8.dp),
+                    ) {
+                        ScanFilterDropDownList()
+                        ZoneFilterDropDownList()
+                    }
+                    Row(
+                        modifier = Modifier
+                            .weight(1F)
+                            .padding(start = 8.dp),
+                    ) {
+                        CategoryFilterDropDownList()
+                        SignedFilterDropDownList()
+                    }
                 }
 
                 if (isScanning) {

@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -225,12 +226,14 @@ class MainActivity : ComponentActivity() {
                                 Row(
                                     modifier = Modifier
                                         .padding(start = 40.dp)
-                                        .fillMaxSize(),
+                                        .height(16.dp)
+                                        .fillMaxWidth(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        "Jeanswest", textAlign = TextAlign.Center,
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_jeanswest_logo),
+                                        contentDescription = "",
                                     )
                                 }
                             },

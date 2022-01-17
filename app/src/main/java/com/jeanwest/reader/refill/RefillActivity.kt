@@ -58,7 +58,7 @@ import java.io.FileOutputStream
 class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
-    private var rfPower = 30
+    private var rfPower = 5
     private var epcTable = mutableListOf<String>()
     private var epcTablePreviousSize = 0
     private var barcodeTable = mutableListOf<String>()
@@ -73,7 +73,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var number by mutableStateOf(0)
     private var unFoundProductsNumber by mutableStateOf(0)
     private var validScannedProductsNumber by mutableStateOf(0)
-    private var fileName by mutableStateOf("ارسالی تاریخ ")
+    private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
     private var openClearDialog by mutableStateOf(false)
@@ -518,23 +518,22 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun clear() {
 
-        if (number != 0) {
-            barcodeTable.clear()
-            epcTable.clear()
-            epcTablePreviousSize = 0
-            number = 0
-            refillProducts.forEach {
-                if (it.KBarCode in signedProductCodes) {
-                    it.scannedNumber = 0
-                }
+        barcodeTable.clear()
+        epcTable.clear()
+        epcTablePreviousSize = 0
+        number = 0
+        refillProducts.forEach {
+            if (it.KBarCode in signedProductCodes) {
+                it.scannedNumber = 0
             }
-            unFoundProductsNumber = refillProducts.size
-            validScannedProductsNumber = 0
-            uiList = mutableListOf()
-            uiList = refillProducts
-            openFileDialog = false
-            saveToMemory()
         }
+        signedProductCodes = mutableListOf()
+        unFoundProductsNumber = refillProducts.size
+        validScannedProductsNumber = 0
+        uiList = mutableListOf()
+        uiList = refillProducts
+        openFileDialog = false
+        saveToMemory()
     }
 
     private fun startBarcodeScan() {
@@ -575,12 +574,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         val row = sheet.createRow(sheet.physicalNumberOfRows)
         row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(number.toDouble())
+        row.createCell(1).setCellValue(validScannedProductsNumber.toDouble())
 
-        var dir = File(this.getExternalFilesDir(null), "/RFID")
-        dir.mkdir()
-        dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
-        dir.mkdir()
+        val dir = File(this.getExternalFilesDir(null), "/")
 
         val outFile = File(dir, "$fileName.xlsx")
 
@@ -683,7 +679,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
 
-        var slideValue by rememberSaveable { mutableStateOf(30F) }
+        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
         var switchValue by rememberSaveable { mutableStateOf(true) }
         val modifier = Modifier
             .padding(vertical = 4.dp, horizontal = 8.dp)
@@ -712,10 +708,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Row {
 
                     Text(
-                        text = "اندازه توان(" + slideValue.toInt() + ")",
+                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
                         modifier = Modifier
-                            .wrapContentSize()
-                            .padding(start = 8.dp, end = 8.dp)
+                            .padding(start = 8.dp)
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.Center
                     )
@@ -728,42 +723,35 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         },
                         enabled = true,
                         valueRange = 5f..30f,
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                     )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
 
-                    Text(
-                        text = "مجموع اسکن شده: $validScannedProductsNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
-                            .align(Alignment.CenterVertically)
-                            .weight(1F),
-                    )
                     Text(
                         text = "پیدا نشده: $unFoundProductsNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
-                            .weight(1F),
+                            .padding(start = 8.dp, bottom = 10.dp)
+                            .align(Alignment.CenterVertically)
                     )
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
+                    Text(
+                        text = "خطی: ${uiList.size}",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .align(Alignment.CenterVertically)
+                    )
 
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
-                            .weight(1F)
-                            .padding(start = 8.dp)
+                            .padding(end = 8.dp)
                     ) {
                         Text(
                             text = "بارکد",
@@ -777,17 +765,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                                 barcodeIsEnabled = it
                                 switchValue = it
                             },
-                            modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
+                            modifier = Modifier.padding(end = 8.dp, bottom = 10.dp),
                         )
                     }
-
-                    Text(
-                        text = "خطی: ${uiList.size}",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
-                            .weight(1F),
-                    )
                 }
 
                 if (isScanning) {
@@ -942,11 +922,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = if (number == 0) {
-                            "فایل پاک شود؟"
-                        } else {
-                            "کالاهای اسکن شده پاک شوند؟"
-                        },
+                        text = "کالاهای انتخاب شده پاک شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )

@@ -753,10 +753,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Row {
 
                     Text(
-                        text = "اندازه توان(" + slideValue.toInt() + ")",
+                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
                         modifier = Modifier
-                            .wrapContentSize()
-                            .padding(start = 8.dp, end = 8.dp)
+                            .padding(start = 8.dp)
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.Center
                     )
@@ -769,7 +768,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         },
                         enabled = true,
                         valueRange = 5f..30f,
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                     )
                 }
 

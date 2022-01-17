@@ -777,10 +777,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        var dir = File(this.getExternalFilesDir(null), "/RFID")
-        dir.mkdir()
-        dir = File(this.getExternalFilesDir(null), "/RFID/خروجی/")
-        dir.mkdir()
+        val dir = File(this.getExternalFilesDir(null), "/")
 
         val outFile = File(dir, "$fileName.xlsx")
 
@@ -891,10 +888,9 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 Row {
 
                     Text(
-                        text = "اندازه توان(" + slideValue.toInt() + ")",
+                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
                         modifier = Modifier
-                            .wrapContentSize()
-                            .padding(start = 8.dp, end = 8.dp)
+                            .padding(start = 8.dp)
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.Center
                     )
@@ -907,7 +903,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         },
                         enabled = true,
                         valueRange = 5f..30f,
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                     )
                 }
 
