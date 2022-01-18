@@ -111,7 +111,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             }
         }
 
-        val url = "http://rfid-api-0-1.avakatan.ir/stock-draft-details/$checkInNumber"
+        val url = "http://rfid-api.avakatan.ir/stock-draft-details/$checkInNumber"
         val request = object : JsonArrayRequest(url, fun(it) {
 
             val source = it.getJSONObject(0).getInt("FromWareHouse_ID")

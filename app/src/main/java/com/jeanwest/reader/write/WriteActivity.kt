@@ -572,7 +572,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v2?kbarcode=$barcodeID"
+        val url = "http://rfid-api.avakatan.ir/products/v2?kbarcode=$barcodeID"
         val request = object : JsonObjectRequest1(Method.GET, url, null,
             fun(it) {
 

@@ -567,7 +567,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncFileItemsToServer() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -653,7 +653,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -762,7 +762,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
 
     private fun getZoneItems() {
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 

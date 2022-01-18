@@ -240,7 +240,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillBarcodes() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/refill"
+        val url = "http://rfid-api.avakatan.ir/refill"
 
         val request = object : JsonArrayRequest(Method.GET, url, null, {
 
@@ -275,7 +275,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillItems() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -360,7 +360,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 

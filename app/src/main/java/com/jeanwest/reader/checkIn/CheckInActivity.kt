@@ -416,7 +416,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncInputItemsToServer() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -492,7 +492,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api-0-1.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 

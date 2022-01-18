@@ -38,7 +38,7 @@ class UserLoginActivity : ComponentActivity() {
         val editor = memory.edit()
 
         val logInRequest = Volley.newRequestQueue(this)
-        val url = "http://rfid-api-0-1.avakatan.ir/login"
+        val url = "http://rfid-api.avakatan.ir/login"
 
         val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
 

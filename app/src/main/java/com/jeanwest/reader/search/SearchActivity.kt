@@ -94,7 +94,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             productCode = ""
 
             val url =
-                "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
+                "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
 
             val request = JsonObjectRequest(url, {
 
@@ -179,7 +179,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         sizeFilterValues = mutableListOf("همه سایز ها")
 
         val url1 =
-            "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
+            "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
 
         val request1 = JsonObjectRequest(url1, { response1 ->
 
@@ -190,7 +190,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             } else {
 
                 val url2 =
-                    "http://rfid-api-0-1.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
+                    "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
 
                 val request2 = JsonObjectRequest(url2, { response2 ->
 

@@ -85,7 +85,7 @@ class AboutUsActivity : ComponentActivity() {
         }
 
         val serverAddress =
-            "http://rfid-api-0-1.avakatan.ir/apk/app-debug-" + IotHub.appVersion + ".apk"
+            "http://rfid-api.avakatan.ir/apk/app-debug-" + IotHub.appVersion + ".apk"
         val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
         val downloadManagerRequest = DownloadManager.Request(Uri.parse(serverAddress))
         downloadManagerRequest.setTitle("بروزرسانی RFID")
