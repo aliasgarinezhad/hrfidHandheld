@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -77,7 +76,7 @@ class SearchSubActivity : ComponentActivity() {
         product = SearchResultProducts(
             name = stuff.getString("productName"),
             productCode = stuff.getString("K_Bar_Code"),
-            kbarcode = stuff.getString("kbarcode"),
+            KBarCode = stuff.getString("kbarcode"),
             originalPrice = stuff.getString("OrigPrice"),
             salePrice = stuff.getString("SalePrice"),
             shoppingNumber = stuff.getInt("dbCountStore"),
@@ -310,10 +309,6 @@ class SearchSubActivity : ComponentActivity() {
     @Composable
     fun Content() {
 
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-            .wrapContentWidth()
-
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -368,76 +363,88 @@ class SearchSubActivity : ComponentActivity() {
                         shape = MaterialTheme.shapes.small
                     ),
             ) {
-                Row(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colors.onPrimary,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .fillMaxWidth()
-                        .padding(5.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = product.name,
-                            style = MaterialTheme.typography.h1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            color = colorResource(id = R.color.DarkSlateGray)
-                        )
-                        Text(
-                            text = product.kbarcode,
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            color = colorResource(id = R.color.Goldenrod)
-                        )
-                        Text(
-                            text = product.originalPrice,
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            color = colorResource(id = R.color.Brown)
-                        )
-                        Text(
-                            text = product.salePrice,
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            color = colorResource(id = R.color.DarkGreen)
-                        )
-                        Text(
-                            text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            //color = colorResource(id = R.color.Brown)
-                        )
-                        Text(
-                            text = "موجودی انبار: " + product.warehouseNumber.toString(),
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            //color = colorResource(id = R.color.Brown)
-                        )
-                        Text(
-                            text = "پیدا شده: $scannedNumber",
-                            style = MaterialTheme.typography.body1,
-                            textAlign = TextAlign.Right,
-                            modifier = modifier,
-                            //color = colorResource(id = R.color.Brown)
-                        )
-                    }
+                LazyColumnItem()
+            }
+        }
+    }
 
-                    Image(
-                        painter = rememberImagePainter(data = product.imageUrl),
-                        contentDescription = "",
-                        modifier = Modifier
-                            .height(200.dp)
-                            .padding(vertical = 4.dp, horizontal = 8.dp)
-                    )
-                }
+    @Composable
+    fun LazyColumnItem() {
+
+        val modifier = Modifier
+            .padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+            .wrapContentWidth()
+
+        Row(
+            modifier = Modifier
+                .background(
+                    color = MaterialTheme.colors.onPrimary,
+                    shape = MaterialTheme.shapes.small
+                )
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(5.dp),
+            //horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+
+            Image(
+                painter = rememberImagePainter(data = product.imageUrl),
+                contentDescription = "",
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(vertical = 4.dp, horizontal = 8.dp)
+            )
+
+            Column {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.h1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.DarkSlateGray)
+                )
+                Text(
+                    text = product.KBarCode,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.Goldenrod)
+                )
+                Text(
+                    text = "قیمت: " + product.originalPrice,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.Brown)
+                )
+                Text(
+                    text = "فروش: " + product.salePrice,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.DarkGreen)
+                )
+                Text(
+                    text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.Brown)
+                )
+                Text(
+                    text = "موجودی انبار: " + product.warehouseNumber.toString(),
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.Brown)
+                )
+                Text(
+                    text = "پیدا شده: $scannedNumber",
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                    //color = colorResource(id = R.color.Brown)
+                )
             }
         }
     }

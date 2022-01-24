@@ -1,7 +1,6 @@
 package com.jeanwest.reader.search
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
@@ -23,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -225,7 +223,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             uiList.add(
                 SearchResultProducts(
                     name = json.getString("productName"),
-                    kbarcode = json.getString("KBarCode"),
+                    KBarCode = json.getString("KBarCode"),
                     imageUrl = json.getString("ImgUrl"),
                     shoppingNumber = json.getInt("dbCountStore"),
                     warehouseNumber = json.getInt("dbCountDepo"),
@@ -251,7 +249,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         val productJson = JSONObject()
         productJson.put("productName", product.name)
         productJson.put(  "K_Bar_Code", product.productCode)
-        productJson.put("kbarcode", product.kbarcode)
+        productJson.put("kbarcode", product.KBarCode)
         productJson.put("OrigPrice", product.originalPrice)
         productJson.put("SalePrice", product.salePrice)
         productJson.put("BarcodeMain_ID", product.primaryKey)
@@ -369,7 +367,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.h1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                color = colorResource(id = R.color.Brown)
+                                //color = colorResource(id = R.color.Brown)
                             )
 
                             Text(
@@ -377,7 +375,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                color = colorResource(id = R.color.DarkGreen)
+                                //color = colorResource(id = R.color.DarkGreen)
                             )
 
                             Text(
@@ -385,7 +383,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                color = colorResource(id = R.color.Goldenrod)
+                                //color = colorResource(id = R.color.Goldenrod)
                             )
                         }
 

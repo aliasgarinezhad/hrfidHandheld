@@ -39,8 +39,10 @@ import com.google.gson.Gson
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.count.ConflictResultProduct
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -279,7 +281,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                                 "تایید شده"
                             }
                         },
-                        productCode = fileProduct.productCode
+                        productCode = fileProduct.productCode,
+                        size = fileProduct.size,
+                        color = fileProduct.color,
+                        originalPrice = fileProduct.originalPrice,
+                        salePrice = fileProduct.salePrice,
+                        rfidKey = fileProduct.rfidKey,
+                        primaryKey = fileProduct.primaryKey
                     )
                     result.add(resultData)
                     samePrimaryKeys.add(fileProduct.primaryKey)
@@ -294,7 +302,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     scannedNumber = scannedProduct.scannedNumber,
                     result = "اضافی: " + scannedProduct.scannedNumber + "(0)",
                     scan = "اضافی",
-                    productCode = scannedProduct.productCode
+                    productCode = scannedProduct.productCode,
+                    size = scannedProduct.size,
+                    color = scannedProduct.color,
+                    originalPrice = scannedProduct.originalPrice,
+                    salePrice = scannedProduct.salePrice,
+                    rfidKey = scannedProduct.rfidKey,
+                    primaryKey = scannedProduct.primaryKey
                 )
                 result.add(resultData)
             }
@@ -310,7 +324,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     scannedNumber = 0,
                     result = "کسری: " + fileProduct.number + "(${fileProduct.number})",
                     scan = "کسری",
-                    productCode = fileProduct.productCode
+                    productCode = fileProduct.productCode,
+                    size = fileProduct.size,
+                    color = fileProduct.color,
+                    originalPrice = fileProduct.originalPrice,
+                    salePrice = fileProduct.salePrice,
+                    rfidKey = fileProduct.rfidKey,
+                    primaryKey = fileProduct.primaryKey
                 )
                 result.add(resultData)
             }
@@ -325,7 +345,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 scannedNumber = 1,
                 result = "خراب: " + 1,
                 scan = "خراب",
-                productCode = ""
+                productCode = "",
+                size = "",
+                color = "",
+                originalPrice = "",
+                salePrice = "",
+                rfidKey = 0L,
+                primaryKey = 0L,
             )
             result.add(resultData)
         }
@@ -431,7 +457,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     imageUrl = fileJsonArray.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = fileJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
                     number = fileJsonArray.getJSONObject(i).getInt("handheldCount"),
-                    productCode = fileJsonArray.getJSONObject(i).getString("K_Bar_Code")
+                    productCode = fileJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                    size = fileJsonArray.getJSONObject(i).getString("Size"),
+                    color = fileJsonArray.getJSONObject(i).getString("Color"),
+                    originalPrice = fileJsonArray.getJSONObject(i).getString("OrgPrice"),
+                    salePrice = fileJsonArray.getJSONObject(i).getString("SalePrice"),
+                    rfidKey = fileJsonArray.getJSONObject(i).getLong("RFID"),
                 )
                 inputProducts.add(fileProduct)
             }
@@ -537,7 +568,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
                     scannedNumber = epcs.getJSONObject(i).getInt("handheldCount"),
-                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code")
+                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
+                    size = epcs.getJSONObject(i).getString("Size"),
+                    color = epcs.getJSONObject(i).getString("Color"),
+                    originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
+                    salePrice = epcs.getJSONObject(i).getString("SalePrice"),
+                    rfidKey = epcs.getJSONObject(i).getLong("RFID"),
                 )
                 scannedProducts.add(scannedProduct)
             }
@@ -798,6 +834,27 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         applicationContext.startActivity(shareIntent)
     }
 
+    private fun openSearchActivity(product : CheckInConflictResultProduct) {
+
+        val productJson = JSONObject()
+        productJson.put("productName", product.name)
+        productJson.put(  "K_Bar_Code", product.productCode)
+        productJson.put("kbarcode", product.KBarCode)
+        productJson.put("OrigPrice", product.originalPrice)
+        productJson.put("SalePrice", product.salePrice)
+        productJson.put("BarcodeMain_ID", product.primaryKey)
+        productJson.put("RFID", product.rfidKey)
+        productJson.put("ImgUrl", product.imageUrl)
+        productJson.put("dbCountDepo", 0)
+        productJson.put("dbCountStore", 0)
+        productJson.put("Size", product.size)
+        productJson.put("Color", product.color)
+
+        val intent = Intent(this, SearchSubActivity::class.java)
+        intent.putExtra("product", productJson.toString())
+        startActivity(intent)
+    }
+
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
@@ -861,9 +918,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         var slideValue by rememberSaveable { mutableStateOf(30F) }
         var switchValue by rememberSaveable { mutableStateOf(false) }
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-            .wrapContentWidth()
 
         Column {
 
@@ -997,72 +1051,80 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
                 items(uiList.size) { i ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                            .background(
-                                color = if (uiList[i].KBarCode !in signedProductCodes) {
-                                    MaterialTheme.colors.onPrimary
-                                } else {
-                                    MaterialTheme.colors.onSecondary
-                                },
-                                shape = MaterialTheme.shapes.small
-                            )
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-
-                                },
-                                onLongClick = {
-                                    if (uiList[i].KBarCode !in signedProductCodes) {
-                                        signedProductCodes.add(uiList[i].KBarCode)
-                                    } else {
-                                        signedProductCodes.remove(uiList[i].KBarCode)
-                                    }
-                                    uiList = mutableListOf()
-                                    uiList = filterResult(conflictResultProducts)
-                                },
-                            ),
-                    ) {
-                        Column {
-                            Text(
-                                text = uiList[i].name,
-                                style = MaterialTheme.typography.h1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                color = colorResource(id = R.color.Brown)
-                            )
-
-                            Text(
-                                text = uiList[i].KBarCode,
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                color = colorResource(id = R.color.DarkGreen)
-                            )
-
-                            Text(
-                                text = uiList[i].result,
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                color = colorResource(id = R.color.Goldenrod)
-                            )
-                        }
-
-                        Image(
-                            painter = rememberImagePainter(
-                                uiList[i].imageUrl,
-                            ),
-                            contentDescription = "",
-                            modifier = Modifier
-                                .height(100.dp)
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
+                    LazyColumnItem(i)
                 }
             }
+        }
+    }
+
+    @ExperimentalFoundationApi
+    @Composable
+    fun LazyColumnItem(i: Int) {
+
+        val modifier = Modifier
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .wrapContentWidth()
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                .background(
+                    color = if (uiList[i].KBarCode !in signedProductCodes) {
+                        MaterialTheme.colors.onPrimary
+                    } else {
+                        MaterialTheme.colors.onSecondary
+                    },
+                    shape = MaterialTheme.shapes.small
+                )
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        openSearchActivity(uiList[i])
+                    },
+                    onLongClick = {
+                        if (uiList[i].KBarCode !in signedProductCodes) {
+                            signedProductCodes.add(uiList[i].KBarCode)
+                        } else {
+                            signedProductCodes.remove(uiList[i].KBarCode)
+                        }
+                        uiList = mutableListOf()
+                        uiList = filterResult(conflictResultProducts)
+                    },
+                ),
+        ) {
+            Column {
+                Text(
+                    text = uiList[i].name,
+                    style = MaterialTheme.typography.h1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                )
+
+                Text(
+                    text = uiList[i].KBarCode,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                )
+
+                Text(
+                    text = uiList[i].result,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier,
+                )
+            }
+
+            Image(
+                painter = rememberImagePainter(
+                    uiList[i].imageUrl,
+                ),
+                contentDescription = "",
+                modifier = Modifier
+                    .height(100.dp)
+                    .padding(vertical = 4.dp, horizontal = 8.dp)
+            )
         }
     }
 

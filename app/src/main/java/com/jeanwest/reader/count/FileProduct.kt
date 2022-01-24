@@ -7,5 +7,10 @@ data class FileProduct(
     var primaryKey : Long,
     var number : Int,
     var category : String,
-    var productCode : String
+    var productCode : String,
+    var size : String,
+    var color : String,
+    var originalPrice : String,
+    var salePrice : String,
+    var rfidKey : Long
 )

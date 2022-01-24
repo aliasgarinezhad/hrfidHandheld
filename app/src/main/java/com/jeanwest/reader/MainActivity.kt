@@ -36,6 +36,7 @@ import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
+import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
     private var deviceId = ""
     private var buttonSize = 140.dp
     private var iconSize = 70.dp
-    private var pageSize = buttonSize * 3 + 60.dp
+    private var pageSize = buttonSize * 3 + 150.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -254,7 +255,7 @@ class MainActivity : ComponentActivity() {
 
                         Column(
                             verticalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.size(pageSize),
                         ) {
 
                             if (openAccountDialog) {
@@ -313,7 +314,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.OrangeRed),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
@@ -346,7 +347,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.DarkGreen),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
@@ -367,8 +368,8 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .size(buttonSize)
                 .clickable {
-                    /*val intent = Intent(this, WarehouseScanningUserLogin::class.java)
-                    startActivity(intent)*/
+                    val intent = Intent(this, ManualRefillActivity::class.java)
+                    startActivity(intent)
                 }
                 .background(
                     shape = MaterialTheme.shapes.medium,
@@ -377,15 +378,15 @@ class MainActivity : ComponentActivity() {
         ) {
 
             Icon(
-                painter = painterResource(R.drawable.inventory),
+                painter = painterResource(R.drawable.check_in),
                 contentDescription = "",
                 tint = colorResource(id = R.color.Purple),
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
-                "انبارگردانی",
+                stringResource(id = R.string.manualRefill),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.h1,
@@ -415,7 +416,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.YellowGreen),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
@@ -452,7 +453,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.Goldenrod),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
@@ -486,7 +487,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.Brown),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(
@@ -520,7 +521,7 @@ class MainActivity : ComponentActivity() {
                 tint = colorResource(id = R.color.YellowGreen),
                 contentDescription = "",
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(iconSize)
                     .align(Alignment.CenterHorizontally)
             )
             Text(

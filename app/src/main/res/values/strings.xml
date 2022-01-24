@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">RFID</string>
     <string name="transferText">ثبت حواله</string>
+    <string name="manualRefill">شارژ</string>
     <string name="checkInText">تروفالس</string>
     <string name="refill">خطی</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>

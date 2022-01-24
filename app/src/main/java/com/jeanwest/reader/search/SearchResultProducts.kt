@@ -2,7 +2,7 @@ package com.jeanwest.reader.search
 
 data class SearchResultProducts(
     var name: String,
-    var kbarcode: String,
+    var KBarCode: String,
     var imageUrl: String,
     var shoppingNumber: Int,
     var warehouseNumber: Int,

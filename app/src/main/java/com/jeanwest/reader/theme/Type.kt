@@ -1,7 +1,6 @@
 package com.jeanwest.reader.theme
 
 import androidx.compose.material.Typography
-import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -20,6 +19,11 @@ val Typography = Typography(
         fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
         fontSize = 18.sp
+    ),
+    h2 = TextStyle(
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp
     ),
     /* Other default text styles to override*/
     button = TextStyle(
