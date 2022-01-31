@@ -356,7 +356,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                             )
                             .fillMaxWidth()
                             .clickable {
-                                openSearchActivity(uiList[i])
+                                openSearchActivity(filteredUiList[i])
                             }
                             .testTag("SearchItems"),
 

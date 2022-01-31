@@ -9,7 +9,10 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -49,11 +52,10 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
-
 class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
-    private var rfPower = 8
+    private var rfPower = 5
     private var epcTable = mutableListOf<String>()
     private var epcTablePreviousSize = 0
     private var barcodeTable = mutableListOf<String>()
@@ -72,10 +74,13 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var sumOfRequestedRefill by mutableStateOf(0)
+    private var zoneMode by mutableStateOf(false)
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
 
         barcodeInit()
@@ -95,18 +100,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         sumOfRequestedRefill = 0
         scannedAndRelatedToScannedProducts.forEach {
             sumOfRequestedRefill += it.refillNumber
-        }
-
-        scannedProducts.forEach {
-            it.refillNumber = 0
-        }
-
-        scannedProducts.forEach {
-            scannedAndRelatedToScannedProducts.forEach { it1 ->
-                if (it1.productCode == it.productCode && it1.color == it.color) {
-                    it.refillNumber += it1.refillNumber
-                }
-            }
         }
     }
 
@@ -254,10 +247,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         val url = "http://rfid-api.avakatan.ir/products/v3"
 
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
+        val request = object : JsonObjectRequest(Method.POST, url, null, { responseJson ->
 
-            val epcs = it.getJSONArray("epcs")
-            val barcodes = it.getJSONArray("KBarCodes")
+            val epcs = responseJson.getJSONArray("epcs")
+            val barcodes = responseJson.getJSONArray("KBarCodes")
             val similarIndexes = arrayListOf<Int>()
 
             for (i in 0 until barcodes.length()) {
@@ -283,11 +276,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             for (i in 0 until barcodes.length()) {
 
                 if (i !in similarIndexes) {
-                    epcs.put(it.getJSONArray("KBarCodes")[i])
+                    epcs.put(responseJson.getJSONArray("KBarCodes")[i])
                 }
             }
-
-            scannedProducts.clear()
 
             for (i in 0 until epcs.length()) {
 
@@ -308,41 +299,56 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     refillNumber = 0
                 )
 
-                val uniqueColorManualRefillProduct = ManualRefillScannedProduct(
-                    name = epcs.getJSONObject(i).getString("productName"),
-                    imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
-                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
-                    color = epcs.getJSONObject(i).getString("Color"),
-                    originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = epcs.getJSONObject(i).getString("SalePrice"),
-                    scannedNumber = epcs.getJSONObject(i).getInt("handheldCount"),
-                    warehouseNumber = 0,
-                    shoppingNumber = 0,
-                    refillNumber = 0
-                )
-
                 val scannedAndRelatedToScannedProductIndex =
-                    scannedAndRelatedToScannedProducts.indexOfLast { uniqueColorProductsIt ->
-                        manualRefillProduct.primaryKey == uniqueColorProductsIt.primaryKey
+                    scannedAndRelatedToScannedProducts.indexOfLast {
+                        manualRefillProduct.primaryKey == it.primaryKey
                     }
-
                 if (scannedAndRelatedToScannedProductIndex == -1) {
-                    scannedAndRelatedToScannedProducts.add(manualRefillProduct)
+                    if (!zoneMode) {
+                        scannedAndRelatedToScannedProducts.add(manualRefillProduct)
+                    } else {
+                        val scannedAndRelatedToScannedProductIndex1 =
+                            scannedAndRelatedToScannedProducts.indexOfLast {
+                                manualRefillProduct.productCode == it.productCode &&
+                                        manualRefillProduct.color == it.color
+                            }
+                        if (scannedAndRelatedToScannedProductIndex1 != -1) {
+                            scannedAndRelatedToScannedProducts.add(manualRefillProduct)
+                        }
+                    }
                 } else {
                     scannedAndRelatedToScannedProducts[scannedAndRelatedToScannedProductIndex].scannedNumber =
                         manualRefillProduct.scannedNumber
                 }
+            }
+
+            scannedProducts.clear()
+            scannedAndRelatedToScannedProducts.forEach {
+
+                val product = ManualRefillScannedProduct(
+                    name = it.name,
+                    imageUrl = it.imageUrl,
+                    productCode = it.productCode,
+                    color = it.color,
+                    originalPrice = it.originalPrice,
+                    salePrice = it.salePrice,
+                    scannedNumber = it.scannedNumber,
+                    warehouseNumber = it.warehouseNumber,
+                    shoppingNumber = it.shoppingNumber,
+                    refillNumber = it.refillNumber
+                )
 
                 val productIndex =
-                    scannedProducts.indexOfLast { uniqueColorProductsIt ->
-                        uniqueColorManualRefillProduct.color == uniqueColorProductsIt.color &&
-                                uniqueColorManualRefillProduct.productCode == uniqueColorProductsIt.productCode
+                    scannedProducts.indexOfLast { scannedProductsIt ->
+                        product.color == scannedProductsIt.color &&
+                                product.productCode == scannedProductsIt.productCode
                     }
 
                 if (productIndex == -1) {
-                    scannedProducts.add(uniqueColorManualRefillProduct)
+                    scannedProducts.add(product)
                 } else {
-                    scannedProducts[productIndex].scannedNumber += uniqueColorManualRefillProduct.scannedNumber
+                    scannedProducts[productIndex].scannedNumber += product.scannedNumber
+                    scannedProducts[productIndex].refillNumber += product.refillNumber
                 }
             }
 
@@ -563,6 +569,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     fun Content() {
 
         var switchValue by rememberSaveable { mutableStateOf(false) }
+        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 
         Column {
 
@@ -584,6 +591,28 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
+                Row {
+
+                    Text(
+                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .align(Alignment.CenterVertically),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Slider(
+                        value = slideValue,
+                        onValueChange = {
+                            slideValue = it
+                            rfPower = it.toInt()
+                        },
+                        enabled = true,
+                        valueRange = 5f..30f,
+                        modifier = Modifier.padding(end = 12.dp),
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -593,7 +622,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "اسکن شده: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp)
+                            .padding(start = 8.dp, bottom = 5.dp)
                             .align(Alignment.CenterVertically)
                     )
 
@@ -601,7 +630,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "مجموع شارژ: $sumOfRequestedRefill",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(bottom = 5.dp, top = 5.dp)
+                            .padding(bottom = 5.dp)
                             .align(Alignment.CenterVertically)
                     )
 
@@ -613,7 +642,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         Text(
                             text = "بارکد",
                             modifier = Modifier
-                                .padding(end = 4.dp, bottom = 5.dp, top = 5.dp),
+                                .padding(end = 4.dp, bottom = 5.dp),
                         )
 
                         Switch(
@@ -621,6 +650,31 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                             onCheckedChange = {
                                 barcodeIsEnabled = it
                                 switchValue = it
+                            },
+                            modifier = Modifier.padding(end = 8.dp, bottom = 5.dp),
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = "فقط کالاهای نشان داده شده شمارش شوند",
+                            modifier = Modifier
+                                .padding(end = 4.dp, bottom = 5.dp, top = 5.dp),
+                        )
+
+                        Switch(
+                            checked = zoneMode,
+                            onCheckedChange = {
+                                zoneMode = it
                             },
                             modifier = Modifier.padding(end = 8.dp, bottom = 5.dp, top = 5.dp),
                         )
@@ -687,9 +741,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 
-            Row(modifier = Modifier
-                .fillMaxHeight()
-                .padding(start = 5.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(start = 5.dp)
+            ) {
 
                 Column(
                     modifier = Modifier
