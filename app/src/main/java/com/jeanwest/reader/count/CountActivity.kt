@@ -1413,7 +1413,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     fun LazyColumnItem(i: Int) {
 
         val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .padding(top = 4.dp, bottom = 4.dp, end = 8.dp)
             .wrapContentWidth()
 
         Row(
@@ -1451,6 +1451,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 contentDescription = "",
                 modifier = Modifier
                     .fillMaxHeight()
+                    .width(100.dp)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 

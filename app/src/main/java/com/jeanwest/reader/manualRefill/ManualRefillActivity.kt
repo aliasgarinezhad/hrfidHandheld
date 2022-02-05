@@ -738,6 +738,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 contentDescription = "",
                 modifier = Modifier
                     .fillMaxHeight()
+                    .width(80.dp)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 

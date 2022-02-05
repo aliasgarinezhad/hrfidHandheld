@@ -14,7 +14,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 32
         versionCode 1
-        versionName "2.6.8"
+        versionName "2.6.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -64,8 +64,8 @@ dependencies {
     implementation 'javax.xml.stream:stax-api:1.0-2'
     implementation 'org.apache.commons:commons-lang3:3.11'
     implementation ('com.microsoft.azure.android:azure-storage-android:2.0.0@aar')
-    implementation "androidx.compose.runtime:runtime:1.2.0-alpha01"
-    implementation "androidx.compose.runtime:runtime-rxjava2:1.2.0-alpha01"
+    implementation "androidx.compose.runtime:runtime:1.2.0-alpha02"
+    implementation "androidx.compose.runtime:runtime-rxjava2:1.2.0-alpha02"
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
@@ -93,6 +93,6 @@ dependencies {
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:1.0.5"
     debugImplementation "androidx.compose.ui:ui-tooling:1.0.5"
     implementation("com.android.volley:volley:1.2.1")
-    implementation 'androidx.preference:preference-ktx:1.1.1'
+    implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation("io.coil-kt:coil-compose:1.4.0")
 }
