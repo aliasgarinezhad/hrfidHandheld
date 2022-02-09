@@ -32,6 +32,7 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 //import com.jeanwest.reader.testClasses.Barcode2D
@@ -40,6 +41,7 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONArray
 import org.json.JSONObject
 
+@ExperimentalCoilApi
 class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
@@ -55,7 +57,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var barcode2D = Barcode2D(this)
 
-    @ExperimentalCoilApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -246,22 +247,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSearchActivity(product : SearchResultProducts) {
 
-        val productJson = JSONObject()
-        productJson.put("productName", product.name)
-        productJson.put(  "K_Bar_Code", product.productCode)
-        productJson.put("kbarcode", product.KBarCode)
-        productJson.put("OrigPrice", product.originalPrice)
-        productJson.put("SalePrice", product.salePrice)
-        productJson.put("BarcodeMain_ID", product.primaryKey)
-        productJson.put("RFID", product.rfidKey)
-        productJson.put("ImgUrl", product.imageUrl)
-        productJson.put("dbCountDepo", product.warehouseNumber)
-        productJson.put("dbCountStore", product.shoppingNumber)
-        productJson.put("Size", product.size)
-        productJson.put("Color", product.color)
-
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", productJson.toString())
+        intent.putExtra("product", Gson().toJson(product).toString())
         startActivity(intent)
     }
 

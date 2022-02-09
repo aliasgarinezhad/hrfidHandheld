@@ -211,7 +211,7 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
     fun ColumnItem() {
 
         val modifier = Modifier
-            .padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+            .padding(top = 4.dp, bottom = 4.dp)
             .wrapContentWidth()
 
         Row(
@@ -231,6 +231,7 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
                 contentDescription = "",
                 modifier = Modifier
                     .fillMaxHeight()
+                    .width(165.dp)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 
@@ -291,14 +292,13 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
                     text = "سایز: " + uiList[i].size,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
-                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
-
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
                 Text(
                     text = "اسکن شده: " + uiList[i].scannedNumber,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
-                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
             }
 
@@ -311,14 +311,21 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
                     text = "موجودی انبار: " + uiList[i].warehouseNumber,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
-                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
 
                 Text(
                     text = "تعداد شارژ: " + uiList[i].refillNumber,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
-                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+
+                Text(
+                    text = "موجودی فروش: " + uiList[i].shoppingNumber,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
             }
 

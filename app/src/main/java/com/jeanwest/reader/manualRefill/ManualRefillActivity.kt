@@ -184,8 +184,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
-                if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
-                    epcTable.add(uhfTagInfo.epc)
+                if (uhfTagInfo != null) {
+                    if (uhfTagInfo.epc.startsWith("30")) {
+                        epcTable.add(uhfTagInfo.epc)
+                    }
                 } else {
                     break
                 }

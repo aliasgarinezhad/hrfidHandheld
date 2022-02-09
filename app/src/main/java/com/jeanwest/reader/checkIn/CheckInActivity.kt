@@ -20,7 +20,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -39,7 +38,6 @@ import com.google.gson.Gson
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.count.ConflictResultProduct
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.search.SearchSubActivity
@@ -198,8 +196,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
-                if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
-                    epcTable.add(uhfTagInfo.epc)
+                if (uhfTagInfo != null) {
+                    if (uhfTagInfo.epc.startsWith("30")) {
+                        epcTable.add(uhfTagInfo.epc)
+                    }
                 } else {
                     break
                 }
@@ -834,11 +834,11 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         applicationContext.startActivity(shareIntent)
     }
 
-    private fun openSearchActivity(product : CheckInConflictResultProduct) {
+    private fun openSearchActivity(product: CheckInConflictResultProduct) {
 
         val productJson = JSONObject()
         productJson.put("productName", product.name)
-        productJson.put(  "K_Bar_Code", product.productCode)
+        productJson.put("K_Bar_Code", product.productCode)
         productJson.put("kbarcode", product.KBarCode)
         productJson.put("OrigPrice", product.originalPrice)
         productJson.put("SalePrice", product.salePrice)

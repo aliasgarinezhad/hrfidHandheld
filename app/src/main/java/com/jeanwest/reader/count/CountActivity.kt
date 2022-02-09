@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -100,10 +101,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var signedProductCodes = mutableListOf<String>()
     private var openClearDialog by mutableStateOf(false)
 
-    private val apiTimeout = 30000
+    private val apiTimeout = 60000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
-    @ExperimentalFoundationApi
+
+    @OptIn(ExperimentalFoundationApi::class, ExperimentalCoilApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -317,9 +319,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
-                if (uhfTagInfo != null && uhfTagInfo.epc.startsWith("30")) {
-                    lastScanEpcTable.add(uhfTagInfo.epc)
-                    epcTable.add(uhfTagInfo.epc)
+                if (uhfTagInfo != null) {
+                    if (uhfTagInfo.epc.startsWith("30")) {
+                        lastScanEpcTable.add(uhfTagInfo.epc)
+                        epcTable.add(uhfTagInfo.epc)
+                    }
                 } else {
                     break
                 }
@@ -627,6 +631,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             if (number != 0) {
+                conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
+                uiList = filterResult(conflictResultProducts)
                 syncScannedItemsToServer()
             } else {
                 conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
@@ -644,6 +650,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
                     .show()
             }
+
+            if (number != 0) {
+                syncScannedItemsToServer()
+            }
+
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -672,7 +683,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         request.retryPolicy = DefaultRetryPolicy(
             apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            0,
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
@@ -754,6 +765,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
+            Log.e("network error", response.toString())
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -1101,15 +1113,15 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         conflictResultProducts.forEach {
 
             if (it.scan == "کسری") {
-                val row = sheet2.createRow(sheet2.physicalNumberOfRows)
-                row.createCell(0).setCellValue(it.KBarCode)
-                row.createCell(1)
+                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
+                shortageRow.createCell(0).setCellValue(it.KBarCode)
+                shortageRow.createCell(1)
                     .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                row.createCell(2).setCellValue(it.category)
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+                shortageRow.createCell(2).setCellValue(it.category)
+                shortageRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(4).setCellValue("نشانه دار")
+                    shortageRow.createCell(4).setCellValue("نشانه دار")
                 }
             }
         }
@@ -1126,14 +1138,14 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         conflictResultProducts.forEach {
 
             if (it.scan == "اضافی") {
-                val row = sheet3.createRow(sheet3.physicalNumberOfRows)
-                row.createCell(0).setCellValue(it.KBarCode)
-                row.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                row.createCell(2).setCellValue(it.category)
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
+                additionalRow.createCell(0).setCellValue(it.KBarCode)
+                additionalRow.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
+                additionalRow.createCell(2).setCellValue(it.category)
+                additionalRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(4).setCellValue("نشانه دار")
+                    additionalRow.createCell(4).setCellValue("نشانه دار")
                 }
             }
         }
@@ -1336,7 +1348,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .padding(bottom = 10.dp)
                             .weight(1F),
                     )
                 }
@@ -1359,7 +1371,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .padding(bottom = 10.dp)
                             .weight(1F),
                     )
                 }
@@ -1381,7 +1393,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     Row(
                         modifier = Modifier
                             .weight(1F)
-                            .padding(start = 8.dp),
                     ) {
                         CategoryFilterDropDownList()
                         SignedFilterDropDownList()

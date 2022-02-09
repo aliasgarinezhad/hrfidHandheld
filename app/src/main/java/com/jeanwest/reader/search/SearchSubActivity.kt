@@ -4,6 +4,7 @@ package com.jeanwest.reader.search
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -24,16 +25,18 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
+import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import org.json.JSONObject
-import java.util.*
 
+@ExperimentalCoilApi
 class SearchSubActivity : ComponentActivity() {
 
     private var scannedNumber by mutableStateOf(0)
@@ -42,10 +45,8 @@ class SearchSubActivity : ComponentActivity() {
     private lateinit var product: SearchResultProducts
     private var scanningJob: Job? = null
     private var matchedEpcTable = mutableListOf<String>()
-    private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private lateinit var rf: RFIDWithUHFUART
 
-    @ExperimentalCoilApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -53,40 +54,21 @@ class SearchSubActivity : ComponentActivity() {
             Page()
         }
 
-        rfInit()
+        intent.getStringExtra("product").let {
+            if (it.isNullOrEmpty()) {
+                Toast.makeText(this, "امکان جست و جو برای این کالا وجود ندارد.", Toast.LENGTH_LONG)
+                    .show()
+                finish()
+            } else {
+                val type = object : TypeToken<SearchResultProducts>() {}.type
+                product = Gson().fromJson(
+                    it,
+                    type
+                )
+            }
+        }
 
-        val stuff = JSONObject(
-            intent.getStringExtra("product") ?: """{
-                "RFID": 130290,
-                "BarcodeMain_ID": 9514289,
-                "K_Bar_Code": "64822109",
-                "kbarcode": "64822109J-8010-F",
-                "productName": "ساپورت",
-                "Title2": "ساپورت",
-                "Color": "8010",
-                "Size": "F",
-                "ImgUrl": "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
-                "dbCountStore": 0,
-                "dbCountDepo": -5,
-                "OrigPrice": 1490000,
-                "SalePrice": 1490000,
-                "SalePercent": 0
-            }"""
-        )
-        product = SearchResultProducts(
-            name = stuff.getString("productName"),
-            productCode = stuff.getString("K_Bar_Code"),
-            KBarCode = stuff.getString("kbarcode"),
-            originalPrice = stuff.getString("OrigPrice"),
-            salePrice = stuff.getString("SalePrice"),
-            shoppingNumber = stuff.getInt("dbCountStore"),
-            warehouseNumber = stuff.getInt("dbCountDepo"),
-            imageUrl = stuff.getString("ImgUrl"),
-            primaryKey = stuff.getLong("BarcodeMain_ID"),
-            rfidKey = stuff.getLong("RFID"),
-            color = stuff.getString("Color"),
-            size = stuff.getString("Size")
-        )
+        rfInit()
     }
 
     private fun rfInit() {
@@ -146,41 +128,106 @@ class SearchSubActivity : ComponentActivity() {
 
         while (isScanning) {
 
-            var epcTable = mutableListOf<String>()
-            var found = false
+            val epcTableWithRssi = mutableMapOf<String, String>()
+            var isFound = false
+            var foundRssi = 100F
+            var uhfTagInfo: UHFTAGInfo?
 
             while (true) {
-                rf.readTagFromBuffer()?.let {
-                    epcTable.add(it.epc)
-                } ?: break
-            }
-            epcTable = epcTable.distinct().toMutableList()
 
-            epcTable = epcTable.filter {
-                it.startsWith("30")
-            }.toMutableList()
-
-            epcTable.forEach {
-                val decodedEpc = epcDecoder(it)
-                if ((decodedEpc.company == 101 && decodedEpc.item == product.rfidKey) ||
-                    (decodedEpc.company == 100 && decodedEpc.item == product.primaryKey)
-                ) {
-                    matchedEpcTable.add(it)
-                    matchedEpcTable = matchedEpcTable.distinct().toMutableList()
-                    found = true
+                uhfTagInfo = rf.readTagFromBuffer()
+                if (uhfTagInfo != null) {
+                    if (uhfTagInfo.epc.startsWith("30")) {
+                        epcTableWithRssi[uhfTagInfo.epc] = uhfTagInfo.rssi
+                    }
+                } else {
+                    break
                 }
             }
 
-            if (found) {
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+            epcTableWithRssi.forEach {
+
+                val decodedEpc = epcDecoder(it.key)
+                if ((decodedEpc.company == 101 && decodedEpc.item == product.rfidKey) ||
+                    (decodedEpc.company == 100 && decodedEpc.item == product.primaryKey)
+                ) {
+                    matchedEpcTable.add(it.key)
+                    matchedEpcTable = matchedEpcTable.distinct().toMutableList()
+                    isFound = true
+                    val productRssi = it.value.toFloat() * -1
+                    if (productRssi < foundRssi) {
+                        foundRssi = productRssi
+                    }
+                }
             }
 
-            scannedNumber = matchedEpcTable.size
+            when (rfPower) {
+                30 -> {
+                    if (isFound) {
+                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                        if (foundRssi < 60F) {
+                            changePowerWhileScanning(20)
+                        } else {
+                            delay(500)
+                        }
+                    } else {
+                        delay(500)
+                    }
+                }
 
-            delay(1000)
+                20 -> {
+                    if (isFound) {
+                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
+                        if (foundRssi < 60F) {
+                            changePowerWhileScanning(10)
+                        } else {
+                            delay(500)
+                        }
+                    } else {
+                        changePowerWhileScanning(30)
+                    }
+                }
+
+                10 -> {
+                    if (isFound) {
+                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 60)
+                        beep.startTone(ToneGenerator.TONE_DTMF_2, 800)
+                        if (foundRssi < 60F) {
+                            changePowerWhileScanning(5)
+                        } else {
+                            delay(500)
+                        }
+                    } else {
+                        changePowerWhileScanning(20)
+                    }
+                }
+                5 -> {
+                    if (isFound) {
+                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 60)
+                        beep.startTone(ToneGenerator.TONE_DTMF_2, 1100)
+                        delay(500)
+                    } else {
+                        changePowerWhileScanning(10)
+
+                    }
+                }
+            }
+            delay(500)
+            scannedNumber = matchedEpcTable.size
         }
 
         rf.stopInventory()
+    }
+
+    private fun changePowerWhileScanning(power: Int) {
+        rfPower = power
+        rf.stopInventory()
+        if (!setRFPower(rfPower)) {
+            return
+        }
+        rf.startInventoryTag(0, 0, 0)
     }
 
     private fun epcDecoder(epc: String): EPC {
@@ -258,7 +305,6 @@ class SearchSubActivity : ComponentActivity() {
         finish()
     }
 
-    @ExperimentalCoilApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -305,7 +351,6 @@ class SearchSubActivity : ComponentActivity() {
         )
     }
 
-    @ExperimentalCoilApi
     @Composable
     fun Content() {
 
@@ -328,7 +373,7 @@ class SearchSubActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Text(
-                        text = "توان آنتن (" + rfPower + ")  ",
+                        text = "توان آنتن ($rfPower)  ",
                         modifier = Modifier
                             .padding(end = 8.dp, start = 8.dp)
                             .align(Alignment.CenterVertically),
@@ -372,7 +417,7 @@ class SearchSubActivity : ComponentActivity() {
     fun LazyColumnItem() {
 
         val modifier = Modifier
-            .padding(top = 4.dp, start = 16.dp, bottom = 4.dp)
+            .padding(top = 2.dp, start = 16.dp, bottom = 2.dp)
             .wrapContentWidth()
 
         Row(
@@ -401,49 +446,42 @@ class SearchSubActivity : ComponentActivity() {
                     style = MaterialTheme.typography.h1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.DarkSlateGray)
                 )
                 Text(
                     text = product.KBarCode,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.Goldenrod)
                 )
                 Text(
                     text = "قیمت: " + product.originalPrice,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.Brown)
                 )
                 Text(
                     text = "فروش: " + product.salePrice,
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.DarkGreen)
                 )
                 Text(
                     text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.Brown)
                 )
                 Text(
                     text = "موجودی انبار: " + product.warehouseNumber.toString(),
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.Brown)
                 )
                 Text(
                     text = "پیدا شده: $scannedNumber",
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
-                    //color = colorResource(id = R.color.Brown)
                 )
             }
         }
