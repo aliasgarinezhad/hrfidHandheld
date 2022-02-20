@@ -36,9 +36,11 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".manualRefill.ScannedProductsPropertyActivity"/>
+        <activity android:name=".refill.SendToStoreActivity" />
+        <activity android:name=".checkIn.ConfirmCheckInsActivity" />
+        <activity android:name=".manualRefill.ScannedProductsPropertyActivity" />
         <activity android:name=".refill.RefillActivity" />
-        <activity android:name=".manualRefill.ManualRefillActivity"/>
+        <activity android:name=".manualRefill.ManualRefillActivity" />
         <activity android:name=".logIn.OperatorLoginActivity" />
         <activity android:name=".checkIn.CheckInActivity" />
         <activity android:name=".checkIn.GetBarcodesByCheckInNumberActivity" />

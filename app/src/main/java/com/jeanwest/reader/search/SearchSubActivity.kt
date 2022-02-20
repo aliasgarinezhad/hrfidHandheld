@@ -4,7 +4,6 @@ package com.jeanwest.reader.search
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,11 +38,13 @@ import kotlinx.coroutines.Dispatchers.Main
 @ExperimentalCoilApi
 class SearchSubActivity : ComponentActivity() {
 
+    private var distance by mutableStateOf(1f)
     private var scannedNumber by mutableStateOf(0)
     private var rfPower by mutableStateOf(30)
     private var isScanning by mutableStateOf(false)
     private lateinit var product: SearchResultProducts
     private var scanningJob: Job? = null
+    private var beepJob: Job? = null
     private var matchedEpcTable = mutableListOf<String>()
     private lateinit var rf: RFIDWithUHFUART
 
@@ -116,12 +117,47 @@ class SearchSubActivity : ComponentActivity() {
         return true
     }
 
+    private suspend fun beep() {
+
+        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        while (isScanning) {
+            when(distance) {
+
+                0.7f -> {
+                    beep.startTone(ToneGenerator.TONE_PROP_BEEP)
+                    delay(300
+                    )
+                    beep.stopTone()
+                }
+                0.5f -> {
+                    beep.startTone(ToneGenerator.TONE_PROP_BEEP)
+                    delay(150)
+                    beep.stopTone()
+                }
+                0.2f -> {
+                    beep.startTone(ToneGenerator.TONE_PROP_BEEP)
+                    delay(100)
+                    beep.stopTone()
+                }
+                0.05f -> {
+                    beep.startTone(ToneGenerator.TONE_PROP_BEEP)
+                    delay(50)
+                    beep.stopTone()
+                }
+            }
+        }
+    }
+
     private suspend fun startFinding() {
 
         isScanning = true
         if (!setRFPower(rfPower)) {
             isScanning = false
             return
+        }
+
+        beepJob = CoroutineScope(IO).launch {
+            beep()
         }
 
         rf.startInventoryTag(0, 0, 0)
@@ -164,53 +200,53 @@ class SearchSubActivity : ComponentActivity() {
             when (rfPower) {
                 30 -> {
                     if (isFound) {
-                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                        if (foundRssi < 60F) {
+                        distance = 0.7f
+
+                        if (foundRssi < 75F) {
                             changePowerWhileScanning(20)
                         } else {
                             delay(500)
                         }
                     } else {
+                        distance = 1f
                         delay(500)
                     }
                 }
 
                 20 -> {
                     if (isFound) {
-                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                        if (foundRssi < 60F) {
+                        distance = 0.5f
+                        if (foundRssi < 75F) {
                             changePowerWhileScanning(10)
                         } else {
                             delay(500)
                         }
                     } else {
+                        distance = 0.7f
                         changePowerWhileScanning(30)
                     }
                 }
 
                 10 -> {
                     if (isFound) {
-                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 60)
-                        beep.startTone(ToneGenerator.TONE_DTMF_2, 800)
-                        if (foundRssi < 60F) {
+                        distance = 0.2f
+                        if (foundRssi < 75F) {
                             changePowerWhileScanning(5)
                         } else {
                             delay(500)
                         }
                     } else {
+                        distance = 0.5f
                         changePowerWhileScanning(20)
                     }
                 }
                 5 -> {
                     if (isFound) {
-                        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 60)
-                        beep.startTone(ToneGenerator.TONE_DTMF_2, 1100)
+                        distance = 0.05f
                         delay(500)
                     } else {
+                        distance = 0.2f
                         changePowerWhileScanning(10)
-
                     }
                 }
             }
@@ -298,6 +334,12 @@ class SearchSubActivity : ComponentActivity() {
                 runBlocking { it.join() }
             }
         }
+        beepJob?.let {
+            if (it.isActive) {
+                isScanning = false // cause beep to stop
+                runBlocking { it.join() }
+            }
+        }
     }
 
     private fun back() {
@@ -370,22 +412,23 @@ class SearchSubActivity : ComponentActivity() {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Text(
-                        text = "توان آنتن ($rfPower)  ",
+                        text = "فاصله",
                         modifier = Modifier
-                            .padding(end = 8.dp, start = 8.dp)
+                            .padding(start = 8.dp)
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.Center
                     )
-                    Slider(
-                        modifier = Modifier.padding(end = 12.dp),
-                        value = rfPower.toFloat(),
-                        valueRange = 5f..30f,
-                        onValueChange = {
-                            rfPower = it.toInt()
-                        })
+                    LinearProgressIndicator(
+                        progress = distance,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.CenterVertically)
+                            .height(8.dp)
+                            .padding(horizontal = 8.dp),
+                        backgroundColor = MaterialTheme.colors.background
+                    )
                 }
 
                 if (isScanning) {

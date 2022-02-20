@@ -15,8 +15,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -48,6 +51,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -80,10 +84,12 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var writeRecords = mutableListOf<WriteRecord>()
     private var userWriteRecords = mutableListOf<WriteRecord>()
     private var barcodeInformation = JSONObject()
-    private var newWriteMethod by mutableStateOf(true)
+    val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
+    var tagTypeValue by mutableStateOf("تگ کیوآر کد دار")
+
     private var write = false
 
-    private var rfPower = 5
+    private var writeTagNoQRCodeRfPower = 5
 
     private var counterMaxValue = 0L
     private var counterMinValue = 0L
@@ -308,10 +314,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 resultColor = R.color.DarkGreen
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                 write = true
-            } else if (newWriteMethod && write) {
+            } else if (tagTypeValue == "تگ کیوآر کد دار" && write) {
                 barcodeIsScanning = false
                 newMethodTid = barcode
-                addNewTagByNewMethod(barcodeID)
+                writeTagByQRCode(barcodeID)
                 write = false
             }
         } else {
@@ -363,11 +369,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 return true
             }
             if (write) {
-                if (newWriteMethod) {
+                if (tagTypeValue == "تگ کیوآر کد دار") {
                     barcodeIsScanning = true
                     startBarcodeScan()
                 } else {
-                    addNewTag(barcodeID)
+                    writeTagNoQRCode(barcodeID)
                     write = false
                 }
             } else {
@@ -446,10 +452,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        if (!setRFPower(rfPower)) {
-            return
-        }
-
         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
         resultColor = R.color.DarkGreen
 
@@ -486,14 +488,14 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     @SuppressLint("SimpleDateFormat")
     @Throws(InterruptedException::class)
-    private fun addNewTag(barcodeID: String) {
+    private fun writeTagNoQRCode(barcodeID: String) {
 
         var epc = ""
-        var rawEpcs: MutableList<String>
+        val rawEpcs: MutableList<String>
         val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
 
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(writeTagNoQRCodeRfPower)) {
             return
         }
 
@@ -541,56 +543,90 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 resultColor = R.color.Brown
                 return
             }
-
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v2?kbarcode=$barcodeID"
-        val request = object : JsonObjectRequest1(Method.GET, url, null,
-            fun(it) {
+        val url = "http://rfid-api.avakatan.ir/products/v3"
 
-                val decodedTagEpc = epcDecoder(epc)
+        val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
-                if (decodedTagEpc.header == 48) {
-                    if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
-                        (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
-                            .toLong())
-                    ) {
-                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                        resultColor = R.color.DarkGreen
-                        result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
-                        return
-                    } else {
-                        Log.e("error", decodedTagEpc.company.toString())
-                        result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
-                        barcodeInformation = it
-                        openRewriteDialog = true
-                        return
-                    }
-                } else {
-                    barcodeInformation = it
-                    write(barcodeInformation, false, oldMethodTid)
-                }
-            }, {
-                result += if (it is NoConnectionError) {
-                    "اینترنت قطع است. شبکه وای فای را بررسی کنید."
-                } else {
-                    "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
-                }
+            val decodedTagEpc = epcDecoder(epc)
+
+            if (it.getJSONArray("KBarCodes").length() == 0) {
+                result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = R.color.Brown
-            }) {
+                return
+            }
+
+            barcodeInformation = it.getJSONArray("KBarCodes").getJSONObject(0)
+
+            if (decodedTagEpc.header == 48) {
+                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodeInformation.getLong(
+                        "BarcodeMain_ID"
+                    )) ||
+                    (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodeInformation.getString(
+                        "RFID"
+                    )
+                        .toLong())
+                ) {
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                    resultColor = R.color.DarkGreen
+                    result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
+                    return
+                } else {
+                    result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
+                    openRewriteDialog = true
+                    return
+                }
+            } else {
+                write(barcodeInformation, false, oldMethodTid)
+            }
+
+        }, {
+
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
+
+        }) {
             override fun getHeaders(): MutableMap<String, String> {
-                return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+                val json = JSONObject()
+                val epcArray = JSONArray()
+
+                json.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeArray.put(barcodeID)
+
+                json.put("KBarCodes", barcodeArray)
+
+                return json.toString().toByteArray()
             }
         }
-
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
-    private fun addNewTagByNewMethod(barcodeID: String) {
+    private fun writeTagByQRCode(barcodeID: String) {
 
-        var epc = ""
+        var epc: String
         if (!setRFPower(30)) {
             return
         }
@@ -605,14 +641,27 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v2?kbarcode=$barcodeID"
-        val request = object : JsonObjectRequest1(Method.GET, url, null, fun(it) {
+        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
             val decodedTagEpc = epcDecoder(epc)
 
+            if (it.getJSONArray("KBarCodes").length() == 0) {
+                result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                resultColor = R.color.Brown
+                return
+            }
+
+            barcodeInformation = it.getJSONArray("KBarCodes").getJSONObject(0)
+
             if (decodedTagEpc.header == 48) {
-                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == it.getLong("BarcodeMain_ID")) ||
-                    (decodedTagEpc.company == 101 && decodedTagEpc.item == it.getString("RFID")
+                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodeInformation.getLong(
+                        "BarcodeMain_ID"
+                    )) ||
+                    (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodeInformation.getString(
+                        "RFID"
+                    )
                         .toLong())
                 ) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
@@ -620,29 +669,49 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
                     return
                 } else {
-                    Log.e("error", decodedTagEpc.company.toString())
                     result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
-                    barcodeInformation = it
                     openRewriteDialog = true
                     return
                 }
             } else {
-                barcodeInformation = it
-                Log.e("tid", "E28$newMethodTid")
                 write(barcodeInformation, false, "E28$newMethodTid")
             }
 
         }, {
-            result += if (it is NoConnectionError) {
-                "اینترنت قطع است. شبکه وای فای را بررسی کنید."
-            } else {
-                "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+            result += when {
+                it is NoConnectionError -> {
+                    "اینترنت قطع است. شبکه وای فای را بررسی کنید."
+                }
+                it.networkResponse.statusCode == 404 -> {
+                    "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                }
+                else -> {
+                    it.toString()
+                }
             }
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
             resultColor = R.color.Brown
         }) {
             override fun getHeaders(): MutableMap<String, String> {
-                return mutableMapOf("Authorization" to "Bearer ${MainActivity.token}")
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+                val json = JSONObject()
+                val epcArray = JSONArray()
+
+                json.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                barcodeArray.put(barcodeID)
+
+                json.put("KBarCodes", barcodeArray)
+
+                return json.toString().toByteArray()
             }
         }
 
@@ -758,7 +827,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     @Composable
     fun Content() {
-        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 
         Column {
 
@@ -784,61 +852,22 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     RewriteAlertDialog()
                 }
 
-                Row {
-
-                    Text(
-                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .align(Alignment.CenterVertically),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Slider(
-                        value = slideValue,
-                        onValueChange = {
-                            slideValue = it
-                            rfPower = it.toInt()
-                        },
-                        enabled = true,
-                        valueRange = 5f..30f,
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
-                }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
-                    Text(
-                        text = "تعداد تگ های رایت شده: $counter",
-                        textAlign = TextAlign.Right,
+                    TagTypeDropDownList(
                         modifier = Modifier
-                            .padding(bottom = 10.dp, start = 8.dp)
-                            .align(Alignment.CenterVertically),
+                            .weight(1F)
+                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp)
                     )
 
-                    Row(
+                    Text(
+                        text = "تعداد رایت شده: $counter",
+                        textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .padding(end = 8.dp)
-                    ) {
-                        Text(
-                            text = "رایت با کیوآر کد",
-                            modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp),
-                        )
-
-                        Switch(
-                            checked = newWriteMethod,
-                            onCheckedChange = {
-                                newWriteMethod = it
-                            },
-                            modifier = Modifier.padding(end = 8.dp, bottom = 10.dp),
-                        )
-                    }
-
+                            .weight(1F)
+                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp),
+                    )
                 }
 
                 if (barcodeIsScanning || rfIsScanning) {
@@ -985,7 +1014,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                         Button(onClick = {
                             openRewriteDialog = false
-                            if (newWriteMethod) {
+                            if (tagTypeValue == "تگ کیوآر کد دار") {
                                 write(barcodeInformation, true, "E28$newMethodTid")
                             } else {
                                 write(barcodeInformation, true, oldMethodTid)
@@ -1003,5 +1032,36 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         )
+    }
+
+    @Composable
+    fun TagTypeDropDownList(modifier: Modifier) {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box(modifier = modifier) {
+            Row(modifier = Modifier.clickable { expanded = true }) {
+                Text(text = tagTypeValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                tagTypeValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        tagTypeValue = it
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
     }
 }

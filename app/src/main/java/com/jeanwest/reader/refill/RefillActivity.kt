@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +32,7 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
@@ -42,6 +42,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -57,6 +58,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 
+@ExperimentalCoilApi
 class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
@@ -255,9 +257,19 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
             }
             getRefillItems()
-        }, { response ->
-            Toast.makeText(this@RefillActivity, response.toString(), Toast.LENGTH_LONG)
-                .show()
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -307,6 +319,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             if (number != 0) {
                 syncScannedItemsToServer()
             } else {
+
                 uiList = mutableListOf()
                 refillProducts.sortBy { refillProduct ->
                     refillProduct.scannedNumber > 0
@@ -314,7 +327,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 uiList = refillProducts
                 unFoundProductsNumber = uiList.size
             }
-        }, { response ->
+        }, {
 
             if (inputBarcodes.isEmpty()) {
                 Toast.makeText(
@@ -323,9 +336,24 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
+
+            if (number != 0) {
+                syncScannedItemsToServer()
+            }
+
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -430,12 +458,22 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 validScannedProductsNumber += refillProduct.scannedNumber
             }
 
-        }, { response ->
+        }, {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@RefillActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             uiList = mutableListOf()
             uiList = refillProducts
@@ -601,24 +639,35 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         applicationContext.startActivity(shareIntent)
     }
 
+    private fun openSendToStoreActivity() {
+
+        Intent(this, SendToStoreActivity::class.java).also {
+            it.putExtra("RefillProducts", Gson().toJson(refillProducts.filter { it1 ->
+                it1.scannedNumber > 0
+            }).toString())
+            startActivity(it)
+        }
+    }
+
     private fun openSearchActivity(product: RefillProduct) {
 
-        val productJson = JSONObject()
-        productJson.put("productName", product.name)
-        productJson.put("K_Bar_Code", product.productCode)
-        productJson.put("kbarcode", product.KBarCode)
-        productJson.put("OrigPrice", product.originalPrice)
-        productJson.put("SalePrice", product.salePrice)
-        productJson.put("BarcodeMain_ID", product.primaryKey)
-        productJson.put("RFID", product.rfidKey)
-        productJson.put("ImgUrl", product.imageUrl)
-        productJson.put("dbCountDepo", 0)
-        productJson.put("dbCountStore", 0)
-        productJson.put("Size", product.size)
-        productJson.put("Color", product.color)
+        val searchResultProduct = SearchResultProducts(
+            name = product.name,
+            KBarCode = product.KBarCode,
+            imageUrl = product.imageUrl,
+            color = product.color,
+            size = product.size,
+            productCode = product.productCode,
+            rfidKey = product.rfidKey,
+            primaryKey = product.primaryKey,
+            originalPrice = product.originalPrice,
+            salePrice = product.salePrice,
+            shoppingNumber = 0,
+            warehouseNumber = 0
+        )
 
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", productJson.toString())
+        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
         startActivity(intent)
     }
 
@@ -651,6 +700,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
+                IconButton(onClick = { openSendToStoreActivity() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_send_24),
+                        contentDescription = ""
+                    )
+                }
                 IconButton(onClick = { openFileDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
@@ -669,7 +724,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = stringResource(id = R.string.refill),
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(start = 80.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -950,15 +1005,5 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         )
-    }
-
-    @ExperimentalFoundationApi
-    @Preview
-    @Composable
-    fun Preview() {
-
-        openClearDialog = true
-
-        ClearAlertDialog()
     }
 }

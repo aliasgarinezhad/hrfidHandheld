@@ -16,11 +16,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.preference.PreferenceManager
-import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONObject
@@ -46,7 +44,22 @@ class OperatorLoginActivity : ComponentActivity() {
                 startActivity(it)
             }
         }, {
-            Toast.makeText(this, "رمز عبور اشتباه است", Toast.LENGTH_SHORT).show()
+            when {
+                it is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                it.networkResponse.statusCode == 401 -> {
+                    Toast.makeText(this, "نام کاربری یا رمز عبور اشتباه است", Toast.LENGTH_LONG)
+                        .show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
         }) {
 
             override fun getHeaders(): MutableMap<String, String> {

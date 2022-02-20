@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
@@ -71,7 +72,7 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
     private fun loadMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        storeFilterValue = memory.getInt("deviceLocationCode", 0)
+        storeFilterValue = memory.getInt("userLocationCode", 0)
     }
 
     private fun getWarehouseProductsList() {
@@ -86,7 +87,18 @@ class ScannedProductsPropertyActivity : ComponentActivity() {
             jsonArrayProcess(products)
 
         }, {
-            Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
         })
 
         val queue = Volley.newRequestQueue(this)

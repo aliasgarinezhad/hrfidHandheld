@@ -32,6 +32,7 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -40,6 +41,8 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.refill.SendToStoreActivity
+import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -56,6 +59,7 @@ import java.io.FileOutputStream
 import kotlin.math.abs
 
 
+@ExperimentalCoilApi
 class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
@@ -473,7 +477,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
                 uiList = filterResult(conflictResultProducts)
             }
-        }, { response ->
+        }, {
 
             if (excelBarcodes.isEmpty()) {
                 Toast.makeText(
@@ -482,9 +486,24 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this@CheckInActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
+
+            if (number != 0) {
+                syncScannedItemsToServer()
+            }
+
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -586,15 +605,26 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
 
-        }, { response ->
+        }, {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@CheckInActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
+
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -779,14 +809,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         conflictResultProducts.forEach {
 
             if (it.scan == "کسری") {
-                val row = sheet2.createRow(sheet2.physicalNumberOfRows)
-                row.createCell(0).setCellValue(it.KBarCode)
-                row.createCell(1)
+                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
+                shortageRow.createCell(0).setCellValue(it.KBarCode)
+                shortageRow.createCell(1)
                     .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
+                shortageRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(3).setCellValue("نشانه دار")
+                    shortageRow.createCell(3).setCellValue("نشانه دار")
                 }
             }
         }
@@ -802,13 +832,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         conflictResultProducts.forEach {
 
             if (it.scan == "اضافی") {
-                val row = sheet3.createRow(sheet3.physicalNumberOfRows)
-                row.createCell(0).setCellValue(it.KBarCode)
-                row.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
+                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
+                additionalRow.createCell(0).setCellValue(it.KBarCode)
+                additionalRow.createCell(1)
+                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
+                additionalRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
-                    row.createCell(3).setCellValue("نشانه دار")
+                    additionalRow.createCell(3).setCellValue("نشانه دار")
                 }
             }
         }
@@ -836,26 +867,39 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSearchActivity(product: CheckInConflictResultProduct) {
 
-        val productJson = JSONObject()
-        productJson.put("productName", product.name)
-        productJson.put("K_Bar_Code", product.productCode)
-        productJson.put("kbarcode", product.KBarCode)
-        productJson.put("OrigPrice", product.originalPrice)
-        productJson.put("SalePrice", product.salePrice)
-        productJson.put("BarcodeMain_ID", product.primaryKey)
-        productJson.put("RFID", product.rfidKey)
-        productJson.put("ImgUrl", product.imageUrl)
-        productJson.put("dbCountDepo", 0)
-        productJson.put("dbCountStore", 0)
-        productJson.put("Size", product.size)
-        productJson.put("Color", product.color)
+        val searchResultProduct = SearchResultProducts(
+            name = product.name,
+            KBarCode = product.KBarCode,
+            imageUrl = product.imageUrl,
+            color = product.color,
+            size = product.size,
+            productCode = product.productCode,
+            rfidKey = product.rfidKey,
+            primaryKey = product.primaryKey,
+            originalPrice = product.originalPrice,
+            salePrice = product.salePrice,
+            shoppingNumber = 0,
+            warehouseNumber = 0
+        )
 
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", productJson.toString())
+        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
         startActivity(intent)
     }
 
-    @ExperimentalCoilApi
+    private fun openConfirmCheckInsActivity() {
+
+        Intent(this, ConfirmCheckInsActivity::class.java).also {
+            it.putExtra(
+                "additionalAndShortageProducts",
+                Gson().toJson(conflictResultProducts.filter { it1 ->
+                    it1.scan == "کسری" || it1.scan == "اضافی" || it1.scan == "اضافی فایل"
+                }).toString()
+            )
+            startActivity(it)
+        }
+    }
+
     @ExperimentalFoundationApi
     @Composable
     fun Page() {
@@ -884,6 +928,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
+                IconButton(onClick = { openConfirmCheckInsActivity() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_send_24),
+                        contentDescription = ""
+                    )
+                }
                 IconButton(onClick = { openDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
@@ -902,7 +952,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = stringResource(id = R.string.checkInText),
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(start = 80.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -98,7 +99,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
     private fun getCheckInNumberDetails(checkInNumber: String) {
 
-        if(checkInNumber.isEmpty()) {
+        if (checkInNumber.isEmpty()) {
             Toast.makeText(this, "لطفا شماره حواله را وارد کنید", Toast.LENGTH_LONG).show()
             return
         }
@@ -149,7 +150,18 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             saveMemory()
 
         }, {
-            Toast.makeText(this, "خطا در دریافت حواله", Toast.LENGTH_LONG).show()
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()

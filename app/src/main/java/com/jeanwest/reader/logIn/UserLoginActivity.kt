@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
@@ -44,6 +45,8 @@ class UserLoginActivity : ComponentActivity() {
 
             editor.putString("accessToken", response.getString("accessToken"))
             editor.putString("username", username)
+            editor.putInt("userLocationCode", response.getInt("locationCode"))
+
             editor.apply()
 
             val intent =
@@ -52,9 +55,19 @@ class UserLoginActivity : ComponentActivity() {
             startActivity(intent)
 
 
-        }, { response ->
+        }, {
+            when {
+                it is NoConnectionError -> {
+                    Toast.makeText(this, "اینترنت قطع است. شبکه وای فای را بررسی کنید.", Toast.LENGTH_LONG).show()
+                }
+                it.networkResponse.statusCode == 401 -> {
+                    Toast.makeText(this, "نام کاربری یا رمز عبور اشتباه است", Toast.LENGTH_LONG).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
 
-            Toast.makeText(this, response.toString(), Toast.LENGTH_LONG).show()
             editor.putString("accessToken", "")
             editor.putString("username", "")
             editor.apply()

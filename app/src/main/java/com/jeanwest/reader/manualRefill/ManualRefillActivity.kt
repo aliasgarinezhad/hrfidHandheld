@@ -32,6 +32,7 @@ import androidx.core.content.FileProvider
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.JalaliDate.JalaliDate
@@ -357,12 +358,22 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.clear()
             uiList.addAll(scannedProducts)
 
-        }, { response ->
+        }, { it ->
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@ManualRefillActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             uiList.clear()
             uiList.addAll(scannedProducts)

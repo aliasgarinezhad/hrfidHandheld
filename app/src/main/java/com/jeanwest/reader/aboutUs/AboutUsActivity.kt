@@ -52,7 +52,7 @@ class AboutUsActivity : ComponentActivity() {
 
         Toast.makeText(
             applicationContext,
-            "نسخه جدید (${IotHub.appVersion.toString()}) موجود است",
+            "نسخه جدید (${IotHub.appVersion}) موجود است",
             Toast.LENGTH_LONG
         ).show()
 
@@ -112,7 +112,7 @@ class AboutUsActivity : ComponentActivity() {
 
                 val file = File(path)
                 if (file.exists()) {
-                    val installIntent = Intent(Intent.ACTION_VIEW);
+                    val installIntent = Intent(Intent.ACTION_VIEW)
                     installIntent.setDataAndType(
                         uriFromFile(applicationContext, File(path)),
                         "application/vnd.android.package-archive"

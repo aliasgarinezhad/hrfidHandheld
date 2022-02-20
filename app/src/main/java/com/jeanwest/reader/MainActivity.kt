@@ -10,7 +10,6 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,10 +22,8 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -43,7 +40,6 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
-import java.util.*
 
 
 class MainActivity : ComponentActivity() {
@@ -55,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private var buttonSize = 140.dp
     private var iconSize = 70.dp
     private var pageSize = buttonSize * 3 + 150.dp
+    private var userLocationCode = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -105,6 +102,7 @@ class MainActivity : ComponentActivity() {
 
         memory = PreferenceManager.getDefaultSharedPreferences(this)
 
+        userLocationCode = memory.getInt("userLocationCode", 0)
         username = memory.getString("username", "") ?: ""
         token = memory.getString("accessToken", "") ?: ""
         deviceId = memory.getString("deviceId", "") ?: ""
@@ -544,31 +542,44 @@ class MainActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.SpaceAround
+                        .width(350.dp)
+                        .height(160.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly
                 ) {
 
                     Text(
-                        text = username,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                        style = MaterialTheme.typography.h1,
-                        fontSize = 24.sp
+                        text = "نام کاربری: $username",
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        style = MaterialTheme.typography.body2,
+                        textAlign = TextAlign.Center
                     )
 
-                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+                    Text(
+                        text = "فروشگاه: $userLocationCode",
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        style = MaterialTheme.typography.body2,
+                        textAlign = TextAlign.Center
+                    )
 
-                        Button(onClick = {
-                            openAccountDialog = false
-                            val intent =
-                                Intent(
-                                    this@MainActivity,
-                                    AboutUsActivity::class.java
-                                )
-                            startActivity(intent)
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
 
-                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                        Button(
+                            onClick = {
+                                openAccountDialog = false
+                                val intent =
+                                    Intent(
+                                        this@MainActivity,
+                                        AboutUsActivity::class.java
+                                    )
+                                startActivity(intent)
+
+                            },
+                        ) {
                             Text(text = "به روز رسانی")
                         }
                         Button(
@@ -585,7 +596,6 @@ class MainActivity : ComponentActivity() {
                                 intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
                             },
-                            modifier = Modifier.padding(top = 10.dp)
                         ) {
                             Text(text = "خروج از حساب")
                         }
@@ -593,13 +603,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
-    }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun DefaultPreview() {
-        MyApplicationTheme {
-            MainMenu()
-        }
     }
 }

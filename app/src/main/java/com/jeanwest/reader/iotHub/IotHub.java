@@ -15,7 +15,6 @@ import androidx.preference.PreferenceManager;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
-import com.jeanwest.reader.MainActivity;
 import com.jeanwest.reader.aboutUs.AboutUsActivity;
 import com.jeanwest.reader.write.WriteRecord;
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification;
@@ -178,7 +177,6 @@ public class IotHub extends Service {
         headerRow.createCell(4).setCellValue("device serial number");
         headerRow.createCell(5).setCellValue("wrote on raw tag");
 
-
         @SuppressLint("SimpleDateFormat")
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
         File dir = new File(this.getExternalFilesDir(null), "/");
@@ -192,7 +190,6 @@ public class IotHub extends Service {
             row.createCell(3).setCellValue(it.getUsername());
             row.createCell(4).setCellValue(it.getDeviceSerialNumber());
             row.createCell(5).setCellValue(it.getWroteOnRawTag());
-
 
             FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
             workbook.write(outputStream);
@@ -231,7 +228,7 @@ public class IotHub extends Service {
                     sendLogFileSuccess = true;
                     JSONObject json = new JSONObject();
                     json.put("Blob name", sasUriResponse.getBlobName());
-                    sendMessage(json.toString());
+                    IotHub.this.sendMessage(json.toString());
 
                 } catch (Exception e) {
                     Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
@@ -353,17 +350,12 @@ public class IotHub extends Service {
         }
     }
 
-    static class EventCallback implements IotHubEventCallback
-    {
-        public void execute(IotHubStatusCode status, Object context)
-        {
+    static class EventCallback implements IotHubEventCallback {
+        public void execute(IotHubStatusCode status, Object context) {
 
-            if((status == IotHubStatusCode.OK) || (status == IotHubStatusCode.OK_EMPTY))
-            {
+            if ((status == IotHubStatusCode.OK) || (status == IotHubStatusCode.OK_EMPTY)) {
 
-            }
-            else
-            {
+            } else {
 
             }
         }

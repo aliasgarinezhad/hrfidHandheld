@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +33,7 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -42,6 +41,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -60,6 +60,7 @@ import java.io.IOException
 import kotlin.math.abs
 
 
+@ExperimentalCoilApi
 class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private var lastScanEpcTable = mutableListOf<String>()
@@ -638,7 +639,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
                 uiList = filterResult(conflictResultProducts)
             }
-        }, { response ->
+        }, {
 
             if (excelBarcodes.isEmpty()) {
                 Toast.makeText(
@@ -647,8 +648,18 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
 
             if (number != 0) {
@@ -756,16 +767,25 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
 
-        }, { response ->
+        }, {
             if ((epcTable.size + barcodeTable.size) == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
-            Log.e("network error", response.toString())
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -822,12 +842,22 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             Toast.makeText(this, "ناحیه تعریف شد", Toast.LENGTH_SHORT).show()
 
-        }, { response ->
+        }, {
             if (lastScanEpcTable.size == 0) {
                 Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@CountActivity, response.toString(), Toast.LENGTH_LONG)
-                    .show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -1140,7 +1170,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             if (it.scan == "اضافی") {
                 val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
                 additionalRow.createCell(0).setCellValue(it.KBarCode)
-                additionalRow.createCell(1).setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
+                additionalRow.createCell(1)
+                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
                 additionalRow.createCell(2).setCellValue(it.category)
                 additionalRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
@@ -1173,26 +1204,26 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSearchActivity(product: ConflictResultProduct) {
 
-        val productJson = JSONObject()
-        productJson.put("productName", product.name)
-        productJson.put("K_Bar_Code", product.productCode)
-        productJson.put("kbarcode", product.KBarCode)
-        productJson.put("OrigPrice", product.originalPrice)
-        productJson.put("SalePrice", product.salePrice)
-        productJson.put("BarcodeMain_ID", product.primaryKey)
-        productJson.put("RFID", product.rfidKey)
-        productJson.put("ImgUrl", product.imageUrl)
-        productJson.put("dbCountDepo", 0)
-        productJson.put("dbCountStore", 0)
-        productJson.put("Size", product.size)
-        productJson.put("Color", product.color)
+        val searchResultProduct = SearchResultProducts(
+            name = product.name,
+            KBarCode = product.KBarCode,
+            imageUrl = product.imageUrl,
+            color = product.color,
+            size = product.size,
+            productCode = product.productCode,
+            rfidKey = product.rfidKey,
+            primaryKey = product.primaryKey,
+            originalPrice = product.originalPrice,
+            salePrice = product.salePrice,
+            shoppingNumber = 0,
+            warehouseNumber = 0
+        )
 
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", productJson.toString())
+        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
         startActivity(intent)
     }
 
-    @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Page() {
@@ -1248,7 +1279,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
-    @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Content() {
@@ -1713,15 +1743,5 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         )
-    }
-
-    @ExperimentalFoundationApi
-    @Preview
-    @Composable
-    fun Preview() {
-
-        openClearDialog = true
-
-        ClearAlertDialog()
     }
 }

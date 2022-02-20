@@ -1,5 +1,6 @@
 package com.jeanwest.reader.search
 
+//import com.jeanwest.reader.testClasses.Barcode2D
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -30,16 +31,15 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
-//import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.json.JSONArray
-import org.json.JSONObject
 
 @ExperimentalCoilApi
 class SearchActivity : ComponentActivity(), IBarcodeResult {
@@ -49,7 +49,13 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private var filteredUiList by mutableStateOf(mutableListOf<SearchResultProducts>())
     private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
     private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
-    private var wareHouseFilterValues by mutableStateOf(mutableListOf("فروشگاه و انبار", "فروشگاه", "انبار"))
+    private var wareHouseFilterValues by mutableStateOf(
+        mutableListOf(
+            "فروشگاه و انبار",
+            "فروشگاه",
+            "انبار"
+        )
+    )
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
@@ -78,7 +84,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private fun loadMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        storeFilterValue = memory.getInt("deviceLocationCode", 0)
+        storeFilterValue = memory.getInt("userLocationCode", 0)
     }
 
     @Throws(InterruptedException::class)
@@ -102,7 +108,18 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     jsonArrayProcess(products)
                 }
             }, {
-                Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+                when (it) {
+                    is NoConnectionError -> {
+                        Toast.makeText(
+                            this,
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    }
+                }
             })
             val queue = Volley.newRequestQueue(this)
             queue.add(request)
@@ -199,13 +216,35 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         jsonArrayProcess(products2)
                     }
                 }, { it2 ->
-                    Toast.makeText(this, it2.toString(), Toast.LENGTH_SHORT).show()
+                    when (it2) {
+                        is NoConnectionError -> {
+                            Toast.makeText(
+                                this,
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        else -> {
+                            Toast.makeText(this, it2.toString(), Toast.LENGTH_LONG).show()
+                        }
+                    }
                 })
                 val queue2 = Volley.newRequestQueue(this)
                 queue2.add(request2)
             }
         }, {
-            Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
         })
 
         val queue = Volley.newRequestQueue(this)
@@ -245,7 +284,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         filteredUiList = filterUiList(uiList)
     }
 
-    private fun openSearchActivity(product : SearchResultProducts) {
+    private fun openSearchActivity(product: SearchResultProducts) {
 
         val intent = Intent(this, SearchSubActivity::class.java)
         intent.putExtra("product", Gson().toJson(product).toString())
