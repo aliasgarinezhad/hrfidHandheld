@@ -3,8 +3,12 @@ package com.jeanwest.reader.search
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import coil.annotation.ExperimentalCoilApi
 import org.junit.Rule
 import org.junit.Test
+
+@OptIn(ExperimentalCoilApi::class)
+@ExperimentalCoilApi
 
 class SearchActivityTest {
 
@@ -18,7 +22,6 @@ class SearchActivityTest {
         val color = "همه رنگ ها"
         val size = "همه سایز ها"
         val warehouse = "انبار"
-        val store = "دفتر مركزي"
 
         searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextClearance()
         searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextInput(productCode)
@@ -28,11 +31,6 @@ class SearchActivityTest {
         Thread.sleep(2000)
         searchActivity.waitForIdle()
         Thread.sleep(2000)
-
-        searchActivity.onNodeWithTag("SearchStoreFilterDropDownList").performClick()
-        searchActivity.waitForIdle()
-        searchActivity.onNodeWithText(store).performClick()
-        searchActivity.waitForIdle()
 
         searchActivity.onNodeWithTag("SearchColorFilterDropDownList").performClick()
         searchActivity.waitForIdle()

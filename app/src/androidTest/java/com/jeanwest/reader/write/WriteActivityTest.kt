@@ -3,8 +3,11 @@ package com.jeanwest.reader.write
 
 import android.view.KeyEvent
 import android.view.KeyEvent.ACTION_DOWN
-import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
@@ -23,6 +26,9 @@ class WriteActivityTest {
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         val uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = "E28011702000015F195D0A17"
@@ -53,6 +59,9 @@ class WriteActivityTest {
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         var uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = "308011702000015F195D0A17"
@@ -102,6 +111,9 @@ class WriteActivityTest {
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
         val uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = "308011702000015F195D0A17"
         uhfTagInfo.tid = "E28011702000015F195D0A17"
@@ -135,6 +147,9 @@ class WriteActivityTest {
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
         writeActivity.waitForIdle()
 
         writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
@@ -159,6 +174,9 @@ class WriteActivityTest {
         val partition = 0
         val filter = 0
         val serialNumberRange = 1000000L..1000100L // copy range +1  in iot hub
+
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         for (i in serialNumberRange) {
 
@@ -194,6 +212,41 @@ class WriteActivityTest {
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).filter == filter)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).partition == partition)
         }
+    }
+
+    //Write one stuff and check whether result is correct by QR Code
+    @Test
+    fun addProductTest6() {
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        writeActivity.onNodeWithTag("WriteActivityTagTypeDropDownList").performClick()
+        writeActivity.waitForIdle()
+        writeActivity.onNodeWithText("تگ کیوآر کد دار").performClick()
+        writeActivity.waitForIdle()
+
+        val uhfTagInfo = UHFTAGInfo()
+        uhfTagInfo.epc = "E288011702000015F195D0A17"
+        uhfTagInfo.tid = "E28" + "J64822109801099001"
+
+        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+
+        writeActivity.waitForIdle()
+
+        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+
+        writeActivity.waitForIdle()
+        Thread.sleep(1000)
+        writeActivity.waitForIdle()
+
+        assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }
 
     private fun epcDecoder(epc: String): EPC {

@@ -27,7 +27,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
@@ -36,12 +35,10 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.refill.SendToStoreActivity
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -51,13 +48,9 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import kotlin.math.abs
-
 
 @ExperimentalCoilApi
 class CheckInActivity : ComponentActivity(), IBarcodeResult {
@@ -82,9 +75,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var additionalNumber by mutableStateOf(0)
     private var shortageCodesNumber by mutableStateOf(0)
     private var additionalCodesNumber by mutableStateOf(0)
-    private var number by mutableStateOf(0)
-    private var fileName by mutableStateOf("حواله تایید شده تاریخ ")
-    private var openDialog by mutableStateOf(false)
+    private var numberOfScanned by mutableStateOf(0)
     private var uiList by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
     private val scanValues =
         arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
@@ -114,9 +105,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
         loadMemory()
         syncInputItemsToServer()
-
-        val util = JalaliDate()
-        fileName += util.currentShamsidate
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -138,7 +126,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     } else {
 
                         stopRFScan()
-                        if (number != 0) {
+                        if (numberOfScanned != 0) {
                             syncScannedItemsToServer()
                         }
                     }
@@ -211,7 +199,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             epcTable = epcTable.distinct().toMutableList()
 
-            number = epcTable.size + barcodeTable.size
+            numberOfScanned = epcTable.size + barcodeTable.size
 
             val speed = epcTable.size - epcTablePreviousSize
             when {
@@ -236,7 +224,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
 
         rf.stopInventory()
-        number = epcTable.size + barcodeTable.size
+        numberOfScanned = epcTable.size + barcodeTable.size
         saveToMemory()
     }
 
@@ -471,7 +459,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 inputProducts.add(fileProduct)
             }
 
-            if (number != 0) {
+            if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             } else {
                 conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
@@ -500,7 +488,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            if (number != 0) {
+            if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             }
 
@@ -669,7 +657,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             barcodeTable.add(barcode)
-            number = epcTable.size + barcodeTable.size
+            numberOfScanned = epcTable.size + barcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -711,34 +699,32 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             signedProductCodes.javaClass
         ) ?: mutableListOf()
 
-        number = epcTable.size + barcodeTable.size
+        numberOfScanned = epcTable.size + barcodeTable.size
     }
 
     private fun clear() {
 
-        if (number != 0) {
+        if (numberOfScanned != 0) {
             barcodeTable.clear()
             epcTable.clear()
             invalidEpcs.clear()
             epcTablePreviousSize = 0
-            number = 0
+            numberOfScanned = 0
             scannedProducts.clear()
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
-            openDialog = false
             saveToMemory()
         } else {
             barcodeTable.clear()
             epcTable.clear()
             invalidEpcs.clear()
             epcTablePreviousSize = 0
-            number = 0
+            numberOfScanned = 0
             excelBarcodes.clear()
             scannedProducts.clear()
             inputProducts.clear()
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
-            openDialog = false
             saveToMemory()
         }
     }
@@ -762,107 +748,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         stopRFScan()
         stopBarcodeScan()
         finish()
-    }
-
-    private fun exportFile() {
-
-        val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("تروفالس")
-
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("کد جست و جو")
-        headerRow.createCell(1).setCellValue("تعداد")
-        headerRow.createCell(2).setCellValue("کسری")
-        headerRow.createCell(3).setCellValue("اضافی")
-        headerRow.createCell(4).setCellValue("نشانه")
-
-        conflictResultProducts.forEach {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
-
-            if (it.scan == "کسری") {
-                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
-            } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
-            }
-
-            if (it.KBarCode in signedProductCodes) {
-                row.createCell(4).setCellValue("نشانه دار")
-            }
-        }
-
-        val row = sheet.createRow(sheet.physicalNumberOfRows)
-        row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(number.toDouble())
-        row.createCell(2).setCellValue(shortagesNumber.toDouble())
-        row.createCell(3).setCellValue(additionalNumber.toDouble())
-
-        val sheet2 = workbook.createSheet("کسری")
-
-        val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
-        header2Row.createCell(0).setCellValue("کد جست و جو")
-        header2Row.createCell(1).setCellValue("موجودی")
-        header2Row.createCell(2).setCellValue("کسری")
-        header2Row.createCell(3).setCellValue("نشانه")
-
-        conflictResultProducts.forEach {
-
-            if (it.scan == "کسری") {
-                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
-                shortageRow.createCell(0).setCellValue(it.KBarCode)
-                shortageRow.createCell(1)
-                    .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                shortageRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
-
-                if (it.KBarCode in signedProductCodes) {
-                    shortageRow.createCell(3).setCellValue("نشانه دار")
-                }
-            }
-        }
-
-        val sheet3 = workbook.createSheet("اضافی")
-
-        val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
-        header3Row.createCell(0).setCellValue("کد جست و جو")
-        header3Row.createCell(1).setCellValue("موجودی")
-        header3Row.createCell(2).setCellValue("اضافی")
-        header3Row.createCell(3).setCellValue("نشانه")
-
-        conflictResultProducts.forEach {
-
-            if (it.scan == "اضافی") {
-                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
-                additionalRow.createCell(0).setCellValue(it.KBarCode)
-                additionalRow.createCell(1)
-                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                additionalRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
-
-                if (it.KBarCode in signedProductCodes) {
-                    additionalRow.createCell(3).setCellValue("نشانه دار")
-                }
-            }
-        }
-
-        val dir = File(this.getExternalFilesDir(null), "/")
-
-        val outFile = File(dir, "$fileName.xlsx")
-
-        val outputStream = FileOutputStream(outFile.absolutePath)
-        workbook.write(outputStream)
-        outputStream.flush()
-        outputStream.close()
-
-        val uri = FileProvider.getUriForFile(
-            this,
-            this.applicationContext.packageName + ".provider",
-            outFile
-        )
-        val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
-        shareIntent.type = "application/octet-stream"
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        applicationContext.startActivity(shareIntent)
     }
 
     private fun openSearchActivity(product: CheckInConflictResultProduct) {
@@ -892,10 +777,11 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         Intent(this, ConfirmCheckInsActivity::class.java).also {
             it.putExtra(
                 "additionalAndShortageProducts",
-                Gson().toJson(conflictResultProducts.filter { it1 ->
-                    it1.scan == "کسری" || it1.scan == "اضافی" || it1.scan == "اضافی فایل"
-                }).toString()
+                Gson().toJson(conflictResultProducts).toString()
             )
+            it.putExtra("numberOfScanned", numberOfScanned)
+            it.putExtra("shortagesNumber", shortagesNumber)
+            it.putExtra("additionalNumber", additionalNumber)
             startActivity(it)
         }
     }
@@ -930,13 +816,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             actions = {
                 IconButton(onClick = { openConfirmCheckInsActivity() }) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_send_24),
-                        contentDescription = ""
-                    )
-                }
-                IconButton(onClick = { openDialog = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_share_24),
+                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
                         contentDescription = ""
                     )
                 }
@@ -952,10 +832,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = stringResource(id = R.string.checkInText),
                     modifier = Modifier
-                        .padding(start = 80.dp)
+                        .padding(start = 35.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Right,
                 )
             }
         )
@@ -970,10 +850,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         var switchValue by rememberSaveable { mutableStateOf(false) }
 
         Column {
-
-            if (openDialog) {
-                FileAlertDialog()
-            }
 
             if (openClearDialog) {
                 ClearAlertDialog()
@@ -1017,7 +893,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "تعداد اسکن شده: $number",
+                        text = "تعداد اسکن شده: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
@@ -1243,47 +1119,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun FileAlertDialog() {
-
-        AlertDialog(
-
-            buttons = {
-
-                Column {
-
-                    Text(
-                        text = "نام فایل خروجی را وارد کنید", modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = fileName, onValueChange = {
-                            fileName = it
-                        },
-                        modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Button(modifier = Modifier
-                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally),
-                        onClick = {
-                            openDialog = false
-                            exportFile()
-                        }) {
-                        Text(text = "ذخیره")
-                    }
-                }
-            },
-
-            onDismissRequest = {
-                openDialog = false
-            }
-        )
-    }
-
-    @Composable
     fun ClearAlertDialog() {
 
         AlertDialog(
@@ -1301,7 +1136,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = if (number == 0) {
+                        text = if (numberOfScanned == 0) {
                             "فایل پاک شود؟"
                         } else {
                             "کالاهای اسکن شده پاک شوند؟"

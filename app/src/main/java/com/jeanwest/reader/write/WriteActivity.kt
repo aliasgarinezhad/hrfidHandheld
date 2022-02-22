@@ -1,7 +1,7 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
-//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
@@ -25,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -40,11 +41,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.iotHub.IotHub
+import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -84,8 +85,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var writeRecords = mutableListOf<WriteRecord>()
     private var userWriteRecords = mutableListOf<WriteRecord>()
     private var barcodeInformation = JSONObject()
-    val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
-    var tagTypeValue by mutableStateOf("تگ کیوآر کد دار")
+    private val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
+    var tagTypeValue by mutableStateOf("تگ سفید")
 
     private var write = false
 
@@ -854,6 +855,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TagTypeDropDownList(
                         modifier = Modifier
@@ -1042,7 +1044,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box(modifier = modifier) {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .testTag("WriteActivityTagTypeDropDownList")
+                    .clickable { expanded = true }) {
                 Text(text = tagTypeValue)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }

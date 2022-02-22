@@ -7,7 +7,7 @@ import com.rscja.deviceapi.exception.ConfigurationException;
 
 import java.util.ArrayList;
 
-public class RFIDWithUHFUART{
+public class RFIDWithUHFUART {
 
     public static ArrayList<UHFTAGInfo> uhfTagInfo = new ArrayList<>(2100);
     public static UHFTAGInfo writtenUhfTagInfo = new UHFTAGInfo();
@@ -58,7 +58,7 @@ public class RFIDWithUHFUART{
 
         UHFTAGInfo result;
 
-        if(i < uhfTagInfo.size()) {
+        if (i < uhfTagInfo.size()) {
 
             result = uhfTagInfo.get(i);
             i++;
@@ -80,14 +80,14 @@ public class RFIDWithUHFUART{
 
         UHFTAGInfo result;
 
-        if(i < uhfTagInfo.size()) {
+        if (i < uhfTagInfo.size()) {
 
             result = uhfTagInfo.get(i);
             i++;
 
         } else {
             result = null;
-            i=0;
+            i = 0;
             uhfTagInfo.clear();
         }
 
@@ -100,8 +100,10 @@ public class RFIDWithUHFUART{
 
     public String readData(String accessPwd, int filterBank, int filterPtr, int filterCnt, String filterData, int bank, int ptr, int cnt) {
 
-        if(filterData.equals(writtenUhfTagInfo.getTid())) {
+        if (filterData.equals(writtenUhfTagInfo.getTid())) {
             return writtenUhfTagInfo.getEPC();
+        } else if (uhfTagInfo.get(0).getTid().equals(filterData)) {
+            return uhfTagInfo.get(0).getEPC();
         } else {
             return "";
         }
@@ -121,6 +123,7 @@ public class RFIDWithUHFUART{
     public synchronized boolean setProtocol(int protocol) {
         return true;
     }
+
     public synchronized boolean setEPCMode() {
         return true;
     }
@@ -128,6 +131,7 @@ public class RFIDWithUHFUART{
     public synchronized boolean setEPCAndTIDMode() {
         return true;
     }
+
     public synchronized boolean setRFLink(int link) {
         return true;
     }

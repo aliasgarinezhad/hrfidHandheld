@@ -202,11 +202,11 @@ class SearchSubActivity : ComponentActivity() {
                     if (isFound) {
                         distance = 0.7f
 
-                        if (foundRssi < 75F) {
+                        //if (foundRssi < 75F) {
                             changePowerWhileScanning(20)
-                        } else {
-                            delay(500)
-                        }
+                        //} else {
+                            //delay(500)
+                        //}
                     } else {
                         distance = 1f
                         delay(500)
@@ -216,11 +216,11 @@ class SearchSubActivity : ComponentActivity() {
                 20 -> {
                     if (isFound) {
                         distance = 0.5f
-                        if (foundRssi < 75F) {
+                        //if (foundRssi < 75F) {
                             changePowerWhileScanning(10)
-                        } else {
-                            delay(500)
-                        }
+                        //} else {
+                        //    delay(500)
+                        //}
                     } else {
                         distance = 0.7f
                         changePowerWhileScanning(30)
@@ -230,11 +230,11 @@ class SearchSubActivity : ComponentActivity() {
                 10 -> {
                     if (isFound) {
                         distance = 0.2f
-                        if (foundRssi < 75F) {
+                        //if (foundRssi < 75F) {
                             changePowerWhileScanning(5)
-                        } else {
-                            delay(500)
-                        }
+                        //} else {
+                         //   delay(500)
+                        //}
                     } else {
                         distance = 0.5f
                         changePowerWhileScanning(20)

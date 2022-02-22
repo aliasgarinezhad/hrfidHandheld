@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
     private var iconSize = 70.dp
     private var pageSize = buttonSize * 3 + 150.dp
     private var userLocationCode = 0
+    private var fullName = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity() {
         username = memory.getString("username", "") ?: ""
         token = memory.getString("accessToken", "") ?: ""
         deviceId = memory.getString("deviceId", "") ?: ""
+        fullName = memory.getString("userFullName", "") ?: ""
     }
 
     private fun rfInit() {
@@ -542,21 +544,13 @@ class MainActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .width(350.dp)
-                        .height(160.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .width(300.dp)
+                        .height(130.dp),
+                    verticalArrangement = Arrangement.SpaceAround
                 ) {
 
                     Text(
-                        text = "نام کاربری: $username",
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        style = MaterialTheme.typography.body2,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = "فروشگاه: $userLocationCode",
+                        text = fullName,
                         modifier = Modifier
                             .fillMaxWidth(),
                         style = MaterialTheme.typography.body2,

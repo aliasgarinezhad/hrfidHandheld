@@ -9,13 +9,12 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -27,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
@@ -51,11 +49,8 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 
 
 @ExperimentalCoilApi
@@ -67,14 +62,13 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var barcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private var barcodeIsEnabled = true
     private val inputBarcodes = ArrayList<String>()
     private val refillProducts = ArrayList<RefillProduct>()
     private var scanningJob: Job? = null
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
-    private var number by mutableStateOf(0)
+    private var numberOfScanned by mutableStateOf(0)
     private var unFoundProductsNumber by mutableStateOf(0)
     private var validScannedProductsNumber by mutableStateOf(0)
     private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
@@ -84,6 +78,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var signedProductCodes = mutableListOf<String>()
+    private val tagTypeValues = mutableListOf("RFID", "بارکد")
+    var tagTypeValue by mutableStateOf("بارکد")
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -108,7 +104,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             if (keyCode == 280 || keyCode == 293) {
 
-                if (barcodeIsEnabled) {
+                if (tagTypeValue == "بارکد") {
                     stopRFScan()
                     startBarcodeScan()
                 } else {
@@ -121,7 +117,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     } else {
 
                         stopRFScan()
-                        if (number != 0) {
+                        if (numberOfScanned != 0) {
                             syncScannedItemsToServer()
                         }
                     }
@@ -194,7 +190,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             epcTable = epcTable.distinct().toMutableList()
 
-            number = epcTable.size + barcodeTable.size
+            numberOfScanned = epcTable.size + barcodeTable.size
 
             val speed = epcTable.size - epcTablePreviousSize
             when {
@@ -219,7 +215,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         }
 
         rf.stopInventory()
-        number = epcTable.size + barcodeTable.size
+        numberOfScanned = epcTable.size + barcodeTable.size
         saveToMemory()
     }
 
@@ -316,7 +312,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 refillProducts.add(fileProduct)
             }
 
-            if (number != 0) {
+            if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             } else {
 
@@ -350,7 +346,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            if (number != 0) {
+            if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             }
 
@@ -521,7 +517,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             barcodeTable.add(barcode)
-            number = epcTable.size + barcodeTable.size
+            numberOfScanned = epcTable.size + barcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -555,7 +551,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             barcodeTable.javaClass
         ) ?: mutableListOf()
 
-        number = epcTable.size + barcodeTable.size
+        numberOfScanned = epcTable.size + barcodeTable.size
     }
 
     private fun clear() {
@@ -563,7 +559,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         barcodeTable.clear()
         epcTable.clear()
         epcTablePreviousSize = 0
-        number = 0
+        numberOfScanned = 0
         refillProducts.forEach {
             if (it.KBarCode in signedProductCodes) {
                 it.scannedNumber = 0
@@ -599,52 +595,13 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
-    private fun exportFile() {
-
-        val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("ارسالی به فروشگاه")
-
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("کد جست و جو")
-        headerRow.createCell(1).setCellValue("تعداد")
-
-        refillProducts.forEach {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
-        }
-
-        val row = sheet.createRow(sheet.physicalNumberOfRows)
-        row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(validScannedProductsNumber.toDouble())
-
-        val dir = File(this.getExternalFilesDir(null), "/")
-
-        val outFile = File(dir, "$fileName.xlsx")
-
-        val outputStream = FileOutputStream(outFile.absolutePath)
-        workbook.write(outputStream)
-        outputStream.flush()
-        outputStream.close()
-
-        val uri = FileProvider.getUriForFile(
-            this,
-            this.applicationContext.packageName + ".provider",
-            outFile
-        )
-        val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
-        shareIntent.type = "application/octet-stream"
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        applicationContext.startActivity(shareIntent)
-    }
-
     private fun openSendToStoreActivity() {
 
         Intent(this, SendToStoreActivity::class.java).also {
             it.putExtra("RefillProducts", Gson().toJson(refillProducts.filter { it1 ->
                 it1.scannedNumber > 0
             }).toString())
+            it.putExtra("validScannedProductsNumber", validScannedProductsNumber)
             startActivity(it)
         }
     }
@@ -702,13 +659,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             actions = {
                 IconButton(onClick = { openSendToStoreActivity() }) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_send_24),
-                        contentDescription = ""
-                    )
-                }
-                IconButton(onClick = { openFileDialog = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_share_24),
+                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
                         contentDescription = ""
                     )
                 }
@@ -724,7 +675,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = stringResource(id = R.string.refill),
                     modifier = Modifier
-                        .padding(start = 80.dp)
+                        .padding(start = 35.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -739,16 +690,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     fun Content() {
 
         var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
-        var switchValue by rememberSaveable { mutableStateOf(true) }
         val modifier = Modifier
             .padding(vertical = 4.dp, horizontal = 8.dp)
             .wrapContentWidth()
 
         Column {
-
-            if (openFileDialog) {
-                FileAlertDialog()
-            }
 
             if (openClearDialog) {
                 ClearAlertDialog()
@@ -764,28 +710,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                Row {
-
-                    Text(
-                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .align(Alignment.CenterVertically),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Slider(
-                        value = slideValue,
-                        onValueChange = {
-                            slideValue = it
-                            rfPower = it.toInt()
-                        },
-                        enabled = true,
-                        valueRange = 5f..30f,
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
-                }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -795,7 +719,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "پیدا نشده: $unFoundProductsNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, bottom = 10.dp)
+                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp)
                             .align(Alignment.CenterVertically)
                     )
 
@@ -803,28 +727,38 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "خطی: ${uiList.size}",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(bottom = 10.dp)
+
+                            .padding(bottom = 5.dp, top = 5.dp)
                             .align(Alignment.CenterVertically)
                     )
 
-                    Row(
+                    TagTypeDropDownList(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
-                            .padding(end = 8.dp)
-                    ) {
+                            .padding(bottom = 5.dp, top = 5.dp, end = 8.dp)
+                    )
+                }
+
+                if (tagTypeValue == "RFID") {
+                    Row {
+
                         Text(
-                            text = "بارکد",
+                            text = "توان RFID (" + slideValue.toInt() + ")  ",
                             modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp),
+                                .padding(start = 8.dp)
+                                .align(Alignment.CenterVertically),
+                            textAlign = TextAlign.Center
                         )
 
-                        Switch(
-                            checked = switchValue,
-                            onCheckedChange = {
-                                barcodeIsEnabled = it
-                                switchValue = it
+                        Slider(
+                            value = slideValue,
+                            onValueChange = {
+                                slideValue = it
+                                rfPower = it.toInt()
                             },
-                            modifier = Modifier.padding(end = 8.dp, bottom = 10.dp),
+                            enabled = true,
+                            valueRange = 5f..30f,
+                            modifier = Modifier.padding(end = 12.dp),
                         )
                     }
                 }
@@ -877,7 +811,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.h1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                //color = colorResource(id = R.color.Brown)
                             )
 
                             Text(
@@ -885,7 +818,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                //color = colorResource(id = R.color.DarkGreen)
                             )
 
                             Text(
@@ -893,7 +825,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                                 style = MaterialTheme.typography.body1,
                                 textAlign = TextAlign.Right,
                                 modifier = modifier,
-                                //color = colorResource(id = R.color.Goldenrod)
                             )
                         }
 
@@ -920,47 +851,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         }
-    }
-
-    @Composable
-    fun FileAlertDialog() {
-
-        AlertDialog(
-
-            buttons = {
-
-                Column {
-
-                    Text(
-                        text = "نام فایل خروجی را وارد کنید", modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = fileName, onValueChange = {
-                            fileName = it
-                        },
-                        modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Button(modifier = Modifier
-                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally),
-                        onClick = {
-                            openFileDialog = false
-                            exportFile()
-                        }) {
-                        Text(text = "ذخیره")
-                    }
-                }
-            },
-
-            onDismissRequest = {
-                openFileDialog = false
-            }
-        )
     }
 
     @Composable
@@ -1005,5 +895,39 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         )
+    }
+
+    @Composable
+    fun TagTypeDropDownList(modifier: Modifier) {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box(modifier = modifier) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { expanded = true }) {
+                Text(text = tagTypeValue)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                tagTypeValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        tagTypeValue = it
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
     }
 }
