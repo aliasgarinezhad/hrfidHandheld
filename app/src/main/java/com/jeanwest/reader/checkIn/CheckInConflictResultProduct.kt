@@ -14,5 +14,6 @@ data class CheckInConflictResultProduct(
     var originalPrice : String,
     var salePrice : String,
     var primaryKey : Long,
-    var rfidKey : Long
+    var rfidKey : Long,
+    var fileNumber : Int
 )

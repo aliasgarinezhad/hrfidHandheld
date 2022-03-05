@@ -1,3 +1,4 @@
+
 package com.jeanwest.reader.refill
 
 data class RefillProduct(
@@ -11,5 +12,6 @@ data class RefillProduct(
     var color: String,
     var originalPrice : String,
     var salePrice : String,
-    var rfidKey : Long
+    var rfidKey : Long,
+    var wareHouseNumber : Int
 )

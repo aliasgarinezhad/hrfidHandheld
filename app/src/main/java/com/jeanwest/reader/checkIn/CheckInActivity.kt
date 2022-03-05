@@ -9,7 +9,10 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -23,7 +26,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +64,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var barcodeTable = mutableListOf<String>()
     private var excelBarcodes = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private var barcodeIsEnabled = false
     private val inputProducts = ArrayList<CheckInInputProduct>()
     private val scannedProducts = ArrayList<CheckInScannedProduct>()
     private val invalidEpcs = ArrayList<String>()
@@ -78,14 +79,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var numberOfScanned by mutableStateOf(0)
     private var uiList by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
     private val scanValues =
-        arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
+        arrayListOf("همه اجناس", "تایید شده ها", "اضافی ها", "کسری ها")
     private var scanFilter by mutableStateOf(0)
-    private var signedValue by mutableStateOf(mutableListOf("همه", "نشانه دار", "بی نشانه"))
-    private var signedFilter by mutableStateOf(0)
-    private var signedProductCodes = mutableListOf<String>()
     private var openClearDialog by mutableStateOf(false)
+    private val scanTypeValues = mutableListOf("RFID", "بارکد")
+    var scanTypeValue by mutableStateOf("RFID")
 
     private val apiTimeout = 30000
+
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     @ExperimentalCoilApi
@@ -113,7 +114,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             if (keyCode == 280 || keyCode == 293) {
 
-                if (barcodeIsEnabled) {
+                if (scanTypeValue == "بارکد") {
                     stopRFScan()
                     startBarcodeScan()
                 } else {
@@ -250,13 +251,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         imageUrl = fileProduct.imageUrl,
                         matchedNumber = abs(scannedProduct.scannedNumber - fileProduct.number),
                         scannedNumber = scannedProduct.scannedNumber,
+                        fileNumber = fileProduct.number,
                         result =
                         when {
                             scannedProduct.scannedNumber > fileProduct.number -> {
-                                "اضافی: " + (scannedProduct.scannedNumber - fileProduct.number) + "(${fileProduct.number})"
+                                "اضافی: " + (scannedProduct.scannedNumber - fileProduct.number)
                             }
                             scannedProduct.scannedNumber < fileProduct.number -> {
-                                "کسری: " + (fileProduct.number - scannedProduct.scannedNumber) + "(${fileProduct.number})"
+                                "کسری: " + (fileProduct.number - scannedProduct.scannedNumber)
                             }
                             else -> {
                                 "تایید شده: " + fileProduct.number
@@ -264,7 +266,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         },
                         scan = when {
                             scannedProduct.scannedNumber > fileProduct.number -> {
-                                "اضافی فایل"
+                                "اضافی"
                             }
                             scannedProduct.scannedNumber < fileProduct.number -> {
                                 "کسری"
@@ -292,7 +294,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     imageUrl = scannedProduct.imageUrl,
                     matchedNumber = scannedProduct.scannedNumber,
                     scannedNumber = scannedProduct.scannedNumber,
-                    result = "اضافی: " + scannedProduct.scannedNumber + "(0)",
+                    result = "اضافی: " + scannedProduct.scannedNumber,
                     scan = "اضافی",
                     productCode = scannedProduct.productCode,
                     size = scannedProduct.size,
@@ -300,7 +302,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     originalPrice = scannedProduct.originalPrice,
                     salePrice = scannedProduct.salePrice,
                     rfidKey = scannedProduct.rfidKey,
-                    primaryKey = scannedProduct.primaryKey
+                    primaryKey = scannedProduct.primaryKey,
+                    fileNumber = 0,
                 )
                 result.add(resultData)
             }
@@ -314,7 +317,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     imageUrl = fileProduct.imageUrl,
                     matchedNumber = fileProduct.number,
                     scannedNumber = 0,
-                    result = "کسری: " + fileProduct.number + "(${fileProduct.number})",
+                    result = "کسری: " + fileProduct.number,
                     scan = "کسری",
                     productCode = fileProduct.productCode,
                     size = fileProduct.size,
@@ -322,7 +325,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     originalPrice = fileProduct.originalPrice,
                     salePrice = fileProduct.salePrice,
                     rfidKey = fileProduct.rfidKey,
-                    primaryKey = fileProduct.primaryKey
+                    primaryKey = fileProduct.primaryKey,
+                    fileNumber = fileProduct.number,
                 )
                 result.add(resultData)
             }
@@ -335,7 +339,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 imageUrl = "",
                 matchedNumber = 0,
                 scannedNumber = 1,
-                result = "خراب: " + 1,
+                result = "خراب: ",
                 scan = "خراب",
                 productCode = "",
                 size = "",
@@ -344,6 +348,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 salePrice = "",
                 rfidKey = 0L,
                 primaryKey = 0L,
+                fileNumber = 0,
             )
             result.add(resultData)
         }
@@ -353,56 +358,36 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun filterResult(conflictResult: MutableList<CheckInConflictResultProduct>): MutableList<CheckInConflictResultProduct> {
 
-        val signedFilterOutput =
-            when {
-                signedValue[signedFilter] == "همه" -> {
-                    conflictResult
-                }
-                signedValue[signedFilter] == "نشانه دار" -> {
-                    conflictResult.filter {
-                        it.KBarCode in signedProductCodes
-                    } as ArrayList<CheckInConflictResultProduct>
-                }
-                signedValue[signedFilter] == "بی نشانه" -> {
-                    conflictResult.filter {
-                        it.KBarCode !in signedProductCodes
-                    } as ArrayList<CheckInConflictResultProduct>
-                }
-                else -> {
-                    conflictResult
-                }
-            }
-
         shortagesNumber = 0
-        signedFilterOutput.filter {
+        conflictResult.filter {
             it.scan == "کسری"
         }.forEach {
             shortagesNumber += it.matchedNumber
         }
 
         additionalNumber = 0
-        signedFilterOutput.filter {
-            it.scan == "اضافی" || it.scan == "اضافی فایل"
+        conflictResult.filter {
+            it.scan == "اضافی"
         }.forEach {
             additionalNumber += it.matchedNumber
         }
 
-        shortageCodesNumber = signedFilterOutput.filter { it.scan == "کسری" }.size
+        shortageCodesNumber = conflictResult.filter { it.scan == "کسری" }.size
         additionalCodesNumber =
-            signedFilterOutput.filter { it.scan == "اضافی" || it.scan == "اضافی فایل" }.size
+            conflictResult.filter { it.scan == "اضافی" }.size
 
         val uiListParameters =
             when {
                 scanValues[scanFilter] == "همه اجناس" -> {
-                    signedFilterOutput
+                    conflictResult
                 }
                 scanValues[scanFilter] == "اضافی" -> {
-                    signedFilterOutput.filter {
-                        it.scan == "اضافی" || it.scan == "اضافی فایل"
+                    conflictResult.filter {
+                        it.scan == "اضافی"
                     } as ArrayList<CheckInConflictResultProduct>
                 }
                 else -> {
-                    signedFilterOutput.filter {
+                    conflictResult.filter {
                         it.scan == scanValues[scanFilter]
                     } as ArrayList<CheckInConflictResultProduct>
                 }
@@ -671,10 +656,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString("CheckInEPCTable", JSONArray(epcTable).toString())
         edit.putString("CheckInBarcodeTable", JSONArray(barcodeTable).toString())
-        edit.putString(
-            "CheckInSignedCodesTable",
-            JSONArray(signedProductCodes).toString()
-        )
         edit.apply()
     }
 
@@ -692,11 +673,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         barcodeTable = Gson().fromJson(
             memory.getString("CheckInBarcodeTable", ""),
             barcodeTable.javaClass
-        ) ?: mutableListOf()
-
-        signedProductCodes = Gson().fromJson(
-            memory.getString("CheckInSignedCodesTable", ""),
-            signedProductCodes.javaClass
         ) ?: mutableListOf()
 
         numberOfScanned = epcTable.size + barcodeTable.size
@@ -847,7 +823,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     fun Content() {
 
         var slideValue by rememberSaveable { mutableStateOf(30F) }
-        var switchValue by rememberSaveable { mutableStateOf(false) }
 
         Column {
 
@@ -857,7 +832,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, top = 5.dp, bottom = 5.dp)
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
                     .background(
                         MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
@@ -865,26 +840,44 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                Row {
 
-                    Text(
-                        text = "توان آنتن (" + slideValue.toInt() + ")  ",
+                Row(
+                    modifier = Modifier
+                        .padding(top = 8.dp, bottom = 8.dp)
+                        .height(24.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ScanTypeDropDownList(
                         modifier = Modifier
-                            .padding(start = 8.dp)
-                            .align(Alignment.CenterVertically),
-                        textAlign = TextAlign.Center
+                            .align(Alignment.CenterVertically)
+                            .padding(start = 16.dp, end = 24.dp)
                     )
 
-                    Slider(
-                        value = slideValue,
-                        onValueChange = {
-                            slideValue = it
-                            rfPower = it.toInt()
-                        },
-                        enabled = true,
-                        valueRange = 5f..30f,
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
+                    if (scanTypeValue == "RFID") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                        ) {
+                            Text(
+                                text = "قدرت آنتن (" + slideValue.toInt() + ")",
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .align(Alignment.CenterVertically),
+                                textAlign = TextAlign.Center
+                            )
+
+                            Slider(
+                                value = slideValue,
+                                onValueChange = {
+                                    slideValue = it
+                                    rfPower = it.toInt()
+                                },
+                                enabled = true,
+                                valueRange = 5f..30f,
+                                modifier = Modifier.padding(end = 16.dp),
+                            )
+                        }
+                    }
                 }
 
                 Row(
@@ -896,70 +889,40 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         text = "تعداد اسکن شده: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .padding(start = 16.dp)
                             .align(Alignment.CenterVertically)
                             .weight(1F),
                     )
                     Text(
-                        text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
+                        //text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
+                        text = "کسری: $shortagesNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
-                            .weight(1F),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .weight(1F)
-                            .padding(start = 8.dp)
-                    ) {
-                        Text(
-                            text = "بارکد",
-                            modifier = Modifier
-                                .padding(end = 4.dp, bottom = 10.dp),
-                        )
-
-                        Switch(
-                            checked = switchValue,
-                            onCheckedChange = {
-                                barcodeIsEnabled = it
-                                switchValue = it
-                            },
-                            modifier = Modifier.padding(end = 4.dp, bottom = 10.dp),
-                        )
-                    }
-
-                    Text(
-                        text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 8.dp, bottom = 10.dp)
+                            .padding(start = 16.dp)
                             .weight(1F),
                     )
                 }
 
                 Row(
                     modifier = Modifier
-                        .padding(bottom = 10.dp)
+                        .padding(bottom = 8.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
+
                     ScanFilterDropDownList(
                         modifier = Modifier
                             .weight(1F)
-                            .padding(start = 8.dp, end = 8.dp)
+                            .padding(start = 16.dp)
                     )
-                    SignedFilterDropDownList(
+
+                    Text(
+                        //text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
+                        text = "اضافی: $additionalNumber",
+                        textAlign = TextAlign.Right,
                         modifier = Modifier
-                            .weight(1F)
-                            .padding(start = 8.dp, end = 8.dp)
+                            .padding(start = 16.dp)
+                            .weight(1F),
                     )
                 }
 
@@ -987,60 +950,23 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun LazyColumnItem(i: Int) {
 
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-            .wrapContentWidth()
-
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
-                .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
-                    color = if (uiList[i].KBarCode !in signedProductCodes) {
-                        MaterialTheme.colors.onPrimary
-                    } else {
-                        MaterialTheme.colors.onSecondary
-                    },
+                    color = MaterialTheme.colors.onPrimary,
                     shape = MaterialTheme.shapes.small
                 )
+
                 .fillMaxWidth()
-                .combinedClickable(
+                .height(80.dp)
+                .clickable(
                     onClick = {
                         openSearchActivity(uiList[i])
                     },
-                    onLongClick = {
-                        if (uiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(uiList[i].KBarCode)
-                        } else {
-                            signedProductCodes.remove(uiList[i].KBarCode)
-                        }
-                        uiList = mutableListOf()
-                        uiList = filterResult(conflictResultProducts)
-                    },
                 ),
         ) {
-            Column {
-                Text(
-                    text = uiList[i].name,
-                    style = MaterialTheme.typography.h1,
-                    textAlign = TextAlign.Right,
-                    modifier = modifier,
-                )
-
-                Text(
-                    text = uiList[i].KBarCode,
-                    style = MaterialTheme.typography.body1,
-                    textAlign = TextAlign.Right,
-                    modifier = modifier,
-                )
-
-                Text(
-                    text = uiList[i].result,
-                    style = MaterialTheme.typography.body1,
-                    textAlign = TextAlign.Right,
-                    modifier = modifier,
-                )
-            }
 
             Image(
                 painter = rememberImagePainter(
@@ -1048,9 +974,53 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 ),
                 contentDescription = "",
                 modifier = Modifier
-                    .height(100.dp)
-                    .padding(vertical = 4.dp, horizontal = 8.dp)
+                    .fillMaxHeight()
+                    .width(80.dp)
+                    .padding(vertical = 8.dp, horizontal = 8.dp)
             )
+
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .fillMaxHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1.5F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = uiList[i].name,
+                        style = MaterialTheme.typography.h1,
+                        textAlign = TextAlign.Right,
+                    )
+
+                    Text(
+                        text = uiList[i].KBarCode,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = "موجودی: " + uiList[i].fileNumber,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
+                    Text(
+                        text = uiList[i].result,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
+                }
+            }
         }
     }
 
@@ -1077,38 +1047,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     DropdownMenuItem(onClick = {
                         expanded = false
                         scanFilter = scanValues.indexOf(it)
-                        uiList = filterResult(conflictResultProducts)
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun SignedFilterDropDownList(modifier: Modifier) {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box(modifier = modifier) {
-            Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = signedValue[signedFilter])
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                signedValue.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        signedFilter = signedValue.indexOf(it)
                         uiList = filterResult(conflictResultProducts)
                     }) {
                         Text(text = it)
@@ -1166,13 +1104,43 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
-    @ExperimentalFoundationApi
-    @Preview
     @Composable
-    fun Preview() {
+    fun ScanTypeDropDownList(modifier: Modifier) {
 
-        openClearDialog = true
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
 
-        ClearAlertDialog()
+        Box(modifier = modifier) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { expanded = true }) {
+                Text(text = scanTypeValue)
+                Icon(
+                    painter = if (!expanded) {
+                        painterResource(id = R.drawable.ic_baseline_arrow_drop_down_24)
+                    } else {
+                        painterResource(id = R.drawable.ic_baseline_arrow_drop_up_24)
+                    }, ""
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                scanTypeValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        scanTypeValue = it
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
     }
 }

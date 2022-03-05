@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +35,7 @@ import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.manualRefill.ManualRefillActivity
+import com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillWarehouseManagerActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -292,6 +294,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun CountButton() {
 
@@ -368,7 +371,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .size(buttonSize)
                 .clickable {
-                    val intent = Intent(this, ManualRefillActivity::class.java)
+                    val intent = Intent(this, ManualRefillWarehouseManagerActivity::class.java)
                     startActivity(intent)
                 }
                 .background(

@@ -1,7 +1,7 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
@@ -18,8 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -43,8 +41,8 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
@@ -833,7 +831,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
+                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 8.dp)
                     .background(
                         MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
@@ -860,7 +858,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     TagTypeDropDownList(
                         modifier = Modifier
                             .weight(1F)
-                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp)
+                            .padding(start = 16.dp, bottom = 8.dp, top = 8.dp)
                     )
 
                     Text(
@@ -868,7 +866,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .weight(1F)
-                            .padding(start = 8.dp, bottom = 5.dp, top = 5.dp),
+                            .padding(start = 16.dp, bottom = 8.dp, top = 8.dp),
                     )
                 }
 
@@ -885,7 +883,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                     .background(
                         color = colorResource(id = resultColor),
                         shape = MaterialTheme.shapes.small
@@ -1050,7 +1048,13 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     .testTag("WriteActivityTagTypeDropDownList")
                     .clickable { expanded = true }) {
                 Text(text = tagTypeValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+                Icon(
+                    painter = if (!expanded) {
+                        painterResource(id = R.drawable.ic_baseline_arrow_drop_down_24)
+                    } else {
+                        painterResource(id = R.drawable.ic_baseline_arrow_drop_up_24)
+                    }, ""
+                )
             }
 
             DropdownMenu(

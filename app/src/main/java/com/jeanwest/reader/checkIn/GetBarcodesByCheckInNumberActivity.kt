@@ -7,18 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -182,7 +180,9 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    content = { Content() }
+                    content = { Content() },
+                    floatingActionButton = { OpenCheckInButton() },
+                    floatingActionButtonPosition = FabPosition.Center
                 )
             }
         }
@@ -224,16 +224,12 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
     @Composable
     fun Content() {
 
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-
         Column(modifier = Modifier.fillMaxSize()) {
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier
+                    .padding(8.dp)
                     .fillMaxWidth()
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
                     .background(
                         color = MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
@@ -241,15 +237,9 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             ) {
                 CheckInNumberTextField(
                     modifier = Modifier
-                        .padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                        .fillMaxWidth()
                         .testTag("CheckInNumberTextField")
-                        .weight(5F)
-                )
-                AddCheckInNumberButton(modifier = Modifier.weight(1F))
-                OKButton(
-                    modifier = Modifier
-                        .weight(1F)
-                        .padding(end = 10.dp)
                 )
             }
 
@@ -258,7 +248,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 items(uiList.size) { i ->
                     Row(
                         modifier = Modifier
-                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
+                            .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                             .background(
                                 color = MaterialTheme.colors.onPrimary,
                                 shape = MaterialTheme.shapes.small
@@ -267,24 +257,27 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                     ) {
                         Column {
 
-                            Row(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .fillMaxWidth()
+                            ) {
                                 Text(
-                                    text = "شماره حواله: " + uiList[i].number,
+                                    text = "حواله: " + uiList[i].number,
                                     style = MaterialTheme.typography.body1,
                                     textAlign = TextAlign.Right,
-                                    modifier = modifier
+                                    modifier = Modifier
                                         .weight(1.2F)
                                         .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                                        .padding(start = 16.dp),
                                 )
                                 Text(
                                     text = "تعداد کالاها: " + uiList[i].numberOfItems,
                                     style = MaterialTheme.typography.body1,
                                     textAlign = TextAlign.Right,
-                                    modifier = modifier
+                                    modifier = Modifier
                                         .weight(1F)
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                                        .fillMaxWidth(),
                                 )
                             }
 
@@ -293,33 +286,33 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                                     text = "مبدا: " + uiList[i].source,
                                     style = MaterialTheme.typography.body1,
                                     textAlign = TextAlign.Right,
-                                    modifier = modifier
+                                    modifier = Modifier
                                         .weight(1.2F)
                                         .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                                        .padding(start = 16.dp),
                                 )
-                                Text(
-                                    text = "مقصد: " + uiList[i].destination,
-                                    style = MaterialTheme.typography.body1,
-                                    textAlign = TextAlign.Right,
-                                    modifier = modifier
-                                        .weight(1F)
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 8.dp),
-                                )
-                            }
-
-                            Row(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = "تاریخ ثبت: " + uiList[i].date,
                                     style = MaterialTheme.typography.body1,
                                     textAlign = TextAlign.Right,
-                                    modifier = modifier.padding(
-                                        start = 8.dp,
-                                        top = 4.dp,
-                                        bottom = 4.dp,
-                                        end = 0.dp
-                                    ),
+                                    modifier = Modifier
+                                        .weight(1F),
+                                )
+
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .padding(bottom = 8.dp)
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "مقصد: " + uiList[i].destination,
+                                    style = MaterialTheme.typography.body1,
+                                    textAlign = TextAlign.Right,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp),
                                 )
                             }
                         }
@@ -337,35 +330,29 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 checkInNumber = it
             },
             modifier = modifier,
-            label = { Text(text = "شماره حواله") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            label = { Text(text = "شماره حواله را وارد کنید") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = {
+                getCheckInNumberDetails(checkInNumber)
+            }),
         )
     }
 
     @Composable
-    fun AddCheckInNumberButton(modifier: Modifier) {
-        IconButton(
-            onClick = {
-                getCheckInNumberDetails(checkInNumber)
-            },
-            modifier = modifier
-        ) {
-            Icon(imageVector = Icons.Filled.Add, "", tint = MaterialTheme.colors.primary)
-        }
-    }
-
-    @Composable
-    fun OKButton(modifier: Modifier) {
-        IconButton(
+    fun OpenCheckInButton() {
+        ExtendedFloatingActionButton(
             onClick = {
                 Intent(this, CheckInActivity::class.java).also {
                     it.putExtra("CheckInFileBarcodeTable", JSONArray(barcodeTable).toString())
                     startActivity(it)
                 }
             },
-            modifier = modifier
-        ) {
-            Icon(imageVector = Icons.Filled.Check, "", tint = MaterialTheme.colors.primary)
-        }
+            text = { Text("شروع تروفالس") },
+            backgroundColor = MaterialTheme.colors.primary,
+            contentColor = MaterialTheme.colors.onPrimary
+        )
     }
 }

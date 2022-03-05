@@ -460,7 +460,7 @@ class SearchSubActivity : ComponentActivity() {
     fun LazyColumnItem() {
 
         val modifier = Modifier
-            .padding(top = 2.dp, start = 16.dp, bottom = 2.dp)
+            .padding(top = 2.dp, bottom = 2.dp)
             .wrapContentWidth()
 
         Row(
@@ -480,6 +480,7 @@ class SearchSubActivity : ComponentActivity() {
                 contentDescription = "",
                 modifier = Modifier
                     .fillMaxHeight()
+                    .width(180.dp)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 

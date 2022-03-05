@@ -2,6 +2,8 @@ package com.jeanwest.reader.refill
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -22,14 +24,21 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.NoConnectionError
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 @ExperimentalCoilApi
@@ -97,6 +106,57 @@ class SendToStoreActivity : ComponentActivity() {
         applicationContext.startActivity(shareIntent)
     }
 
+    private fun sendToStore() {
+        val url = "http://rfid-api.avakatan.ir:3100/stock-draft/refill"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+            Toast.makeText(this, "اجناس با موفقیت به فروشگاه حواله شدند", Toast.LENGTH_LONG).show()
+        }, {
+            if (it is NoConnectionError) {
+                Toast.makeText(
+                    this,
+                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+            }
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY0NjQ2MjI2NiwiZXhwIjoxNzA0NTIzMDY2LCJhdWQiOiJlcnAifQ.7GV9x6XPk5aDEo6Q_d6wpk052m5Defnav7G4dvTDC28"
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                val body = JSONObject()
+                val products = JSONArray()
+
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:s.SSS'Z'", Locale.ENGLISH)
+                Log.e("time", sdf.format(Date()))
+
+                uiList.forEach {
+                    repeat(it.scannedNumber) { _ ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        products.put(productJson)
+                    }
+                }
+
+                body.put("desc", "برای تست")
+                body.put("createDate", sdf.format(Date()))
+                body.put("products", products)
+
+                return body.toString().toByteArray()
+            }
+        }
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
+    }
+
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
@@ -106,7 +166,42 @@ class SendToStoreActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    bottomBar = { BottomAppBar() }
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun BottomAppBar() {
+        BottomAppBar(backgroundColor = MaterialTheme.colors.background) {
+
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                Text(
+                    text = "مجموع ارسالی: $numberOfScanned",
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .wrapContentHeight()
+                ) {
+                    Button(
+                        onClick = {
+                            sendToStore()
+                        },
+                    ) {
+                        Text(text = "ارسال به فروشگاه")
+                    }
+                }
             }
         }
     }
@@ -152,89 +247,90 @@ class SendToStoreActivity : ComponentActivity() {
     @Composable
     fun Content() {
 
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-            .wrapContentWidth()
-
         Column {
 
             if (openFileDialog) {
                 FileAlertDialog()
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 5.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
 
                 items(uiList.size) { i ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                            .background(
-                                color = MaterialTheme.colors.onPrimary,
-                                shape = MaterialTheme.shapes.small,
-                            )
-                            .fillMaxWidth(),
-                    ) {
-                        Column {
-                            Text(
-                                text = uiList[i].name,
-                                style = MaterialTheme.typography.h1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                            )
+                    LazyColumnItem(i)
+                }
+            }
+        }
+    }
 
-                            Text(
-                                text = uiList[i].KBarCode,
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                            )
+    @Composable
+    fun LazyColumnItem(i: Int) {
 
-                            Text(
-                                text = "تعداد اسکن شده: " + uiList[i].scannedNumber.toString(),
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                            )
-                        }
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                .background(
+                    color = MaterialTheme.colors.onPrimary,
+                    shape = MaterialTheme.shapes.small,
+                )
+                .fillMaxWidth()
+                .height(80.dp),
+        ) {
 
-                        Image(
-                            painter = rememberImagePainter(
-                                uiList[i].imageUrl,
-                            ),
-                            contentDescription = "",
-                            modifier = Modifier
-                                .height(100.dp)
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
+            Image(
+                painter = rememberImagePainter(
+                    uiList[i].imageUrl,
+                ),
+                contentDescription = "",
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(80.dp)
+                    .padding(vertical = 8.dp, horizontal = 8.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .fillMaxHeight()
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .weight(1.5F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = uiList[i].name,
+                        style = MaterialTheme.typography.h1,
+                        textAlign = TextAlign.Right,
+                    )
+
+                    Text(
+                        text = uiList[i].KBarCode,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
                 }
 
-                item {
+                Column(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                    Text(
+                        text = "موجودی انبار: " + uiList[i].wareHouseNumber,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
 
-                        Text(
-                            text = "مجموع ارسالی: ${numberOfScanned}",
-                            textAlign = TextAlign.Right,
-                            modifier = Modifier
-                                .padding(top = 5.dp, bottom = 5.dp, start = 5.dp)
-                                .align(Alignment.CenterVertically)
-                                .weight(1F)
-                        )
-
-                        Button(
-                            onClick = {
-                                //
-                            }, modifier = Modifier
-                                .padding(top = 5.dp, bottom = 5.dp, start = 5.dp, end = 5.dp)
-                                .weight(1F)
-                        ) {
-                            Text(text = "ارسال به فروشگاه")
-                        }
-                    }
+                    Text(
+                        text = "اسکن شده: " + uiList[i].scannedNumber.toString(),
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
                 }
             }
         }
