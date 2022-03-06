@@ -381,15 +381,23 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 scanValues[scanFilter] == "همه اجناس" -> {
                     conflictResult
                 }
-                scanValues[scanFilter] == "اضافی" -> {
+                scanValues[scanFilter] == "اضافی ها" -> {
                     conflictResult.filter {
                         it.scan == "اضافی"
                     } as ArrayList<CheckInConflictResultProduct>
                 }
-                else -> {
+                scanValues[scanFilter] == "کسری ها" -> {
                     conflictResult.filter {
-                        it.scan == scanValues[scanFilter]
+                        it.scan == "کسری"
                     } as ArrayList<CheckInConflictResultProduct>
+                }
+                scanValues[scanFilter] == "تایید شده ها" -> {
+                    conflictResult.filter {
+                        it.scan == "تایید شده"
+                    } as ArrayList<CheckInConflictResultProduct>
+                }
+                else -> {
+                    conflictResult
                 }
             }
 

@@ -547,7 +547,7 @@ class MainActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .width(300.dp)
+                        .width(320.dp)
                         .height(130.dp),
                     verticalArrangement = Arrangement.SpaceAround
                 ) {
@@ -561,7 +561,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
                     ) {
 
@@ -575,7 +575,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 startActivity(intent)
 
-                            },
+                            }, modifier = Modifier.padding(end = 16.dp)
                         ) {
                             Text(text = "به روز رسانی")
                         }

@@ -254,7 +254,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 FileAlertDialog()
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
