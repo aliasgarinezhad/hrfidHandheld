@@ -15,7 +15,7 @@ import androidx.preference.PreferenceManager;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
-import com.jeanwest.reader.aboutUs.AboutUsActivity;
+import com.jeanwest.reader.updateActivity.UpdateActivity;
 import com.jeanwest.reader.write.WriteRecord;
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification;
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriRequest;
@@ -127,7 +127,7 @@ public class IotHub extends Service {
                 if (!getPackageManager().getPackageInfo(getPackageName(), 0).versionName.equals(IotHub.appVersion) &&
                         !IotHub.appVersion.isEmpty()
                 ) {
-                    Intent intent = new Intent(IotHub.this, AboutUsActivity.class);
+                    Intent intent = new Intent(IotHub.this, UpdateActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
                 }

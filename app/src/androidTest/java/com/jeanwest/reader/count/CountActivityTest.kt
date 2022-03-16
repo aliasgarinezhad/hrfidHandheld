@@ -2,13 +2,18 @@ package com.jeanwest.reader.count
 
 import android.view.KeyEvent
 import android.view.KeyEvent.ACTION_DOWN
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
+
+@OptIn(ExperimentalFoundationApi::class)
+@ExperimentalCoilApi
 
 class CountActivityTest {
 
@@ -60,14 +65,17 @@ class CountActivityTest {
         val additionalNumber = 0
         val additionalCodesNumber = 0
 
-        MainActivity.token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         countActivity.waitForIdle()
         Thread.sleep(1000)
         countActivity.waitForIdle()
 
-        countActivity.onNodeWithText("کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)").assertExists()
-        countActivity.onNodeWithText("اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)").assertExists()
+        countActivity.onNodeWithText("کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)")
+            .assertExists()
+        countActivity.onNodeWithText("اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)")
+            .assertExists()
         countActivity.onNodeWithText("تعداد اسکن شده: 0").assertExists()
     }
 
@@ -82,7 +90,8 @@ class CountActivityTest {
         val additionalCodesNumber = 1
         val scannedNumber = 14
 
-        MainActivity.token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         countActivity.waitForIdle()
         Thread.sleep(1000)
@@ -110,8 +119,10 @@ class CountActivityTest {
         countActivity.waitForIdle()
         Thread.sleep(2000)
 
-        countActivity.onNodeWithText("کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)").assertExists()
-        countActivity.onNodeWithText("اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)").assertExists()
+        countActivity.onNodeWithText("کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)")
+            .assertExists()
+        countActivity.onNodeWithText("اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)")
+            .assertExists()
         countActivity.onNodeWithText("تعداد اسکن شده: $scannedNumber").assertExists()
     }
 }

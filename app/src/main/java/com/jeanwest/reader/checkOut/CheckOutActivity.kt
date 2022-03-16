@@ -1,11 +1,10 @@
-package com.jeanwest.reader.refill
+package com.jeanwest.reader.checkOut
 
 //import com.jeanwest.reader.testClasses.Barcode2D
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,7 +18,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -31,7 +29,6 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
-import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -39,6 +36,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -51,9 +49,8 @@ import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
 
-
 @ExperimentalCoilApi
-class RefillActivity : ComponentActivity(), IBarcodeResult {
+class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 5
@@ -61,7 +58,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val inputBarcodes = ArrayList<String>()
     private val refillProducts = ArrayList<RefillProduct>()
     private var scanningJob: Job? = null
 
@@ -90,7 +86,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
         loadMemory()
-        getRefillBarcodes()
+
+        syncScannedItemsToServer()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -141,7 +138,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         }
         CoroutineScope(Main).launch {
             Toast.makeText(
-                this@RefillActivity,
+                this@CheckOutActivity,
                 "مشکلی در سخت افزار پیش آمده است",
                 Toast.LENGTH_LONG
             ).show()
@@ -224,7 +221,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
             CoroutineScope(Main).launch {
                 Toast.makeText(
-                    this@RefillActivity,
+                    this@CheckOutActivity,
                     "مشکلی در سخت افزار پیش آمده است",
                     Toast.LENGTH_LONG
                 ).show()
@@ -233,159 +230,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         } else {
             return true
         }
-    }
-
-    private fun getRefillBarcodes() {
-
-        val url = "http://rfid-api.avakatan.ir/refill"
-
-        val request = object : JsonArrayRequest(Method.GET, url, null, {
-
-            inputBarcodes.clear()
-
-            for (i in 0 until it.length()) {
-
-                inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
-            }
-            getRefillItems()
-        }, {
-            when (it) {
-                is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
-                }
-            }
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
-    }
-
-    private fun getRefillItems() {
-
-        val url = "http://rfid-api.avakatan.ir/products/v3"
-
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val refillItemsJsonArray = it.getJSONArray("KBarCodes")
-            refillProducts.clear()
-
-            Log.e("error", refillItemsJsonArray.toString())
-
-            refillItemsJsonArray.getJSONObject(0).keys().forEach { it1 ->
-                Log.e("error", it1)
-            }
-
-            for (i in 0 until refillItemsJsonArray.length()) {
-
-                val fileProduct = RefillProduct(
-                    name = refillItemsJsonArray.getJSONObject(i).getString("productName"),
-                    KBarCode = refillItemsJsonArray.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = refillItemsJsonArray.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = refillItemsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = refillItemsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
-                    size = refillItemsJsonArray.getJSONObject(i).getString("Size"),
-                    color = refillItemsJsonArray.getJSONObject(i).getString("Color"),
-                    originalPrice = refillItemsJsonArray.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = refillItemsJsonArray.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = refillItemsJsonArray.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = 0,
-                    scannedNumber = 0
-                )
-                refillProducts.add(fileProduct)
-            }
-
-            if (numberOfScanned != 0) {
-                syncScannedItemsToServer()
-            } else {
-
-                uiList = mutableListOf()
-                refillProducts.sortBy { refillProduct ->
-                    refillProduct.scannedNumber > 0
-                }
-                uiList = refillProducts
-                unFoundProductsNumber = uiList.size
-            }
-        }, {
-
-            if (inputBarcodes.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "هیچ بارکدی در فایل یافت نشد",
-                    Toast.LENGTH_LONG
-                ).show()
-            } else {
-                when (it) {
-                    is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-
-            if (numberOfScanned != 0) {
-                syncScannedItemsToServer()
-            }
-
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                val epcArray = JSONArray()
-
-                json.put("epcs", epcArray)
-
-                val barcodeArray = JSONArray()
-
-                inputBarcodes.forEach {
-                    barcodeArray.put(it)
-                }
-
-                json.put("KBarCodes", barcodeArray)
-
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
     }
 
     private fun syncScannedItemsToServer() {
@@ -425,36 +269,28 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
+            refillProducts.clear()
+
             for (i in 0 until epcs.length()) {
-
-                val isInRefillList = refillProducts.any { refillProduct ->
-                    refillProduct.primaryKey == epcs.getJSONObject(i).getLong("BarcodeMain_ID")
-                }
-
-                if (isInRefillList) {
-
-                    val productIndex = refillProducts.indexOf(refillProducts.last { refillProduct ->
-                        refillProduct.primaryKey == epcs.getJSONObject(i).getLong("BarcodeMain_ID")
-                    })
-
-                    refillProducts[productIndex].scannedNumber =
-                        epcs.getJSONObject(i).getInt("handheldCount")
-                }
+                val refillProduct = RefillProduct(
+                    name = epcs.getJSONObject(i).getString("productName"),
+                    KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
+                    imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
+                    primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
+                    scannedNumber = epcs.getJSONObject(i).getInt("handheldCount"),
+                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
+                    size = epcs.getJSONObject(i).getString("Size"),
+                    color = epcs.getJSONObject(i).getString("Color"),
+                    originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
+                    salePrice = epcs.getJSONObject(i).getString("SalePrice"),
+                    rfidKey = epcs.getJSONObject(i).getLong("RFID"),
+                    wareHouseNumber = 0
+                )
+                refillProducts.add(refillProduct)
             }
 
             uiList = mutableListOf()
-            refillProducts.sortBy { refillProduct ->
-                refillProduct.scannedNumber > 0
-            }
             uiList = refillProducts
-            unFoundProductsNumber = uiList.filter { refillProduct ->
-                refillProduct.scannedNumber == 0
-            }.size
-
-            validScannedProductsNumber = 0
-            uiList.forEach { refillProduct ->
-                validScannedProductsNumber += refillProduct.scannedNumber
-            }
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
@@ -511,7 +347,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
+        val queue = Volley.newRequestQueue(this@CheckOutActivity)
         queue.add(request)
     }
 
@@ -531,8 +367,14 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString("RefillEPCTable", JSONArray(scannedEpcTable).toString())
-        edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodeTable).toString())
+        edit.putString(
+            "CheckOutEPCTable",
+            JSONArray(scannedEpcTable).toString()
+        )
+        edit.putString(
+            "CheckOutBarcodeTable",
+            JSONArray(scannedBarcodeTable).toString()
+        )
 
         edit.apply()
     }
@@ -542,14 +384,14 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         scannedEpcTable = Gson().fromJson(
-            memory.getString("RefillEPCTable", ""),
+            memory.getString("CheckOutEPCTable", ""),
             scannedEpcTable.javaClass
         ) ?: mutableListOf()
 
         epcTablePreviousSize = scannedEpcTable.size
 
         scannedBarcodeTable = Gson().fromJson(
-            memory.getString("RefillBarcodeTable", ""),
+            memory.getString("CheckOutBarcodeTable", ""),
             scannedBarcodeTable.javaClass
         ) ?: mutableListOf()
 
@@ -562,11 +404,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         scannedEpcTable.clear()
         epcTablePreviousSize = 0
         numberOfScanned = 0
-        refillProducts.forEach {
-            if (it.KBarCode in signedProductCodes) {
-                it.scannedNumber = 0
-            }
-        }
+        refillProducts.clear()
         signedProductCodes = mutableListOf()
         unFoundProductsNumber = refillProducts.size
         validScannedProductsNumber = 0
@@ -599,10 +437,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSendToStoreActivity() {
 
-        Intent(this, SendRefillProductsToStoreActivity::class.java).also {
-            it.putExtra("RefillProducts", Gson().toJson(refillProducts.filter { it1 ->
-                it1.scannedNumber > 0
-            }).toString())
+        Intent(this, SendToDestinationActivity::class.java).also {
+            it.putExtra("RefillProducts", Gson().toJson(refillProducts).toString())
             it.putExtra("validScannedProductsNumber", validScannedProductsNumber)
             startActivity(it)
         }
@@ -639,7 +475,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    bottomBar = { BottomAppBar() },
                 )
             }
         }
@@ -660,6 +495,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
+                IconButton(onClick = { openSendToStoreActivity() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
+                        contentDescription = ""
+                    )
+                }
                 IconButton(onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
@@ -670,9 +511,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.refill),
+                    text = stringResource(id = R.string.checkOut),
                     modifier = Modifier
-                        .padding(end = 10 .dp)
+                        .padding(start = 35.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -681,83 +522,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
-    @Composable
-    fun BottomAppBar() {
-
-        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
-
-        BottomAppBar(
-            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
-            modifier = Modifier.wrapContentHeight()
-        ) {
-
-            Column {
-
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    ScanTypeDropDownList(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    Text(
-                        text = "خطی: ${uiList.size}",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    Text(
-                        text = "پیدا نشده: $unFoundProductsNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    Button(onClick = { openSendToStoreActivity() }) {
-                        Text(text = "ارسال")
-                    }
-                }
-
-                if (scanTypeValue == "RFID") {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-
-                        Text(
-                            text = "قدرت آنتن (" + slideValue.toInt() + ")  ",
-                            modifier = Modifier
-                                .align(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Slider(
-                            value = slideValue,
-                            onValueChange = {
-                                slideValue = it
-                                rfPower = it.toInt()
-                            },
-                            enabled = true,
-                            valueRange = 5f..30f,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Content() {
+
+        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 
         Column {
 
@@ -765,7 +535,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 ClearAlertDialog()
             }
 
-            Column/*(
+            Column(
                 modifier = Modifier
                     .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
                     .background(
@@ -773,9 +543,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()
-            )*/ {
+            ) {
 
-                /*Row(
+                Row(
                     modifier = Modifier
                         .padding(bottom = 8.dp, top = 8.dp, start = 16.dp, end = 16.dp)
                         .fillMaxWidth(),
@@ -783,14 +553,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "پیدا نشده: $unFoundProductsNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    Text(
-                        text = "خطی: ${uiList.size}",
+                        text = "اسکن شده: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
@@ -824,7 +587,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     }
-                }*/
+                }
 
                 if (isScanning) {
                     Row(
@@ -837,7 +600,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -855,12 +618,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             modifier = Modifier
                 .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
-                    color = if (uiList[i].scannedNumber == 0) {
-                        MaterialTheme.colors.onPrimary
-                    } else {
-                        MaterialTheme.colors.onSecondary
-
-                    },
+                    color = MaterialTheme.colors.onPrimary,
                     shape = MaterialTheme.shapes.small
                 )
 
@@ -870,28 +628,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     onClick = {
                         openSearchActivity(uiList[i])
                     },
-                    onLongClick = {
-                        if (uiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(uiList[i].KBarCode)
-                        } else {
-                            signedProductCodes.remove(uiList[i].KBarCode)
-                        }
-                        uiList = mutableListOf()
-                        uiList = refillProducts
-                    },
                 ),
         ) {
-
-            if (uiList[i].KBarCode in signedProductCodes) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                    tint = MaterialTheme.colors.primary,
-                    contentDescription = "",
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .align(Alignment.CenterVertically)
-                )
-            }
 
             Image(
                 painter = rememberImagePainter(
@@ -967,7 +705,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "کالاهای انتخاب شده پاک شوند؟",
+                        text = "کالاهای اسکن شده پاک شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )

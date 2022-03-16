@@ -1,6 +1,6 @@
 package com.jeanwest.reader.checkIn
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -23,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
+
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
@@ -43,8 +45,8 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -1040,7 +1042,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box(modifier = modifier) {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(
+                modifier = Modifier
+                    .testTag("checkInFilterDropDownList")
+                    .clickable { expanded = true }) {
                 Text(text = scanValues[scanFilter])
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.manualRefillWarehouseManager
+package com.jeanwest.reader.refill
 
 import android.content.Intent
 import android.os.Bundle
@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -31,7 +32,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.R
-import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
@@ -43,10 +43,10 @@ import java.util.*
 
 
 @ExperimentalCoilApi
-class ManualRefillSendToStoreActivity : ComponentActivity() {
+class SendRefillProductsToStoreActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
-    private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
+    private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
 
@@ -175,7 +175,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
 
     @Composable
     fun BottomAppBar() {
-        BottomAppBar(backgroundColor = MaterialTheme.colors.background) {
+        BottomAppBar(backgroundColor = colorResource(id = R.color.JeanswestBottomBar)) {
 
             Row(
                 modifier = Modifier
@@ -232,7 +232,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.manualRefill),
+                    text = stringResource(id = R.string.refill),
                     modifier = Modifier
                         .padding(end = 15.dp)
                         .fillMaxSize()

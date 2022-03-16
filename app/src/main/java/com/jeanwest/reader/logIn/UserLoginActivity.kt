@@ -46,6 +46,7 @@ class UserLoginActivity : ComponentActivity() {
             editor.putString("username", username)
             editor.putString("userFullName", response.getString("fullName"))
             editor.putInt("userLocationCode", response.getInt("locationCode"))
+            editor.putInt("userWarehouseCode", response.getJSONObject("location").getInt("warehouseCode"))
 
             editor.apply()
 

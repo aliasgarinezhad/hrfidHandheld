@@ -1,4 +1,4 @@
-package com.jeanwest.reader.refill
+package com.jeanwest.reader.checkOut
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,10 +9,14 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -22,15 +26,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
+import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.theme.MyApplicationTheme
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
@@ -39,15 +47,21 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.HashMap
 
 
 @ExperimentalCoilApi
-class SendToStoreActivity : ComponentActivity() {
+class SendToDestinationActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
-    private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
+    private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
+    private var destination by mutableStateOf("انتخاب مقصد")
+    private var destinations = mutableStateMapOf<String, Int>()
+    private var source = 0
+    private var scannedBarcodeTable = mutableListOf<String>()
+    private var scannedEpcTable = mutableListOf<String>()
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -68,6 +82,72 @@ class SendToStoreActivity : ComponentActivity() {
 
         val util = JalaliDate()
         fileName += util.currentShamsidate
+
+        getDestinationLists()
+        loadMemory()
+        Log.e("error", source.toString())
+    }
+
+    private fun loadMemory() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        source = memory.getInt("userWarehouseCode", 0)
+
+        scannedEpcTable = Gson().fromJson(
+            memory.getString("CheckOutEPCTable", ""),
+            scannedEpcTable.javaClass
+        ) ?: mutableListOf()
+
+        scannedBarcodeTable = Gson().fromJson(
+            memory.getString("CheckOutBarcodeTable", ""),
+            scannedBarcodeTable.javaClass
+        ) ?: mutableListOf()
+    }
+
+    private fun getDestinationLists() {
+
+        val url = "http://rfid-api.avakatan.ir/department-infos"
+        val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+            for (i in 0 until it.length()) {
+                try {
+                    val warehouses = it.getJSONObject(i).getJSONArray("wareHouses")
+
+                    for (j in 0 until warehouses.length()) {
+                        val warehouse = warehouses.getJSONObject(j)
+                        if (warehouse.getString("WareHouseTypes_ID") == "2") {
+                            destinations[warehouse.getString("WareHouseTitle")] =
+                                warehouse.getInt("WareHouse_ID")
+                        }
+                    }
+                } catch (e: Exception) {
+
+                }
+            }
+
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    Toast.makeText(
+                        this,
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                }
+            }
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
     }
 
     private fun exportFile() {
@@ -106,10 +186,16 @@ class SendToStoreActivity : ComponentActivity() {
         applicationContext.startActivity(shareIntent)
     }
 
-    private fun sendToStore() {
-        val url = "http://rfid-api.avakatan.ir:3100/stock-draft/refill"
+    private fun sendToDestination() {
+
+        if(destination == "انتخاب مقصد") {
+            Toast.makeText(this, "لطفا مقصد را انتخاب کنید", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val url = "http://rfid-api.avakatan.ir:3100/stock-draft"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
-            Toast.makeText(this, "اجناس با موفقیت به فروشگاه حواله شدند", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "حواله با موفقیت ثبت شد", Toast.LENGTH_LONG).show()
         }, {
             if (it is NoConnectionError) {
                 Toast.makeText(
@@ -125,30 +211,36 @@ class SendToStoreActivity : ComponentActivity() {
                 val params = HashMap<String, String>()
                 params["Content-Type"] = "application/json;charset=UTF-8"
                 params["Authorization"] =
-                    "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY0NjQ2MjI2NiwiZXhwIjoxNzA0NTIzMDY2LCJhdWQiOiJlcnAifQ.7GV9x6XPk5aDEo6Q_d6wpk052m5Defnav7G4dvTDC28"
+                    "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY0NzQzMDM1NywiZXhwIjoxNzA1NDkxMTU3LCJhdWQiOiJlcnAifQ.ai8CAS5qWTUIKsrEni6HeJcVPxP4k07LQ4Tl0-VbgHs"
                 return params
             }
 
             override fun getBody(): ByteArray {
 
                 val body = JSONObject()
-                val products = JSONArray()
 
                 val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:s.SSS'Z'", Locale.ENGLISH)
-                Log.e("time", sdf.format(Date()))
 
-                uiList.forEach {
-                    repeat(it.scannedNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        products.put(productJson)
-                    }
+                val epcArray = JSONArray()
+
+                scannedEpcTable.forEach {
+                    epcArray.put(it)
+                }
+
+                val barcodeArray = JSONArray()
+
+                scannedBarcodeTable.forEach {
+                    barcodeArray.put(it)
                 }
 
                 body.put("desc", "برای تست")
                 body.put("createDate", sdf.format(Date()))
-                body.put("products", products)
+                body.put("fromWarehouseId", source)
+                body.put("toWarehouseId", destinations[destination])
+                body.put("kbarcodes", barcodeArray)
+                body.put("epcs", epcArray)
+
+                Log.e("error", body.toString())
 
                 return body.toString().toByteArray()
             }
@@ -184,11 +276,13 @@ class SendToStoreActivity : ComponentActivity() {
             ) {
 
                 Text(
-                    text = "مجموع ارسالی: $numberOfScanned",
+                    text = "مجموع: $numberOfScanned",
                     textAlign = TextAlign.Right,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                 )
+
+                CategoryFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
 
                 Row(
                     modifier = Modifier
@@ -196,10 +290,10 @@ class SendToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            sendToStore()
+                            sendToDestination()
                         },
                     ) {
-                        Text(text = "ارسال به فروشگاه")
+                        Text(text = "ثبت حواله")
                     }
                 }
             }
@@ -231,7 +325,7 @@ class SendToStoreActivity : ComponentActivity() {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.refill),
+                    text = stringResource(id = R.string.checkOut),
                     modifier = Modifier
                         .padding(end = 15.dp)
                         .fillMaxSize()
@@ -375,5 +469,42 @@ class SendToStoreActivity : ComponentActivity() {
                 openFileDialog = false
             }
         )
+    }
+
+    @Composable
+    fun CategoryFilterDropDownList(modifier: Modifier) {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box(modifier = modifier) {
+            Row(modifier = modifier.clickable { expanded = true }) {
+                Text(
+                    text = destination, Modifier
+                        .align(Alignment.CenterVertically)
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown, "", Modifier
+                        .align(Alignment.CenterVertically)
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                destinations.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        destination = it.key
+                    }) {
+                        Text(text = it.key)
+                    }
+                }
+            }
+        }
     }
 }

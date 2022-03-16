@@ -2,7 +2,10 @@ package com.jeanwest.reader.checkIn
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.testClasses.RFIDWithUHFUART
@@ -50,6 +53,7 @@ class CheckInActivityTest {
     @get:Rule
     val checkInActivity = createAndroidComposeRule<CheckInActivity>()
 
+    // open a file and check results
     @Test
     fun countActivityTest1() {
 
@@ -112,5 +116,50 @@ class CheckInActivityTest {
         checkInActivity.onNodeWithText("اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)")
             .assertExists()
         checkInActivity.onNodeWithText("تعداد اسکن شده: $scannedNumber").assertExists()
+    }
+
+    //check filters
+    @Test
+    fun checkInActivityTest3() {
+
+        val filter = "اضافی ها"
+
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        checkInActivity.waitForIdle()
+        Thread.sleep(1000)
+        checkInActivity.waitForIdle()
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        epcs.forEach {
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = it
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+
+        checkInActivity.waitForIdle()
+
+        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+
+        checkInActivity.waitForIdle()
+
+        Thread.sleep(2000)
+        checkInActivity.waitForIdle()
+        Thread.sleep(2000)
+
+        checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
+        checkInActivity.waitForIdle()
+        checkInActivity.onNodeWithText(filter).performClick()
+        checkInActivity.waitForIdle()
+
+        checkInActivity.onNodeWithText("11531052J-2000-L").assertExists()
+
+        Thread.sleep(5000)
     }
 }

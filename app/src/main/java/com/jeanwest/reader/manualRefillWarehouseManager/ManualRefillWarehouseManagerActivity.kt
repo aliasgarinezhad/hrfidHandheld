@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefillWarehouseManager
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -32,7 +32,6 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
@@ -49,7 +48,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
-
 
 @ExperimentalCoilApi
 class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult {
@@ -68,7 +66,6 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
     private var numberOfScanned by mutableStateOf(0)
     private var unFoundProductsNumber by mutableStateOf(0)
     private var validScannedProductsNumber by mutableStateOf(0)
-    private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
     private var openClearDialog by mutableStateOf(false)
@@ -89,9 +86,6 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
             Page()
         }
         loadMemory()
-
-        val util = JalaliDate()
-        fileName += util.currentShamsidate
 
         syncScannedItemsToServer()
     }
@@ -293,7 +287,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                 refillProducts.add(refillProduct)
             }
 
-            uiList =  mutableListOf()
+            uiList = mutableListOf()
             uiList = refillProducts
 
         }, {
@@ -371,8 +365,14 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString("RefillEPCTable", JSONArray(scannedEpcTable).toString())
-        edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodeTable).toString())
+        edit.putString(
+            "ManualRefillWarehouseManagerEPCTable",
+            JSONArray(scannedEpcTable).toString()
+        )
+        edit.putString(
+            "ManualRefillWarehouseManagerBarcodeTable",
+            JSONArray(scannedBarcodeTable).toString()
+        )
 
         edit.apply()
     }
@@ -382,14 +382,14 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         scannedEpcTable = Gson().fromJson(
-            memory.getString("RefillEPCTable", ""),
+            memory.getString("ManualRefillWarehouseManagerEPCTable", ""),
             scannedEpcTable.javaClass
         ) ?: mutableListOf()
 
         epcTablePreviousSize = scannedEpcTable.size
 
         scannedBarcodeTable = Gson().fromJson(
-            memory.getString("RefillBarcodeTable", ""),
+            memory.getString("ManualRefillWarehouseManagerRefillBarcodeTable", ""),
             scannedBarcodeTable.javaClass
         ) ?: mutableListOf()
 
@@ -402,11 +402,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         scannedEpcTable.clear()
         epcTablePreviousSize = 0
         numberOfScanned = 0
-        refillProducts.forEach {
-            if (it.KBarCode in signedProductCodes) {
-                it.scannedNumber = 0
-            }
-        }
+        refillProducts.clear()
         signedProductCodes = mutableListOf()
         unFoundProductsNumber = refillProducts.size
         validScannedProductsNumber = 0
@@ -573,7 +569,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                         Text(
                             text = "قدرت آنتن (" + slideValue.toInt() + ")  ",
                             modifier = Modifier
-                                .padding(start = 8.dp)
+                                .padding(start = 16.dp)
                                 .align(Alignment.CenterVertically),
                             textAlign = TextAlign.Center
                         )
@@ -586,7 +582,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                             },
                             enabled = true,
                             valueRange = 5f..30f,
-                            modifier = Modifier.padding(end = 12.dp),
+                            modifier = Modifier.padding(end = 16.dp),
                         )
                     }
                 }
@@ -630,28 +626,8 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                     onClick = {
                         openSearchActivity(uiList[i])
                     },
-                    onLongClick = {
-                        if (uiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(uiList[i].KBarCode)
-                        } else {
-                            signedProductCodes.remove(uiList[i].KBarCode)
-                        }
-                        uiList = mutableListOf()
-                        uiList = refillProducts
-                    },
                 ),
         ) {
-
-            if (uiList[i].KBarCode in signedProductCodes) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                    tint = MaterialTheme.colors.primary,
-                    contentDescription = "",
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .align(Alignment.CenterVertically)
-                )
-            }
 
             Image(
                 painter = rememberImagePainter(
@@ -727,7 +703,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                 ) {
 
                     Text(
-                        text = "کالاهای انتخاب شده پاک شوند؟",
+                        text = "کالاهای اسکن شده پاک شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )

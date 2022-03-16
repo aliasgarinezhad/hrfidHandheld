@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="Ivory">#FFFFF0</color>
+    <!--<color name="Ivory">#FFFFF0</color>
     <color name="LightYellow">#FFFFE0</color>
     <color name="Yellow">#FFFF00</color>
     <color name="Snow">#FFFAFA</color>
@@ -134,16 +134,19 @@
     <color name="Teal">#008080</color>
     <color name="Primary">#003974</color>
     <color name="Green">#008000</color>
-    <color name="DarkGreen">#006400</color>
     <color name="Blue">#0000FF</color>
     <color name="MediumBlue">#0000CD</color>
     <color name="DarkBlue">#00008B</color>
-    <color name="Navy">#000080</color>
+    <color name="Navy">#000080</color>-->
+
+    <color name="Brown">#A52A2A</color>
+    <color name="DarkGreen">#006400</color>
     <color name="Black">#000000</color>
     <color name="jeanswest">#003974</color>
     <color name="jeanswest_status_bar">#194C81</color>
-    <color name="jeanswestBackground">#0xE5EBF1</color>
-    <color name="jeanswestSelectedItems">#0x6688ab</color>
+    <color name="jeanswestBackground">#E5EBF1</color>
+    <color name="jeanswestSelectedItems">#6688ab</color>
+    <color name="JeanswestBottomBar">#ccd7e3</color>
     <color name="White">#FFFFFF</color>
 
 </resources>

@@ -37,10 +37,12 @@
         </activity>
 
         <activity android:name="com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillSendToStoreActivity" />
+        <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
+        <activity android:name="com.jeanwest.reader.checkOut.SendToDestinationActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.ConfirmCheckInsActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.ScannedProductsPropertyActivity" />
         <activity android:name="com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillWarehouseManagerActivity" />
-        <activity android:name="com.jeanwest.reader.refill.SendToStoreActivity" />
+        <activity android:name="com.jeanwest.reader.refill.SendRefillProductsToStoreActivity" />
         <activity android:name="com.jeanwest.reader.refill.RefillActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.ManualRefillActivity" />
         <activity android:name="com.jeanwest.reader.logIn.OperatorLoginActivity" />
@@ -50,7 +52,7 @@
         <activity android:name="com.jeanwest.reader.search.SearchSubActivity" />
         <activity android:name="com.jeanwest.reader.search.SearchActivity" />
         <activity android:name="com.jeanwest.reader.logIn.DeviceRegisterActivity" />
-        <activity android:name="com.jeanwest.reader.aboutUs.AboutUsActivity" />
+        <activity android:name="com.jeanwest.reader.updateActivity.UpdateActivity" />
         <activity android:name="com.jeanwest.reader.write.WriteActivity" />
         <activity
             android:name="com.jeanwest.reader.MainActivity"

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.aboutUs
+package com.jeanwest.reader.updateActivity
 
 import android.annotation.SuppressLint
 import android.app.DownloadManager
@@ -36,7 +36,7 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 
 
-class AboutUsActivity : ComponentActivity() {
+class UpdateActivity : ComponentActivity() {
 
     private var isDownloading = mutableStateOf(false)
     private var openDialog = mutableStateOf(false)
@@ -122,7 +122,7 @@ class AboutUsActivity : ComponentActivity() {
                     applicationContext.startActivity(installIntent)
 
                 } else {
-                    Toast.makeText(this@AboutUsActivity, "خطا در به روز رسانی", Toast.LENGTH_LONG)
+                    Toast.makeText(this@UpdateActivity, "خطا در به روز رسانی", Toast.LENGTH_LONG)
                         .show()
                 }
             }

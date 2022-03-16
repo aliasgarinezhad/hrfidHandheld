@@ -5,10 +5,8 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -22,7 +20,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -31,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
@@ -52,15 +48,11 @@ import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import kotlin.math.abs
 
 
 @ExperimentalFoundationApi
@@ -89,31 +81,23 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var isScanning by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
-    private var shortageCodesNumber by mutableStateOf(0)
-    private var additionalCodesNumber by mutableStateOf(0)
     private var number by mutableStateOf(0)
     private var fileName by mutableStateOf("خروجی")
     private var openDialog by mutableStateOf(false)
     private var uiList = mutableStateListOf<ConflictResultProduct>()
-    private var categoryFilter by mutableStateOf(0)
+    private var categoryFilter by mutableStateOf("همه دسته ها")
     private var categoryValues = mutableStateListOf("همه دسته ها", "نامعلوم")
-    private val scanValues =
-        mutableListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
-    private var scanFilter by mutableStateOf(0)
-
-    private var signedValue = mutableStateListOf("همه", "نشانه دار", "بی نشانه")
+    private var scanFilter by mutableStateOf("همه اجناس")
     private var searchMode by mutableStateOf(false)
-    private var signedFilter by mutableStateOf(0)
+    private var signedFilter by mutableStateOf("همه")
     private var searchModeProductCodes = mutableListOf<String>()
     private var signedProductCodes = mutableListOf<String>()
     private var openClearDialog by mutableStateOf(false)
-
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     private var scanTypeValue by mutableStateOf("RFID")
 
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,14 +113,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        setRFEpcMode()
+        setRFEpcMode(rf, this)
 
         if (intent.action == Intent.ACTION_SEND) {
 
             if (getString(R.string.xlsx) == intent.type || getString(R.string.xls) == intent.type) {
 
-                checkLogin()
-                rfInit()
+                if (!checkLogin(this)) {
+                    return
+                }
+                rfInit(rf, this)
 
                 while (!rf.setEPCMode()) {
                     rf.free()
@@ -196,22 +182,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         return true
     }
 
-    private fun setRFEpcMode(): Boolean {
-        for (i in 0..11) {
-            if (rf.setEPCMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@CountActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
-    }
-
     private fun stopRFScan() {
 
         scanningJob?.let {
@@ -222,98 +192,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    private fun checkLogin() {
-
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-
-        if (memory.getString("username", "") != "") {
-
-            MainActivity.username = memory.getString("username", "")!!
-            MainActivity.token = memory.getString("accessToken", "")!!
-        } else {
-            Toast.makeText(
-                this,
-                "لطفا ابتدا به حساب کاربری خود وارد شوید",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    private fun rfInit() {
-
-        val frequency: Int
-        val rfLink = 2
-
-        when (Build.MODEL) {
-            getString(R.string.EXARK) -> {
-                frequency = 0x08
-            }
-            getString(R.string.chainway) -> {
-                frequency = 0x04
-            }
-            else -> {
-                Toast.makeText(
-                    this,
-                    "این دستگاه توسط برنامه پشتیبانی نمی شود",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
-
-        for (i in 0..11) {
-
-            if (rf.init()) {
-                break
-            } else if (i == 10) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            } else {
-                rf.free()
-            }
-        }
-
-        for (i in 0..11) {
-
-            if (rf.setFrequencyMode(frequency)) {
-                break
-            } else if (i == 10) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
-
-        for (i in 0..11) {
-
-            if (rf.setRFLink(rfLink)) {
-                break
-            } else if (i == 10) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
-        setRFEpcMode()
-    }
-
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(this, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -371,121 +253,24 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
     }
 
-    private fun getConflicts(
-        fileProducts: MutableList<FileProduct>,
-        scannedProducts: MutableMap<String, ScannedProduct>,
-    ): SnapshotStateMap<String, ConflictResultProduct> {
-
-        val result = mutableStateMapOf<String, ConflictResultProduct>()
-
-        fileProducts.forEach { fileProduct ->
-
-            if (fileProduct.KBarCode in scannedProducts) {
-
-                val resultData = ConflictResultProduct(
-                    name = fileProduct.name,
-                    KBarCode = fileProduct.KBarCode,
-                    imageUrl = fileProduct.imageUrl,
-                    category = fileProduct.category,
-                    matchedNumber = abs(scannedProducts[fileProduct.KBarCode]!!.scannedNumber - fileProduct.number),
-                    scannedNumber = scannedProducts[fileProduct.KBarCode]!!.scannedNumber,
-                    fileNumber = fileProduct.number,
-                    result =
-                    when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.number -> {
-                            "اضافی"
-                        }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.number -> {
-                            "کسری"
-                        }
-                        else -> {
-                            "تایید شده"
-                        }
-                    },
-                    scan = when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.number -> {
-                            "اضافی فایل"
-                        }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.number -> {
-                            "کسری"
-                        }
-                        else -> {
-                            "تایید شده"
-                        }
-                    },
-                    productCode = fileProduct.productCode,
-                    size = fileProduct.size,
-                    color = fileProduct.color,
-                    originalPrice = fileProduct.originalPrice,
-                    salePrice = fileProduct.salePrice,
-                    rfidKey = fileProduct.rfidKey,
-                    primaryKey = fileProduct.primaryKey
-                )
-                result[fileProduct.KBarCode] = resultData
-
-            } else {
-                val resultData = ConflictResultProduct(
-                    name = fileProduct.name,
-                    KBarCode = fileProduct.KBarCode,
-                    imageUrl = fileProduct.imageUrl,
-                    category = fileProduct.category,
-                    matchedNumber = fileProduct.number,
-                    scannedNumber = 0,
-                    result = "کسری",
-                    scan = "کسری",
-                    productCode = fileProduct.productCode,
-                    size = fileProduct.size,
-                    color = fileProduct.color,
-                    originalPrice = fileProduct.originalPrice,
-                    salePrice = fileProduct.salePrice,
-                    rfidKey = fileProduct.rfidKey,
-                    primaryKey = fileProduct.primaryKey,
-                    fileNumber = fileProduct.number
-                )
-                result[fileProduct.KBarCode] = (resultData)
-            }
-        }
-
-        scannedProducts.forEach {
-            if (it.key !in result.keys) {
-                val resultData = ConflictResultProduct(
-                    name = it.value.name,
-                    KBarCode = it.value.KBarCode,
-                    imageUrl = it.value.imageUrl,
-                    category = "نامعلوم",
-                    matchedNumber = it.value.scannedNumber,
-                    scannedNumber = it.value.scannedNumber,
-                    result = "اضافی",
-                    scan = "اضافی",
-                    productCode = it.value.productCode,
-                    size = it.value.size,
-                    color = it.value.color,
-                    originalPrice = it.value.originalPrice,
-                    salePrice = it.value.salePrice,
-                    rfidKey = it.value.rfidKey,
-                    primaryKey = it.value.primaryKey,
-                    fileNumber = 0
-                )
-                result[it.key] = (resultData)
-            }
-        }
-
-        return result
-    }
-
-    private fun filterResult(conflictResult: MutableMap<String, ConflictResultProduct>): SnapshotStateList<ConflictResultProduct> {
+    private fun filterResult(
+        conflictResult: MutableMap<String, ConflictResultProduct>,
+        signedFilter: String,
+        scanFilter: String,
+        categoryFilter: String,
+    ): SnapshotStateList<ConflictResultProduct> {
 
         val signedFilterOutput =
-            when {
-                signedValue[signedFilter] == "همه" -> {
+            when (signedFilter) {
+                "همه" -> {
                     conflictResult.values
                 }
-                signedValue[signedFilter] == "نشانه دار" -> {
+                "نشانه دار" -> {
                     conflictResult.values.filter {
                         it.KBarCode in signedProductCodes
                     } as MutableList<ConflictResultProduct>
                 }
-                signedValue[signedFilter] == "بی نشانه" -> {
+                "بی نشانه" -> {
                     conflictResult.values.filter {
                         it.KBarCode !in signedProductCodes
                     } as MutableList<ConflictResultProduct>
@@ -505,11 +290,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
         val categoryFilterOutput =
-            if (categoryValues[categoryFilter] == "همه دسته ها") {
+            if (categoryFilter == "همه دسته ها") {
                 zoneFilterOutput
             } else {
                 zoneFilterOutput.filter {
-                    it.category == categoryValues[categoryFilter]
+                    it.category == categoryFilter
                 } as MutableList<ConflictResultProduct>
             }
 
@@ -527,49 +312,24 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             additionalNumber += it.matchedNumber
         }
 
-        shortageCodesNumber = categoryFilterOutput.filter { it.scan == "کسری" }.size
-        additionalCodesNumber =
-            categoryFilterOutput.filter { it.scan == "اضافی" || it.scan == "اضافی فایل" }.size
-
         val uiListParameters =
-            when {
-                scanValues[scanFilter] == "همه اجناس" -> {
+            when (scanFilter) {
+                "همه اجناس" -> {
                     categoryFilterOutput
                 }
-                scanValues[scanFilter] == "اضافی" -> {
+                "اضافی" -> {
                     categoryFilterOutput.filter {
                         it.scan == "اضافی" || it.scan == "اضافی فایل"
                     } as MutableList<ConflictResultProduct>
                 }
                 else -> {
                     categoryFilterOutput.filter {
-                        it.scan == scanValues[scanFilter]
+                        it.scan == scanFilter
                     } as MutableList<ConflictResultProduct>
                 }
             }
 
         return uiListParameters.toMutableStateList()
-    }
-
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@CountActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
     }
 
     private fun syncFileItemsToServer() {
@@ -615,7 +375,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             syncScannedItemsToServer()
 
         }, {
@@ -711,8 +471,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
-            Log.e("error", "not run")
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
+
             syncScannedProductsRunning = false
             return
         }
@@ -767,7 +527,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
@@ -789,7 +549,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             syncScannedProductsRunning = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -879,7 +639,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             for (i in 0 until epcs.length()) {
                 searchModeProductCodes.add(epcs.getJSONObject(i).getString("K_Bar_Code"))
             }
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             Toast.makeText(
                 this,
                 "بارکد های جست و جو مشخص شدند. حال می توانید جنس های مشابه این بارکد ها را جست و جو کنید. برای دیدن همه اجناس، جست و جو را غیر فعال کنید.",
@@ -1024,12 +784,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 )
                 .show()
             searchMode = true
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
 
         } else {
             searchMode = false
             searchModeProductCodes.clear()
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
         }
     }
 
@@ -1117,7 +877,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             number = 0
             scannedProducts.clear()
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             openDialog = false
             saveToMemory()
         } else {
@@ -1132,7 +892,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             scannedProducts.clear()
             fileProducts.clear()
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
-            uiList = filterResult(conflictResultProducts)
+            uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             openDialog = false
             saveToMemory()
         }
@@ -1157,113 +917,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         stopRFScan()
         stopBarcodeScan()
         finish()
-    }
-
-    private fun exportFile() {
-
-        val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("conflicts")
-
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("کد جست و جو")
-        headerRow.createCell(1).setCellValue("تعداد")
-        headerRow.createCell(2).setCellValue("دسته")
-        headerRow.createCell(3).setCellValue("کسری")
-        headerRow.createCell(4).setCellValue("اضافی")
-        headerRow.createCell(5).setCellValue("نشانه")
-
-        conflictResultProducts.values.forEach {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
-            row.createCell(2).setCellValue(it.category)
-
-            if (it.scan == "کسری") {
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
-            } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
-                row.createCell(4).setCellValue(it.matchedNumber.toDouble())
-            }
-
-            if (it.KBarCode in signedProductCodes) {
-                row.createCell(5).setCellValue("نشانه دار")
-            }
-        }
-
-        val row = sheet.createRow(sheet.physicalNumberOfRows)
-        row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(number.toDouble())
-        row.createCell(3).setCellValue(shortagesNumber.toDouble())
-        row.createCell(4).setCellValue(additionalNumber.toDouble())
-
-        val sheet2 = workbook.createSheet("کسری")
-
-        val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
-        header2Row.createCell(0).setCellValue("کد جست و جو")
-        header2Row.createCell(1).setCellValue("موجودی")
-        header2Row.createCell(2).setCellValue("دسته")
-        header2Row.createCell(3).setCellValue("کسری")
-        header2Row.createCell(4).setCellValue("نشانه")
-
-        conflictResultProducts.values.forEach {
-
-            if (it.scan == "کسری") {
-                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
-                shortageRow.createCell(0).setCellValue(it.KBarCode)
-                shortageRow.createCell(1)
-                    .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                shortageRow.createCell(2).setCellValue(it.category)
-                shortageRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
-
-                if (it.KBarCode in signedProductCodes) {
-                    shortageRow.createCell(4).setCellValue("نشانه دار")
-                }
-            }
-        }
-
-        val sheet3 = workbook.createSheet("اضافی")
-
-        val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
-        header3Row.createCell(0).setCellValue("کد جست و جو")
-        header3Row.createCell(1).setCellValue("موجودی")
-        header3Row.createCell(2).setCellValue("دسته")
-        header3Row.createCell(3).setCellValue("اضافی")
-        header3Row.createCell(4).setCellValue("نشانه")
-
-        conflictResultProducts.values.forEach {
-
-            if (it.scan == "اضافی") {
-                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
-                additionalRow.createCell(0).setCellValue(it.KBarCode)
-                additionalRow.createCell(1)
-                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                additionalRow.createCell(2).setCellValue(it.category)
-                additionalRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
-
-                if (it.KBarCode in signedProductCodes) {
-                    additionalRow.createCell(4).setCellValue("نشانه دار")
-                }
-            }
-        }
-
-        val dir = File(this.getExternalFilesDir(null), "/")
-
-        val outFile = File(dir, "$fileName.xlsx")
-
-        val outputStream = FileOutputStream(outFile.absolutePath)
-        workbook.write(outputStream)
-        outputStream.flush()
-        outputStream.close()
-
-        val uri = FileProvider.getUriForFile(
-            this,
-            this.applicationContext.packageName + ".provider",
-            outFile
-        )
-        val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
-        shareIntent.type = "application/octet-stream"
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        applicationContext.startActivity(shareIntent)
     }
 
     private fun openSearchActivity(product: ConflictResultProduct) {
@@ -1483,7 +1136,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     )
 
                     Text(
-                        //text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
                         text = "کسری: $shortagesNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
@@ -1492,7 +1144,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     )
 
                     Text(
-                        //text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
                         text = "اضافی: $additionalNumber",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
@@ -1567,7 +1218,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         } else {
                             signedProductCodes.remove(uiList[i].KBarCode)
                         }
-                        uiList = filterResult(conflictResultProducts)
+                        uiList = filterResult(
+                            conflictResultProducts,
+                            signedFilter,
+                            scanFilter,
+                            categoryFilter
+                        )
                     },
                 ),
         ) {
@@ -1632,13 +1288,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun ScanFilterDropDownList() {
 
+        val scanValues =
+            mutableListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
+
         var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 
         Box {
             Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = scanValues[scanFilter])
+                Text(text = scanFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
 
@@ -1651,8 +1310,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 scanValues.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        scanFilter = scanValues.indexOf(it)
-                        uiList = filterResult(conflictResultProducts)
+                        scanFilter = it
+                        uiList = filterResult(
+                            conflictResultProducts,
+                            signedFilter,
+                            scanFilter,
+                            categoryFilter
+                        )
                     }) {
                         Text(text = it)
                     }
@@ -1670,7 +1334,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         Box {
             Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = categoryValues[categoryFilter])
+                Text(text = categoryFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
 
@@ -1683,8 +1347,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 categoryValues.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        categoryFilter = categoryValues.indexOf(it)
-                        uiList = filterResult(conflictResultProducts)
+                        categoryFilter = it
+                        uiList = filterResult(
+                            conflictResultProducts,
+                            signedFilter,
+                            scanFilter,
+                            categoryFilter
+                        )
                     }) {
                         Text(text = it)
                     }
@@ -1696,13 +1365,14 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun SignedFilterDropDownList() {
 
+        val signedValue = mutableListOf("همه", "نشانه دار", "بی نشانه")
         var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 
         Box {
             Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = signedValue[signedFilter])
+                Text(text = signedFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
 
@@ -1715,8 +1385,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 signedValue.forEach {
                     DropdownMenuItem(onClick = {
                         expanded = false
-                        signedFilter = signedValue.indexOf(it)
-                        uiList = filterResult(conflictResultProducts)
+                        signedFilter = it
+                        uiList = filterResult(
+                            conflictResultProducts,
+                            signedFilter,
+                            scanFilter,
+                            categoryFilter
+                        )
                     }) {
                         Text(text = it)
                     }
@@ -1753,7 +1428,15 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         .align(Alignment.CenterHorizontally),
                         onClick = {
                             openDialog = false
-                            exportFile()
+                            exportFile(
+                                conflictResultProducts,
+                                shortagesNumber,
+                                additionalNumber,
+                                number,
+                                signedProductCodes,
+                                fileName,
+                                this@CountActivity
+                            )
                         }) {
                         Text(text = "ذخیره")
                     }

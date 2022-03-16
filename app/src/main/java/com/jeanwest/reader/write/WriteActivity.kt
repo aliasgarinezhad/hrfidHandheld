@@ -1,7 +1,7 @@
 package com.jeanwest.reader.write
 
-import com.jeanwest.reader.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
@@ -9,7 +9,6 @@ import android.content.ServiceConnection
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.IBinder
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,11 +38,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.iotHub.IotHub
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -103,14 +102,12 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private val serviceConnection = object : ServiceConnection {
 
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            Log.e("service connection", "onServiceConnected")
             val binder = service as IotHub.LocalBinder
             iotHubService = binder.service
             iotHubConnected = true
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            Log.e("service connection", "onServiceDisconnected")
             iotHubConnected = false
         }
     }
@@ -222,8 +219,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             counter = userWriteRecords.size
         }
-
-        Log.e("json", userWriteRecords.toString())
 
         numberOfWrittenRfTags = counterValue - counterMinValue
     }

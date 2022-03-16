@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -28,13 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
-import com.jeanwest.reader.aboutUs.AboutUsActivity
+import coil.annotation.ExperimentalCoilApi
+import com.jeanwest.reader.updateActivity.UpdateActivity
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
+import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
-import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillWarehouseManagerActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
@@ -44,15 +44,16 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 
 
+@ExperimentalCoilApi
 class MainActivity : ComponentActivity() {
 
     private var openAccountDialog by mutableStateOf(false)
     lateinit var rf: RFIDWithUHFUART
     private lateinit var memory: SharedPreferences
     private var deviceId = ""
-    private var buttonSize = 140.dp
-    private var iconSize = 70.dp
-    private var pageSize = buttonSize * 3 + 150.dp
+    private var buttonSize = 100.dp
+    private var iconSize = 48.dp
+    private var pageSize = buttonSize * 3 + 100.dp
     private var userLocationCode = 0
     private var fullName = ""
 
@@ -268,7 +269,8 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                WriteTagButton()
+                                RefillButton()
+                                CheckInButton()
                                 SearchButton()
                             }
 
@@ -276,16 +278,18 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                RefillButton()
-                                WarehouseScanning()
+                                CountButton()
+                                WriteTagButton()
+                                ManualRefillWarehouseManagerButton()
                             }
 
                             Row(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                CountButton()
-                                CheckInButton()
+                                checkOut()
+                                Box(modifier = Modifier.size(100.dp)) {}
+                                Box(modifier = Modifier.size(100.dp)) {}
                             }
                         }
                     },
@@ -314,7 +318,7 @@ class MainActivity : ComponentActivity() {
 
             Icon(
                 painter = painterResource(R.drawable.counter),
-                tint = colorResource(id = R.color.OrangeRed),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -324,7 +328,7 @@ class MainActivity : ComponentActivity() {
                 "شمارش",
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1
+                style = MaterialTheme.typography.h3
             )
         }
     }
@@ -347,7 +351,7 @@ class MainActivity : ComponentActivity() {
         ) {
             Icon(
                 painter = painterResource(R.drawable.true_flase),
-                tint = colorResource(id = R.color.DarkGreen),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -357,14 +361,14 @@ class MainActivity : ComponentActivity() {
                 stringResource(R.string.checkInText),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1,
+                style = MaterialTheme.typography.h3,
             )
         }
     }
 
 
     @Composable
-    fun WarehouseScanning() {
+    fun ManualRefillWarehouseManagerButton() {
 
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
@@ -383,7 +387,7 @@ class MainActivity : ComponentActivity() {
             Icon(
                 painter = painterResource(R.drawable.check_in),
                 contentDescription = "",
-                tint = colorResource(id = R.color.Purple),
+                tint = MaterialTheme.colors.primary,
                 modifier = Modifier
                     .size(iconSize)
                     .align(Alignment.CenterHorizontally)
@@ -392,21 +396,21 @@ class MainActivity : ComponentActivity() {
                 stringResource(id = R.string.manualRefill),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1,
+                style = MaterialTheme.typography.h3,
             )
         }
     }
 
     @Composable
-    fun TransferButton() {
+    fun checkOut() {
 
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .size(buttonSize)
                 .clickable {
-                    /*val intent = Intent(this, TransferenceActivityLogIn::class.java)
-                    startActivity(intent)*/
+                    val intent = Intent(this, CheckOutActivity::class.java)
+                    startActivity(intent)
                 }
                 .background(
                     shape = MaterialTheme.shapes.medium,
@@ -416,7 +420,7 @@ class MainActivity : ComponentActivity() {
 
             Icon(
                 painter = painterResource(R.drawable.check_in),
-                tint = colorResource(id = R.color.YellowGreen),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -426,7 +430,7 @@ class MainActivity : ComponentActivity() {
                 stringResource(R.string.transferText),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1
+                style = MaterialTheme.typography.h3
             )
         }
     }
@@ -453,7 +457,7 @@ class MainActivity : ComponentActivity() {
 
             Icon(
                 painter = painterResource(R.drawable.search),
-                tint = colorResource(id = R.color.Goldenrod),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -463,7 +467,7 @@ class MainActivity : ComponentActivity() {
                 "جست و جو",
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1,
+                style = MaterialTheme.typography.h3,
             )
         }
     }
@@ -487,7 +491,7 @@ class MainActivity : ComponentActivity() {
 
             Icon(
                 painter = painterResource(R.drawable.write),
-                tint = colorResource(id = R.color.Brown),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -497,7 +501,7 @@ class MainActivity : ComponentActivity() {
                 "رایت",
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1
+                style = MaterialTheme.typography.h3
             )
         }
     }
@@ -521,7 +525,7 @@ class MainActivity : ComponentActivity() {
 
             Icon(
                 painter = painterResource(R.drawable.refill),
-                tint = colorResource(id = R.color.YellowGreen),
+                tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
                     .size(iconSize)
@@ -531,7 +535,7 @@ class MainActivity : ComponentActivity() {
                 stringResource(id = R.string.refill),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h1
+                style = MaterialTheme.typography.h3
             )
         }
     }
@@ -547,9 +551,9 @@ class MainActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .width(320.dp)
-                        .height(130.dp),
-                    verticalArrangement = Arrangement.SpaceAround
+                        .width(240.dp)
+                        .height(96.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly
                 ) {
 
                     Text(
@@ -564,21 +568,6 @@ class MainActivity : ComponentActivity() {
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-
-                        Button(
-                            onClick = {
-                                openAccountDialog = false
-                                val intent =
-                                    Intent(
-                                        this@MainActivity,
-                                        AboutUsActivity::class.java
-                                    )
-                                startActivity(intent)
-
-                            }, modifier = Modifier.padding(end = 16.dp)
-                        ) {
-                            Text(text = "به روز رسانی")
-                        }
                         Button(
                             onClick = {
                                 openAccountDialog = false

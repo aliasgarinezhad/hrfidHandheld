@@ -239,7 +239,6 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                         .fillMaxWidth()
-                        .testTag("CheckInNumberTextField")
                 )
             }
 
@@ -329,7 +328,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             onValueChange = {
                 checkInNumber = it
             },
-            modifier = modifier,
+            modifier = modifier.testTag("GetBarcodesByCheckInNumberTextField"),
             label = { Text(text = "شماره حواله را وارد کنید") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,

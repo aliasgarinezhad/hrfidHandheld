@@ -29,7 +29,7 @@ private val LightColorPalette = lightColors(
     onSecondary = JeanswestSelected,
     onBackground = Color.Black,
     onSurface = Color.Black,
-    secondary = JeanswestButtonDisabled
+    secondary = JeanswestButtonDisabled,
 )
 
 @Composable
