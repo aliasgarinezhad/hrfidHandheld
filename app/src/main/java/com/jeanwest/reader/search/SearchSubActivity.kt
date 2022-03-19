@@ -27,13 +27,14 @@ import coil.compose.rememberImagePainter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
+import com.jeanwest.reader.setRFPower
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 
 @ExperimentalCoilApi
 class SearchSubActivity : ComponentActivity() {
@@ -47,6 +48,8 @@ class SearchSubActivity : ComponentActivity() {
     private var beepJob: Job? = null
     private var matchedEpcTable = mutableListOf<String>()
     private lateinit var rf: RFIDWithUHFUART
+    private var state = SnackbarHostState()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,33 +72,13 @@ class SearchSubActivity : ComponentActivity() {
             }
         }
 
-        rfInit()
-    }
-
-    private fun rfInit() {
-
         try {
             rf = RFIDWithUHFUART.getInstance()
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        setRFEpcMode()
-    }
+        com.jeanwest.reader.setRFEpcMode(rf, state)
 
-    private fun setRFEpcMode(): Boolean {
-        for (i in 0..11) {
-            if (rf.setEPCMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@SearchSubActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -121,11 +104,12 @@ class SearchSubActivity : ComponentActivity() {
 
         val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
         while (isScanning) {
-            when(distance) {
+            when (distance) {
 
                 0.7f -> {
                     beep.startTone(ToneGenerator.TONE_PROP_BEEP)
-                    delay(300
+                    delay(
+                        300
                     )
                     beep.stopTone()
                 }
@@ -151,7 +135,7 @@ class SearchSubActivity : ComponentActivity() {
     private suspend fun startFinding() {
 
         isScanning = true
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -203,9 +187,9 @@ class SearchSubActivity : ComponentActivity() {
                         distance = 0.7f
 
                         //if (foundRssi < 75F) {
-                            changePowerWhileScanning(20)
+                        changePowerWhileScanning(20)
                         //} else {
-                            //delay(500)
+                        //delay(500)
                         //}
                     } else {
                         distance = 1f
@@ -217,7 +201,7 @@ class SearchSubActivity : ComponentActivity() {
                     if (isFound) {
                         distance = 0.5f
                         //if (foundRssi < 75F) {
-                            changePowerWhileScanning(10)
+                        changePowerWhileScanning(10)
                         //} else {
                         //    delay(500)
                         //}
@@ -231,9 +215,9 @@ class SearchSubActivity : ComponentActivity() {
                     if (isFound) {
                         distance = 0.2f
                         //if (foundRssi < 75F) {
-                            changePowerWhileScanning(5)
+                        changePowerWhileScanning(5)
                         //} else {
-                         //   delay(500)
+                        //   delay(500)
                         //}
                     } else {
                         distance = 0.5f
@@ -260,7 +244,7 @@ class SearchSubActivity : ComponentActivity() {
     private fun changePowerWhileScanning(power: Int) {
         rfPower = power
         rf.stopInventory()
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             return
         }
         rf.startInventoryTag(0, 0, 0)
@@ -291,27 +275,6 @@ class SearchSubActivity : ComponentActivity() {
         var item: Long,
         var serial: Long
     )
-
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@SearchSubActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
-    }
 
     override fun onPause() {
         super.onPause()
@@ -353,7 +316,8 @@ class SearchSubActivity : ComponentActivity() {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    content = { Content() }
+                    content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }

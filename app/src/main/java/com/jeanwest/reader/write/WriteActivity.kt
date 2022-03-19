@@ -21,9 +21,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -41,12 +41,17 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.iotHub.IotHub
+import com.jeanwest.reader.setRFEpcAndTidMode
+import com.jeanwest.reader.setRFPower
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.doneColor
+import com.jeanwest.reader.theme.errorColor
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
@@ -77,13 +82,14 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var openRewriteDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
-    private var resultColor by mutableStateOf(R.color.White)
+    private var resultColor by mutableStateOf(Color.White)
     private var fileName by mutableStateOf("خروجی")
     private var writeRecords = mutableListOf<WriteRecord>()
     private var userWriteRecords = mutableListOf<WriteRecord>()
     private var barcodeInformation = JSONObject()
     private val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
     var tagTypeValue by mutableStateOf("تگ سفید")
+    private var state = SnackbarHostState()
 
     private var write = false
 
@@ -120,7 +126,13 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         fileName = util.currentShamsidate
 
         barcodeInit()
-        rfInit()
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+        setRFEpcAndTidMode(rf, state)
 
         setContent {
             Page()
@@ -130,16 +142,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
         val intent = Intent(this, IotHub::class.java)
         bindService(intent, serviceConnection, BIND_AUTO_CREATE)
-    }
-
-    private fun rfInit() {
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-        setRFEpcAndTidMode()
     }
 
     private fun exportFile() {
@@ -249,44 +251,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@WriteActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
-    }
-
-    private fun setRFEpcAndTidMode(): Boolean {
-
-        for (i in 0..11) {
-            if (rf.setEPCAndTIDMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@WriteActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
-    }
-
     override fun onPause() {
         super.onPause()
         stopBarcodeScan()
@@ -305,7 +269,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 barcodeIsScanning = false
                 barcodeID = barcode
                 result = "$barcodeID\n"
-                resultColor = R.color.DarkGreen
+                resultColor = doneColor
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                 write = true
             } else if (tagTypeValue == "تگ کیوآر کد دار" && write) {
@@ -317,7 +281,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         } else {
             barcodeIsScanning = false
             result = "بارکدی پیدا نشد. لطفا لیزر اسکنر را روبروی بارکد قرار دهید."
-            resultColor = R.color.Brown
+            resultColor = errorColor
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
         }
     }
@@ -349,12 +313,13 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 return true
             }
             if (counterValue >= counterMaxValue) {
-                CoroutineScope(Main).launch {
-                    Toast.makeText(
-                        this@WriteActivity,
-                        "تنظیمات نامعتبر است",
-                        Toast.LENGTH_LONG
-                    ).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "مجوز رایت وجود ندارد یا به پایان رسیده است. برای دریافت مجوز با پشتیبانی تماس بگیرید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
                 }
                 return true
             }
@@ -416,7 +381,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     private fun write(barcodeInformation: JSONObject, writeOnRawTag: Boolean, tid: String) {
 
-        if (!setRFPower(30)) {
+        if (!setRFPower(state, rf, 30)) {
             return
         }
 
@@ -435,19 +400,19 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         if (!rfWrite(productEPC, tid)) {
             result += "تگ رایت نشده است. لطفا دوباره امتحان کنید"
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = R.color.Brown
+            resultColor = errorColor
             return
         }
 
         if (!rfWriteVerify(productEPC, tid)) {
             result += "تگ رایت نشده است. لطفا دوباره امتحان کنید"
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = R.color.Brown
+            resultColor = errorColor
             return
         }
 
         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-        resultColor = R.color.DarkGreen
+        resultColor = doneColor
 
         result += "تگ با موفقیت رایت شد" + "\n"
         result += "سریال جدید: $productEPC"
@@ -489,7 +454,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         val tidMap = mutableMapOf<String, String>()
         var epcs = mutableListOf<String>()
 
-        if (!setRFPower(writeTagNoQRCodeRfPower)) {
+        if (!setRFPower(state, rf, writeTagNoQRCodeRfPower)) {
             return
         }
 
@@ -514,7 +479,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             epcs.isEmpty() -> {
                 result += "هیج تگی پیدا نشد. لطفا دستگاه را نزدیک تگ قرار دهید و دوباره تلاش کنید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             }
             epcs.size == 1 -> {
@@ -524,7 +489,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             rawEpcs.size > 1 -> {
                 result += "تعداد تگ های خام پیدا شده بیشتر از یک است. لطفا تگ مورد نظرتان را جدا از بقیه قرار دهید و دوباره تلاش کنید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             }
             rawEpcs.size == 1 -> {
@@ -534,7 +499,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             rawEpcs.isEmpty() -> {
                 result += "همه تگ های این محدوده رایت شده هستند. لطفا تگ مورد نظرتان را جدا از بقیه قرار دهید و دوباره تلاش کنید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             }
         }
@@ -548,7 +513,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             if (it.getJSONArray("KBarCodes").length() == 0) {
                 result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             }
 
@@ -564,7 +529,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         .toLong())
                 ) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    resultColor = R.color.DarkGreen
+                    resultColor = doneColor
                     result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
                     return
                 } else {
@@ -621,14 +586,14 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private fun writeTagByQRCode(barcodeID: String) {
 
         var epc: String
-        if (!setRFPower(30)) {
+        if (!setRFPower(state, rf, 30)) {
             return
         }
         rf.readData("00000000", IUHF.Bank_TID, 0, 96, "E28$newMethodTid", IUHF.Bank_EPC, 2, 6).let {
             if (it.isNullOrEmpty()) {
                 result += "تگ پیدا نشد. لطفا دستگاه را نزدیک لباس قرار دهید و دوباره تلاش کنید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             } else {
                 epc = it
@@ -643,7 +608,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             if (it.getJSONArray("KBarCodes").length() == 0) {
                 result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                resultColor = R.color.Brown
+                resultColor = errorColor
                 return
             }
 
@@ -659,7 +624,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         .toLong())
                 ) {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    resultColor = R.color.DarkGreen
+                    resultColor = doneColor
                     result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
                     return
                 } else {
@@ -684,7 +649,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = R.color.Brown
+            resultColor = errorColor
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -770,6 +735,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }
@@ -880,7 +846,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 modifier = Modifier
                     .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                     .background(
-                        color = colorResource(id = resultColor),
+                        color = resultColor,
                         shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()

@@ -4,10 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -28,7 +26,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import com.jeanwest.reader.updateActivity.UpdateActivity
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
@@ -38,6 +35,7 @@ import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillWarehouseManagerActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -56,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private var pageSize = buttonSize * 3 + 100.dp
     private var userLocationCode = 0
     private var fullName = ""
+    private var state = SnackbarHostState()
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -97,7 +96,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        rfInit()
+        rfInit(rf, this, state)
 
         loadMemory()
     }
@@ -111,76 +110,6 @@ class MainActivity : ComponentActivity() {
         token = memory.getString("accessToken", "") ?: ""
         deviceId = memory.getString("deviceId", "") ?: ""
         fullName = memory.getString("userFullName", "") ?: ""
-    }
-
-    private fun rfInit() {
-
-        val frequency: Int
-        val rfLink = 2
-
-        when (Build.MODEL) {
-            getString(R.string.EXARK) -> {
-                frequency = 0x08
-            }
-            getString(R.string.chainway) -> {
-                frequency = 0x04
-            }
-            else -> {
-                Toast.makeText(
-                    this,
-                    "این دستگاه توسط برنامه پشتیبانی نمی شود",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
-
-        for (i in 0..6) {
-
-            if (rf.init()) {
-                break
-            } else if (i == 5) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            } else {
-                rf.free()
-            }
-        }
-
-        for (i in 0..11) {
-
-            if (rf.setFrequencyMode(frequency)) {
-                break
-            } else if (i == 10) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
-
-        for (i in 0..11) {
-
-            if (rf.setRFLink(rfLink)) {
-                break
-            } else if (i == 10) {
-
-                Toast.makeText(
-                    this,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
     }
 
     override fun onResume() {
@@ -293,6 +222,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }
@@ -552,21 +482,24 @@ class MainActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier
                         .width(240.dp)
-                        .height(96.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .height(136.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
 
                     Text(
                         text = fullName,
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
                         style = MaterialTheme.typography.body2,
                         textAlign = TextAlign.Center
                     )
 
                     Row(
                         horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
                     ) {
                         Button(
                             onClick = {

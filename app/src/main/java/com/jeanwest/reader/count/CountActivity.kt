@@ -36,12 +36,13 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.*
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -95,6 +96,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var openClearDialog by mutableStateOf(false)
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     private var scanTypeValue by mutableStateOf("RFID")
+    private var state = SnackbarHostState()
 
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -113,7 +115,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        setRFEpcMode(rf, this)
+        setRFEpcMode(rf, state)
 
         if (intent.action == Intent.ACTION_SEND) {
 
@@ -122,7 +124,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 if (!checkLogin(this)) {
                     return
                 }
-                rfInit(rf, this)
+                rfInit(rf, this, state)
 
                 while (!rf.setEPCMode()) {
                     rf.free()
@@ -195,7 +197,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (!setRFPower(this, rf, rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -949,6 +951,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }

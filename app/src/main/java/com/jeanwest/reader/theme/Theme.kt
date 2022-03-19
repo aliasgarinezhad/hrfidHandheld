@@ -30,6 +30,7 @@ private val LightColorPalette = lightColors(
     onBackground = Color.Black,
     onSurface = Color.Black,
     secondary = JeanswestButtonDisabled,
+    error = errorColor,
 )
 
 @Composable

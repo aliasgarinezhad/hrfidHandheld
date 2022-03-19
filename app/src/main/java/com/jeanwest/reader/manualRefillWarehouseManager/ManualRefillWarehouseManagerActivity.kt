@@ -39,13 +39,15 @@ import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.setRFEpcMode
+import com.jeanwest.reader.setRFPower
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -74,6 +76,8 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
     private var signedProductCodes = mutableListOf<String>()
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     var scanTypeValue by mutableStateOf("بارکد")
+    private var state = SnackbarHostState()
+
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -81,7 +85,14 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         super.onCreate(savedInstanceState)
 
         barcodeInit()
-        rfInit()
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+        setRFEpcMode(rf, state)
+
         setContent {
             Page()
         }
@@ -123,29 +134,6 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         return true
     }
 
-    private fun rfInit(): Boolean {
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-
-        for (i in 0..11) {
-            if (rf.setEPCMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@ManualRefillWarehouseManagerActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
-    }
-
     private fun stopRFScan() {
 
         scanningJob?.let {
@@ -159,7 +147,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -209,27 +197,6 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
         rf.stopInventory()
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         saveToMemory()
-    }
-
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@ManualRefillWarehouseManagerActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
     }
 
     private fun syncScannedItemsToServer() {
@@ -473,6 +440,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }
@@ -493,12 +461,6 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
             },
 
             actions = {
-                IconButton(onClick = { openSendToStoreActivity() }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                        contentDescription = ""
-                    )
-                }
                 IconButton(onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
@@ -511,7 +473,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                 Text(
                     text = stringResource(id = R.string.manualRefill),
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(end = 10.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -545,7 +507,7 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
 
                 Row(
                     modifier = Modifier
-                        .padding(bottom = 8.dp, top = 8.dp, start = 16.dp, end = 16.dp)
+                        .padding(start = 16.dp, end = 16.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -561,6 +523,10 @@ class ManualRefillWarehouseManagerActivity : ComponentActivity(), IBarcodeResult
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
                     )
+
+                    Button(onClick = { openSendToStoreActivity() }) {
+                        Text("ارسال")
+                    }
                 }
 
                 if (scanTypeValue == "RFID") {

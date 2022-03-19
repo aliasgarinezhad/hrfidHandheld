@@ -1,6 +1,6 @@
 package com.jeanwest.reader.checkIn
 
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
@@ -45,13 +44,15 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.setRFEpcMode
+import com.jeanwest.reader.setRFPower
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
@@ -86,6 +87,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var openClearDialog by mutableStateOf(false)
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     var scanTypeValue by mutableStateOf("RFID")
+    private var state = SnackbarHostState()
 
     private val apiTimeout = 30000
 
@@ -102,7 +104,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         ) ?: mutableListOf()
 
         barcodeInit()
-        rfInit()
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+        setRFEpcMode(rf, state)
+
         setContent {
             Page()
         }
@@ -143,29 +152,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         return true
     }
 
-    private fun rfInit(): Boolean {
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-
-        for (i in 0..11) {
-            if (rf.setEPCMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@CheckInActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
-    }
-
     private fun stopRFScan() {
 
         scanningJob?.let {
@@ -179,7 +165,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -404,27 +390,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
 
         return uiListParameters
-    }
-
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@CheckInActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
     }
 
     private fun syncInputItemsToServer() {
@@ -780,6 +745,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }

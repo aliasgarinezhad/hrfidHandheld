@@ -36,13 +36,15 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.setRFEpcMode
+import com.jeanwest.reader.setRFPower
+import com.jeanwest.reader.theme.CustomSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -73,6 +75,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private var zoneMode by mutableStateOf(false)
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     var scanTypeValue by mutableStateOf("بارکد")
+    private var state = SnackbarHostState()
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -82,7 +85,14 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
-        rfInit()
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+        setRFEpcMode(rf, state)
+
         setContent {
             Page()
         }
@@ -134,29 +144,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         return true
     }
 
-    private fun rfInit(): Boolean {
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-
-        for (i in 0..11) {
-            if (rf.setEPCMode()) {
-                return true
-            }
-        }
-        CoroutineScope(Main).launch {
-            Toast.makeText(
-                this@ManualRefillActivity,
-                "مشکلی در سخت افزار پیش آمده است",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-        return false
-    }
-
     private fun stopRFScan() {
 
         scanningJob?.let {
@@ -170,7 +157,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private suspend fun startRFScan() {
 
         isScanning = true
-        if (!setRFPower(rfPower)) {
+        if (!setRFPower(state, rf, rfPower)) {
             isScanning = false
             return
         }
@@ -220,27 +207,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         rf.stopInventory()
         numberOfScanned = epcTable.size + barcodeTable.size
         //saveToMemory()
-    }
-
-    private fun setRFPower(power: Int): Boolean {
-        if (rf.power != power) {
-
-            for (i in 0..11) {
-                if (rf.setPower(power)) {
-                    return true
-                }
-            }
-            CoroutineScope(Main).launch {
-                Toast.makeText(
-                    this@ManualRefillActivity,
-                    "مشکلی در سخت افزار پیش آمده است",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        } else {
-            return true
-        }
     }
 
     private fun syncScannedItemsToServer() {
@@ -526,6 +492,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { CustomSnackBar(state) },
                 )
             }
         }
