@@ -2,7 +2,6 @@ package com.jeanwest.reader.checkIn
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,7 +31,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import java.io.File
@@ -50,6 +53,8 @@ class ConfirmCheckInsActivity : ComponentActivity() {
     private var additionalNumber by mutableStateOf(0)
     private var numberOfScanned by mutableStateOf(0)
     private var checkInProperties = mutableListOf<CheckInProperties>()
+    private var state = SnackbarHostState()
+
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -184,22 +189,45 @@ class ConfirmCheckInsActivity : ComponentActivity() {
     private fun confirmCheckIns() {
 
         if (checkInProperties.size == 0) {
-            Toast.makeText(this, "حواله ای برای تایید وجود ندارد", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "حواله ای برای تایید وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
         val url = "http://rfid-api.avakatan.ir/stock-draft/confirm"
         val request = object : JsonArrayRequest(Method.POST, url, null, {
-            Toast.makeText(this, "حواله ها با موفقیت تایید شدند", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "حواله ها با موفقیت تایید شدند",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
         }, {
             if (it is NoConnectionError) {
-                Toast.makeText(
-                    this,
-                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                    Toast.LENGTH_LONG
-                ).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             } else {
-                Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        it.toString(),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -233,7 +261,8 @@ class ConfirmCheckInsActivity : ComponentActivity() {
                     content = { Content() },
                     bottomBar = {
                         BottomAppBar()
-                    }
+                    },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

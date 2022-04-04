@@ -2,7 +2,6 @@ package com.jeanwest.reader.logIn
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -19,13 +18,18 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class UserLoginActivity : ComponentActivity() {
 
     private var username by mutableStateOf("")
     private var password by mutableStateOf("")
+    private var state = SnackbarHostState()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +50,10 @@ class UserLoginActivity : ComponentActivity() {
             editor.putString("username", username)
             editor.putString("userFullName", response.getString("fullName"))
             editor.putInt("userLocationCode", response.getInt("locationCode"))
-            editor.putInt("userWarehouseCode", response.getJSONObject("location").getInt("warehouseCode"))
+            editor.putInt(
+                "userWarehouseCode",
+                response.getJSONObject("location").getInt("warehouseCode")
+            )
 
             editor.apply()
 
@@ -59,13 +66,32 @@ class UserLoginActivity : ComponentActivity() {
         }, {
             when {
                 it is NoConnectionError -> {
-                    Toast.makeText(this, "اینترنت قطع است. شبکه وای فای را بررسی کنید.", Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 it.networkResponse.statusCode == 401 -> {
-                    Toast.makeText(this, "نام کاربری یا رمز عبور اشتباه است", Toast.LENGTH_LONG).show()
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "نام کاربری یا رمز عبور اشتباه است",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
 
@@ -98,6 +124,7 @@ class UserLoginActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

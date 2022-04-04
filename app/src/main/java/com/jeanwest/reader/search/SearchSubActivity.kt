@@ -5,7 +5,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -27,8 +26,9 @@ import coil.compose.rememberImagePainter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
-import com.jeanwest.reader.setRFPower
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -50,7 +50,6 @@ class SearchSubActivity : ComponentActivity() {
     private lateinit var rf: RFIDWithUHFUART
     private var state = SnackbarHostState()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -60,8 +59,14 @@ class SearchSubActivity : ComponentActivity() {
 
         intent.getStringExtra("product").let {
             if (it.isNullOrEmpty()) {
-                Toast.makeText(this, "امکان جست و جو برای این کالا وجود ندارد.", Toast.LENGTH_LONG)
-                    .show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "کالایی جهت بررسی وجود ندارد",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
                 finish()
             } else {
                 val type = object : TypeToken<SearchResultProducts>() {}.type
@@ -77,7 +82,7 @@ class SearchSubActivity : ComponentActivity() {
         } catch (e: ConfigurationException) {
             e.printStackTrace()
         }
-        com.jeanwest.reader.setRFEpcMode(rf, state)
+        setRFEpcMode(rf, state)
 
     }
 
@@ -317,7 +322,7 @@ class SearchSubActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }
@@ -389,7 +394,6 @@ class SearchSubActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.CenterVertically)
-                            .height(8.dp)
                             .padding(horizontal = 8.dp),
                         backgroundColor = MaterialTheme.colors.background
                     )

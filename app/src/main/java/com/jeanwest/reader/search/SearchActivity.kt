@@ -4,12 +4,9 @@ package com.jeanwest.reader.search
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
@@ -38,7 +35,11 @@ import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 
 @ExperimentalCoilApi
@@ -60,6 +61,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
     private var wareHouseFilterValue by mutableStateOf("فروشگاه و انبار")
+    private var state = SnackbarHostState()
 
     private var barcode2D = Barcode2D(this)
 
@@ -110,14 +112,22 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             }, {
                 when (it) {
                     is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                     else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
             })
@@ -218,14 +228,22 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                 }, { it2 ->
                     when (it2) {
                         is NoConnectionError -> {
-                            Toast.makeText(
-                                this,
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            CoroutineScope(Dispatchers.Default).launch {
+                                state.showSnackbar(
+                                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                    null,
+                                    SnackbarDuration.Long
+                                )
+                            }
                         }
                         else -> {
-                            Toast.makeText(this, it2.toString(), Toast.LENGTH_LONG).show()
+                            CoroutineScope(Dispatchers.Default).launch {
+                                state.showSnackbar(
+                                    it2.toString(),
+                                    null,
+                                    SnackbarDuration.Long
+                                )
+                            }
                         }
                     }
                 })
@@ -235,14 +253,22 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }, {
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
         })
@@ -303,7 +329,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    content = { Content() }
+                    content = { Content() },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }
@@ -336,12 +363,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @ExperimentalCoilApi
     @Composable
     fun Content() {
-        val modifier = Modifier
-            .padding(vertical = 4.dp, horizontal = 8.dp)
-            .wrapContentWidth()
 
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -372,57 +397,84 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
                 items(filteredUiList.size) { i ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .padding(start = 5.dp, end = 5.dp, bottom = 5.dp)
-                            .background(
-                                color = MaterialTheme.colors.onPrimary,
-                                shape = MaterialTheme.shapes.small
-                            )
-                            .fillMaxWidth()
-                            .clickable {
-                                openSearchActivity(filteredUiList[i])
-                            }
-                            .testTag("SearchItems"),
+                    LazyColumnItem(i)
+                }
+            }
+        }
+    }
 
-                        ) {
-                        Column {
-                            Text(
-                                text = filteredUiList[i].name,
-                                style = MaterialTheme.typography.h1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                //color = colorResource(id = R.color.Brown)
-                            )
+    @ExperimentalFoundationApi
+    @Composable
+    fun LazyColumnItem(i: Int) {
 
-                            Text(
-                                text = filteredUiList[i].size,
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                //color = colorResource(id = R.color.DarkGreen)
-                            )
+        Row(
+            modifier = Modifier
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                .background(
+                    color = MaterialTheme.colors.onPrimary,
+                    shape = MaterialTheme.shapes.small
+                )
+                .fillMaxWidth()
+                .height(80.dp)
+                .clickable(
+                    onClick = {
+                        openSearchActivity(uiList[i])
+                    },
+                ),
+        ) {
 
-                            Text(
-                                text = filteredUiList[i].color,
-                                style = MaterialTheme.typography.body1,
-                                textAlign = TextAlign.Right,
-                                modifier = modifier,
-                                //color = colorResource(id = R.color.Goldenrod)
-                            )
-                        }
+            Image(
+                painter = rememberImagePainter(
+                    uiList[i].imageUrl,
+                ),
+                contentDescription = "",
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(80.dp)
+                    .padding(vertical = 8.dp, horizontal = 8.dp)
+            )
 
-                        Image(
-                            painter = rememberImagePainter(
-                                filteredUiList[i].imageUrl,
-                            ),
-                            contentDescription = "",
-                            modifier = Modifier
-                                .height(100.dp)
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(start = 8.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .weight(1.5F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = filteredUiList[i].name,
+                        style = MaterialTheme.typography.h1,
+                        textAlign = TextAlign.Right,
+                    )
+
+                    Text(
+                        text = filteredUiList[i].KBarCode,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+
+                    Text(
+                        text = "رنگ: " + filteredUiList[i].color,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
+                    Text(
+                        text = "سایز: " + filteredUiList[i].size,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Right,
+                    )
                 }
             }
         }

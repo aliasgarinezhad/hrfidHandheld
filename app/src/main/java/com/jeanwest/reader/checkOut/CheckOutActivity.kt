@@ -6,7 +6,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -36,12 +35,12 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.setRFEpcMode
-import com.jeanwest.reader.setRFPower
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -261,18 +260,36 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
-                Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "کالایی جهت بررسی وجود ندارد",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+
             } else {
                 when (it) {
+
                     is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
+
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                     else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
             }
@@ -442,7 +459,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

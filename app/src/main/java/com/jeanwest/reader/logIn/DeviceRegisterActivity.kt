@@ -2,7 +2,6 @@ package com.jeanwest.reader.logIn
 
 import android.content.Intent
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -27,7 +26,11 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class DeviceRegisterActivity : ComponentActivity() {
@@ -40,6 +43,8 @@ class DeviceRegisterActivity : ComponentActivity() {
     private var deviceLocationCode = 0
     private var deviceLocation = ""
     private val locations = mutableMapOf<Int, String>()
+    private var state = SnackbarHostState()
+
 
     override fun onResume() {
         super.onResume()
@@ -58,13 +63,27 @@ class DeviceRegisterActivity : ComponentActivity() {
                 .getString("primaryKey")
 
             saveToMemory()
-            Toast.makeText(this, "دستگاه با موفقیت رجیستر شد", Toast.LENGTH_SHORT).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "دستگاه با موفقیت رجیستر شد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
 
             val nextActivityIntent = Intent(this, MainActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(nextActivityIntent)
         }, {
-            Toast.makeText(this, "خطا در رجیستر کردن دستگاه", Toast.LENGTH_SHORT).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "خطا در رجیستر کردن دستگاه",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
         }) {
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -101,7 +120,14 @@ class DeviceRegisterActivity : ComponentActivity() {
                     it.getJSONObject(i).getString("DepName")
             }
         }, {
-            Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    it.toString(),
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
         }) {
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -149,6 +175,7 @@ class DeviceRegisterActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

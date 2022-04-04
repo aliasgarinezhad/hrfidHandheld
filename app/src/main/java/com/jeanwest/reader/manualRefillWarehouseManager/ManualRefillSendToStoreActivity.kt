@@ -3,7 +3,6 @@ package com.jeanwest.reader.manualRefillWarehouseManager
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,7 +31,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.R
 import com.jeanwest.reader.refill.RefillProduct
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,6 +52,8 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
     private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
+    private var state = SnackbarHostState()
+
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -110,16 +115,32 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
     private fun sendToStore() {
         val url = "http://rfid-api.avakatan.ir:3100/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
-            Toast.makeText(this, "اجناس با موفقیت به فروشگاه حواله شدند", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "اجناس با موفقیت به فروشگاه حواله شدند",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+
         }, {
             if (it is NoConnectionError) {
-                Toast.makeText(
-                    this,
-                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                    Toast.LENGTH_LONG
-                ).show()
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             } else {
-                Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        it.toString(),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -167,7 +188,8 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    bottomBar = { BottomAppBar() }
+                    bottomBar = { BottomAppBar() },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

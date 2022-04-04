@@ -29,13 +29,14 @@ import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
+import com.jeanwest.reader.hardware.rfInit
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.manualRefillWarehouseManager.ManualRefillWarehouseManagerActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -222,7 +223,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

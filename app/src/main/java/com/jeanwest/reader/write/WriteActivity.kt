@@ -10,7 +10,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.IBinder
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -40,10 +39,10 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.setRFEpcAndTidMode
+import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.setRFEpcAndTidMode
-import com.jeanwest.reader.setRFPower
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.theme.doneColor
 import com.jeanwest.reader.theme.errorColor
@@ -545,14 +544,22 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
 
@@ -735,7 +742,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

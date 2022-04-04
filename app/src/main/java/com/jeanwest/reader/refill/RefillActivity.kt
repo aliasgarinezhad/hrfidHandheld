@@ -7,7 +7,6 @@ import android.media.ToneGenerator
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -39,11 +38,11 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.setRFEpcMode
-import com.jeanwest.reader.setRFPower
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -218,14 +217,22 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         }, {
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
         }) {
@@ -295,22 +302,34 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         }, {
 
             if (inputBarcodes.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "هیچ بارکدی در فایل یافت نشد",
-                    Toast.LENGTH_LONG
-                ).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "خطی صفر است!",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+
             } else {
                 when (it) {
                     is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                     else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
             }
@@ -425,18 +444,33 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
-                Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "کالایی جهت بررسی وجود ندارد",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             } else {
                 when (it) {
                     is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                     else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
             }
@@ -607,7 +641,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     topBar = { AppBar() },
                     content = { Content() },
                     bottomBar = { BottomAppBar() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }
@@ -652,7 +686,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun BottomAppBar() {
 
-        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
+        //var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 
         BottomAppBar(
             backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
@@ -692,7 +726,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                if (scanTypeValue == "RFID") {
+                /*if (scanTypeValue == "RFID") {
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
@@ -717,7 +751,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                             valueRange = 5f..30f,
                         )
                     }
-                }
+                }*/
             }
         }
     }
@@ -727,48 +761,23 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
 
+        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
+
         Column {
 
             if (openClearDialog) {
                 ClearAlertDialog()
             }
 
-            Column/*(
+            Column(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp)
                     .background(
                         MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
                     )
                     .fillMaxWidth()
-            )*/ {
-
-                /*Row(
-                    modifier = Modifier
-                        .padding(bottom = 8.dp, top = 8.dp, start = 16.dp, end = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    Text(
-                        text = "پیدا نشده: $unFoundProductsNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    Text(
-                        text = "خطی: ${uiList.size}",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    ScanTypeDropDownList(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-                }
+            ) {
 
                 if (scanTypeValue == "RFID") {
                     Row {
@@ -792,7 +801,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     }
-                }*/
+                }
 
                 if (isScanning) {
                     Row(

@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -36,13 +35,12 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.*
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.*
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -142,7 +140,14 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 while (!rf.setEPCMode()) {
                     rf.free()
                 }
-                Toast.makeText(this, "فرمت فایل باید اکسل باشد", Toast.LENGTH_LONG).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "فرمت فایل باید اکسل باشد",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
                 syncFileItemsToServer()
             }
         } else {
@@ -384,14 +389,23 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
             syncScannedItemsToServer()
@@ -540,14 +554,23 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }, {
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
@@ -642,26 +665,45 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 searchModeProductCodes.add(epcs.getJSONObject(i).getString("K_Bar_Code"))
             }
             uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
-            Toast.makeText(
-                this,
-                "بارکد های جست و جو مشخص شدند. حال می توانید جنس های مشابه این بارکد ها را جست و جو کنید. برای دیدن همه اجناس، جست و جو را غیر فعال کنید.",
-                Toast.LENGTH_LONG
-            ).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "بارکد های جست و جو مشخص شدند. حال می توانید جنس های مشابه این بارکد ها را جست و جو کنید. برای دیدن همه اجناس، جست و جو را غیر فعال کنید.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
 
         }, {
             if (searchModeEpcTable.size == 0) {
-                Toast.makeText(this, "کالایی جهت بررسی وجود ندارد", Toast.LENGTH_SHORT).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "کالایی جهت بررسی وجود ندارد",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
             } else {
                 when (it) {
                     is NoConnectionError -> {
-                        Toast.makeText(
-                            this,
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            Toast.LENGTH_LONG
-                        ).show()
+
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                     else -> {
-                        Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
             }
@@ -707,13 +749,27 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         try {
             workbook = XSSFWorkbook(contentResolver.openInputStream(uri))
         } catch (e: IOException) {
-            Toast.makeText(this, "فایل نامعتبر است", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "فایل نامعتبر است",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
         val sheet = workbook.getSheetAt(0)
         if (sheet == null) {
-            Toast.makeText(this, "فایل خالی است", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "فایل خالی است",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
@@ -744,13 +800,25 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         try {
             workbook = HSSFWorkbook(contentResolver.openInputStream(uri))
         } catch (e: IOException) {
-            Toast.makeText(this, "فایل نامعتبر است", Toast.LENGTH_LONG).show()
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "فایل نامعتبر است",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
         val sheet = workbook.getSheetAt(0)
         if (sheet == null) {
-            Toast.makeText(this, "فایل خالی است", Toast.LENGTH_LONG).show()
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "فایل خالی است",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
@@ -778,13 +846,14 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private fun searchModeButton() {
         if (!searchMode) {
             searchModeProductCodes.clear()
-            Toast
-                .makeText(
-                    this,
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
                     "ابتدا بارکد هایی که می خواهید جست و جو کنید را با اسکن مشخص کنید",
-                    Toast.LENGTH_LONG
+                    null,
+                    SnackbarDuration.Long
                 )
-                .show()
+            }
             searchMode = true
             uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
 
@@ -951,7 +1020,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

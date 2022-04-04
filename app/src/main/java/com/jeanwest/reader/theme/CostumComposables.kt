@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CustomSnackBar(state: SnackbarHostState) {
+fun ErrorSnackBar(state: SnackbarHostState) {
 
     Column(
         modifier = Modifier

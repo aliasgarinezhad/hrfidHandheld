@@ -1,7 +1,6 @@
 package com.jeanwest.reader.checkIn
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -30,7 +29,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 
 class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
@@ -39,6 +42,8 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
     private var barcodeTable = mutableListOf<String>()
     private var uiList by mutableStateOf(mutableListOf<CheckInProperties>())
     private var uiListTemp by mutableStateOf(mutableListOf<CheckInProperties>())
+    private var state = SnackbarHostState()
+
 
     override fun onResume() {
         super.onResume()
@@ -98,14 +103,28 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
     private fun getCheckInNumberDetails(checkInNumber: String) {
 
         if (checkInNumber.isEmpty()) {
-            Toast.makeText(this, "لطفا شماره حواله را وارد کنید", Toast.LENGTH_LONG).show()
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "لطفا شماره حواله را وارد کنید",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
             return
         }
 
         val number = checkInNumber.toLong()
-        uiListTemp.forEach { it ->
+        uiListTemp.forEach {
             if (it.number == number) {
-                Toast.makeText(this, "حواله تکراری است", Toast.LENGTH_LONG).show()
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "حواله تکراری است",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
                 return
             }
         }
@@ -150,14 +169,22 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
         }, {
             when (it) {
                 is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
         }) {
@@ -182,6 +209,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                     topBar = { AppBar() },
                     content = { Content() },
                     floatingActionButton = { OpenCheckInButton() },
+                    snackbarHost = { ErrorSnackBar(state) },
                     floatingActionButtonPosition = FabPosition.Center
                 )
             }

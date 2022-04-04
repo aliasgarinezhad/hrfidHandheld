@@ -2,7 +2,6 @@ package com.jeanwest.reader.logIn
 
 import android.content.Intent
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -20,7 +19,11 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class OperatorLoginActivity : ComponentActivity() {
@@ -28,6 +31,8 @@ class OperatorLoginActivity : ComponentActivity() {
     private var password by mutableStateOf("")
     private var username by mutableStateOf("")
     private var advanceSettingToken = ""
+    private var state = SnackbarHostState()
+
 
     override fun onResume() {
         super.onResume()
@@ -46,18 +51,33 @@ class OperatorLoginActivity : ComponentActivity() {
         }, {
             when {
                 it is NoConnectionError -> {
-                    Toast.makeText(
-                        this,
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        Toast.LENGTH_LONG
-                    ).show()
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 it.networkResponse.statusCode == 401 -> {
-                    Toast.makeText(this, "نام کاربری یا رمز عبور اشتباه است", Toast.LENGTH_LONG)
-                        .show()
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "نام کاربری یا رمز عبور اشتباه است",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
                 else -> {
-                    Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
         }) {
@@ -99,6 +119,7 @@ class OperatorLoginActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }

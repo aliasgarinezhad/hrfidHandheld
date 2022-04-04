@@ -36,9 +36,9 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.setRFEpcMode
-import com.jeanwest.reader.setRFPower
-import com.jeanwest.reader.theme.CustomSnackBar
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -492,7 +492,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    snackbarHost = { CustomSnackBar(state) },
+                    snackbarHost = { ErrorSnackBar(state) },
                 )
             }
         }
