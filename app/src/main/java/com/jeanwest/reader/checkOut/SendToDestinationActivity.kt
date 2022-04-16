@@ -55,8 +55,8 @@ import java.util.*
 @ExperimentalCoilApi
 class SendToDestinationActivity : ComponentActivity() {
 
-    private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
-    private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
+    private var uiList by mutableStateOf(mutableListOf<CheckOutProduct>())
+    private var fileName by mutableStateOf("حواله ارسالی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var destination by mutableStateOf("انتخاب مقصد")
@@ -76,13 +76,13 @@ class SendToDestinationActivity : ComponentActivity() {
             Page()
         }
 
-        val type = object : TypeToken<List<RefillProduct>>() {}.type
+        val type = object : TypeToken<List<CheckOutProduct>>() {}.type
 
         uiList = Gson().fromJson(
-            intent.getStringExtra("RefillProducts"), type
+            intent.getStringExtra("CheckOutRefillProducts"), type
         ) ?: mutableListOf()
 
-        numberOfScanned = intent.getIntExtra("validScannedProductsNumber", 0)
+        numberOfScanned = intent.getIntExtra("CheckOutValidScannedProductsNumber", 0)
 
         val util = JalaliDate()
         fileName += util.currentShamsidate

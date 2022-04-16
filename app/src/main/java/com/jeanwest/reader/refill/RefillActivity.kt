@@ -1,11 +1,11 @@
 package com.jeanwest.reader.refill
 
-//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +18,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,15 +37,15 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -62,25 +63,24 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val inputBarcodes = ArrayList<String>()
-    private val refillProducts = ArrayList<RefillProduct>()
+    val inputBarcodes = ArrayList<String>()
+    private var refillProducts = mutableListOf<RefillProduct>()
     private var scanningJob: Job? = null
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var unFoundProductsNumber by mutableStateOf(0)
-    private var validScannedProductsNumber by mutableStateOf(0)
-    private var openFileDialog by mutableStateOf(false)
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var signedProductCodes = mutableListOf<String>()
+    var refillSignedProductCodes = mutableListOf<String>()
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
-    var scanTypeValue by mutableStateOf("بارکد")
+    private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
-
+    private var isDataLoading by mutableStateOf(false)
+    private var selectMode by mutableStateOf(false)
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -256,18 +256,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillItems() {
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "http://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             val refillItemsJsonArray = it.getJSONArray("KBarCodes")
             refillProducts.clear()
-
-            Log.e("error", refillItemsJsonArray.toString())
-
-            refillItemsJsonArray.getJSONObject(0).keys().forEach { it1 ->
-                Log.e("error", it1)
-            }
 
             for (i in 0 until refillItemsJsonArray.length()) {
 
@@ -282,8 +276,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     originalPrice = refillItemsJsonArray.getJSONObject(i).getString("OrgPrice"),
                     salePrice = refillItemsJsonArray.getJSONObject(i).getString("SalePrice"),
                     rfidKey = refillItemsJsonArray.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = 0,
-                    scannedNumber = 0
+                    wareHouseNumber = refillItemsJsonArray.getJSONObject(i).getInt("depoCount"),
+                    scannedBarcode = "",
+                    scannedEPCs = mutableListOf(),
+                    scannedBarcodeNumber = 0,
+                    scannedEPCNumber = 0
                 )
                 refillProducts.add(fileProduct)
             }
@@ -294,11 +291,14 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
                 uiList = mutableListOf()
                 refillProducts.sortBy { refillProduct ->
-                    refillProduct.scannedNumber > 0
+                    refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
                 }
                 uiList = refillProducts
                 unFoundProductsNumber = uiList.size
             }
+
+            isDataLoading = false
+
         }, {
 
             if (inputBarcodes.isEmpty()) {
@@ -337,6 +337,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             }
+
+            isDataLoading = false
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -382,35 +384,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             val epcs = it.getJSONArray("epcs")
             val barcodes = it.getJSONArray("KBarCodes")
-            val similarIndexes = arrayListOf<Int>()
 
-            for (i in 0 until barcodes.length()) {
-
-                for (j in 0 until epcs.length()) {
-
-                    if (barcodes.getJSONObject(i)
-                            .getString("KBarCode") == epcs.getJSONObject(j)
-                            .getString("KBarCode")
-                    ) {
-                        epcs.getJSONObject(j).put(
-                            "handheldCount",
-                            epcs.getJSONObject(j)
-                                .getInt("handheldCount") + barcodes.getJSONObject(i)
-                                .getInt("handheldCount")
-                        )
-                        similarIndexes.add(i)
-                        break
-                    }
-                }
-            }
-
-            for (i in 0 until barcodes.length()) {
-
-                if (i !in similarIndexes) {
-                    epcs.put(it.getJSONArray("KBarCodes")[i])
-                }
-            }
-
+            scannedEpcTable.clear()
             for (i in 0 until epcs.length()) {
 
                 val isInRefillList = refillProducts.any { refillProduct ->
@@ -423,24 +398,54 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         refillProduct.primaryKey == epcs.getJSONObject(i).getLong("BarcodeMain_ID")
                     })
 
-                    refillProducts[productIndex].scannedNumber =
+                    refillProducts[productIndex].scannedEPCNumber =
                         epcs.getJSONObject(i).getInt("handheldCount")
+
+                    refillProducts[productIndex].scannedEPCs.clear()
+                    for (j in 0 until epcs.getJSONObject(i).getJSONArray("reportedEpcs").length()) {
+                        val epc = epcs.getJSONObject(i).getJSONArray("reportedEpcs").getString(j)
+                        refillProducts[productIndex].scannedEPCs.add(epc)
+                        scannedEpcTable.add(epc)
+                    }
+                }
+            }
+
+            scannedBarcodeTable.clear()
+            for (i in 0 until barcodes.length()) {
+
+                val isInRefillList = refillProducts.any { refillProduct ->
+                    refillProduct.primaryKey == barcodes.getJSONObject(i).getLong("BarcodeMain_ID")
+                }
+
+                if (isInRefillList) {
+
+                    val productIndex = refillProducts.indexOf(refillProducts.last { refillProduct ->
+                        refillProduct.primaryKey == barcodes.getJSONObject(i)
+                            .getLong("BarcodeMain_ID")
+                    })
+
+                    refillProducts[productIndex].scannedBarcodeNumber =
+                        barcodes.getJSONObject(i).getInt("handheldCount")
+
+                    refillProducts[productIndex].scannedBarcode =
+                        barcodes.getJSONObject(i).getString("kbarcode")
+
+                    repeat(refillProducts[productIndex].scannedBarcodeNumber) {
+                        scannedBarcodeTable.add(refillProducts[productIndex].scannedBarcode)
+                    }
                 }
             }
 
             uiList = mutableListOf()
             refillProducts.sortBy { refillProduct ->
-                refillProduct.scannedNumber > 0
+                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
             }
             uiList = refillProducts
             unFoundProductsNumber = uiList.filter { refillProduct ->
-                refillProduct.scannedNumber == 0
+                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber == 0
             }.size
 
-            validScannedProductsNumber = 0
-            uiList.forEach { refillProduct ->
-                validScannedProductsNumber += refillProduct.scannedNumber
-            }
+            numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
@@ -532,9 +537,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString("RefillEPCTable", JSONArray(scannedEpcTable).toString())
         edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodeTable).toString())
-
+        edit.putString("RefillEPCTable", JSONArray(scannedEpcTable).toString())
         edit.apply()
     }
 
@@ -557,23 +561,25 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
     }
 
-    private fun clear() {
+    fun refillClear() {
 
-        scannedBarcodeTable.clear()
-        scannedEpcTable.clear()
-        epcTablePreviousSize = 0
-        numberOfScanned = 0
         refillProducts.forEach {
-            if (it.KBarCode in signedProductCodes) {
-                it.scannedNumber = 0
+            if (it.KBarCode in refillSignedProductCodes) {
+                it.scannedEPCNumber = 0
+                it.scannedBarcodeNumber = 0
+                scannedEpcTable.removeAll(it.scannedEPCs)
+                scannedBarcodeTable.removeAll { it1 ->
+                    it1 == it.scannedBarcode
+                }
             }
         }
-        signedProductCodes = mutableListOf()
-        unFoundProductsNumber = refillProducts.size
-        validScannedProductsNumber = 0
+        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList = mutableListOf()
         uiList = refillProducts
-        openFileDialog = false
+        refillSignedProductCodes = mutableListOf()
+        unFoundProductsNumber = uiList.filter { refillProduct ->
+            refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber == 0
+        }.size
         saveToMemory()
     }
 
@@ -602,9 +608,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         Intent(this, SendRefillProductsToStoreActivity::class.java).also {
             it.putExtra("RefillProducts", Gson().toJson(refillProducts.filter { it1 ->
-                it1.scannedNumber > 0
+                it1.scannedBarcodeNumber + it1.scannedEPCNumber > 0
             }).toString())
-            it.putExtra("validScannedProductsNumber", validScannedProductsNumber)
+            it.putExtra("validScannedProductsNumber", numberOfScanned)
             startActivity(it)
         }
     }
@@ -640,7 +646,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    bottomBar = { BottomAppBar() },
+                    bottomBar = { if (selectMode) SelectedBottomAppBar() else BottomAppBar() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -661,20 +667,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             },
 
-            actions = {
-                IconButton(onClick = { openClearDialog = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
-                        contentDescription = ""
-                    )
-                }
-            },
-
             title = {
                 Text(
                     text = stringResource(id = R.string.refill),
                     modifier = Modifier
-                        .padding(end = 10.dp)
+                        .padding(end = 50.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -685,8 +682,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     @Composable
     fun BottomAppBar() {
-
-        //var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 
         BottomAppBar(
             backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
@@ -725,33 +720,49 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         Text(text = "ارسال")
                     }
                 }
+            }
+        }
+    }
 
-                /*if (scanTypeValue == "RFID") {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+    @Composable
+    fun SelectedBottomAppBar() {
 
-                        Text(
-                            text = "قدرت آنتن (" + slideValue.toInt() + ")  ",
-                            modifier = Modifier
-                                .align(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center
-                        )
+        BottomAppBar(
+            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
+            modifier = Modifier.wrapContentHeight()
+        ) {
 
-                        Slider(
-                            value = slideValue,
-                            onValueChange = {
-                                slideValue = it
-                                rfPower = it.toInt()
-                            },
-                            enabled = true,
-                            valueRange = 5f..30f,
-                        )
+            Column {
+
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = {
+                        uiList.forEach {
+                            refillSignedProductCodes.add(it.KBarCode)
+                            uiList = mutableListOf()
+                            uiList = refillProducts
+                        }
+                    }) {
+                        Text(text = "انتخاب همه")
                     }
-                }*/
+                    Button(onClick = {
+                        openClearDialog = true
+                    }) {
+                        Text(text = "پاک کردن")
+                    }
+                    Button(onClick = {
+                        refillSignedProductCodes.clear()
+                        selectMode = false
+                        uiList = mutableListOf()
+                        uiList = refillProducts
+                    }) {
+                        Text(text = "بازگشت")
+                    }
+                }
             }
         }
     }
@@ -803,18 +814,35 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                if (isScanning) {
+                if (isScanning || isDataLoading) {
                     Row(
                         modifier = Modifier
                             .padding(32.dp)
                             .fillMaxWidth(), horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colors.primary)
+
+                        if (isScanning) {
+                            Text(
+                                text = "در حال اسکن",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
+                        if (isDataLoading) {
+                            Text(
+                                text = "در حال بارگذاری",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp).testTag("RefillActivityLazyColumn")) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -832,7 +860,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             modifier = Modifier
                 .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
-                    color = if (uiList[i].scannedNumber == 0) {
+                    color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber == 0) {
                         MaterialTheme.colors.onPrimary
                     } else {
                         MaterialTheme.colors.onSecondary
@@ -845,21 +873,33 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 .height(80.dp)
                 .combinedClickable(
                     onClick = {
-                        openSearchActivity(uiList[i])
+                        if (!selectMode) {
+                            openSearchActivity(uiList[i])
+                        } else {
+                            if (uiList[i].KBarCode !in refillSignedProductCodes) {
+                                refillSignedProductCodes.add(uiList[i].KBarCode)
+                            } else {
+                                refillSignedProductCodes.remove(uiList[i].KBarCode)
+                            }
+                            uiList = mutableListOf()
+                            uiList = refillProducts
+                        }
                     },
                     onLongClick = {
-                        if (uiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(uiList[i].KBarCode)
+                        selectMode = true
+                        if (uiList[i].KBarCode !in refillSignedProductCodes) {
+                            refillSignedProductCodes.add(uiList[i].KBarCode)
                         } else {
-                            signedProductCodes.remove(uiList[i].KBarCode)
+                            refillSignedProductCodes.remove(uiList[i].KBarCode)
                         }
                         uiList = mutableListOf()
                         uiList = refillProducts
                     },
-                ),
+                )
+                .testTag("refillItems"),
         ) {
 
-            if (uiList[i].KBarCode in signedProductCodes) {
+            if (uiList[i].KBarCode in refillSignedProductCodes) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_baseline_check_24),
                     tint = MaterialTheme.colors.primary,
@@ -896,6 +936,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         text = uiList[i].name,
                         style = MaterialTheme.typography.h1,
                         textAlign = TextAlign.Right,
+                        modifier = Modifier.testTag("refillBarcodes")
                     )
 
                     Text(
@@ -917,7 +958,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         textAlign = TextAlign.Right,
                     )
                     Text(
-                        text = "اسکن شده: " + uiList[i].scannedNumber.toString(),
+                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )
@@ -953,7 +994,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
                         Button(onClick = {
                             openClearDialog = false
-                            clear()
+                            refillClear()
+                            selectMode = false
 
                         }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
                             Text(text = "بله")

@@ -88,7 +88,8 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
         uiList.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
+            row.createCell(1)
+                .setCellValue(it.scannedEPCNumber.toDouble() + it.scannedBarcodeNumber.toDouble())
         }
 
         val dir = File(this.getExternalFilesDir(null), "/")
@@ -113,6 +114,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
     }
 
     private fun sendToStore() {
+
         val url = "http://rfid-api.avakatan.ir:3100/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -155,11 +157,11 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 val body = JSONObject()
                 val products = JSONArray()
 
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:s.SSS'Z'", Locale.ENGLISH)
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
                 Log.e("time", sdf.format(Date()))
 
                 uiList.forEach {
-                    repeat(it.scannedNumber) { _ ->
+                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
                         val productJson = JSONObject()
                         productJson.put("BarcodeMain_ID", it.primaryKey)
                         productJson.put("kbarcode", it.KBarCode)
@@ -170,6 +172,8 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 body.put("desc", "برای تست")
                 body.put("createDate", sdf.format(Date()))
                 body.put("products", products)
+
+                Log.e("error", body.toString())
 
                 return body.toString().toByteArray()
             }
@@ -349,7 +353,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                     )
 
                     Text(
-                        text = "اسکن شده: " + uiList[i].scannedNumber.toString(),
+                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )

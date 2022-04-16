@@ -1,6 +1,7 @@
 package com.jeanwest.reader.checkOut
 
-//import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -33,16 +34,15 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
-import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -59,16 +59,15 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val refillProducts = ArrayList<RefillProduct>()
+    private val refillProducts = ArrayList<CheckOutProduct>()
     private var scanningJob: Job? = null
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var unFoundProductsNumber by mutableStateOf(0)
-    private var validScannedProductsNumber by mutableStateOf(0)
     private var openFileDialog by mutableStateOf(false)
-    private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
+    private var uiList by mutableStateOf(mutableListOf<CheckOutProduct>())
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -238,7 +237,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             refillProducts.clear()
 
             for (i in 0 until epcs.length()) {
-                val refillProduct = RefillProduct(
+                val refillProduct = CheckOutProduct(
                     name = epcs.getJSONObject(i).getString("productName"),
                     KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
@@ -250,7 +249,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
                     salePrice = epcs.getJSONObject(i).getString("SalePrice"),
                     rfidKey = epcs.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = 0
+                    wareHouseNumber = 0,
+                    scannedBarcode = "",
+                    scannedEPCs = mutableListOf(),
                 )
                 refillProducts.add(refillProduct)
             }
@@ -391,7 +392,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         refillProducts.clear()
         signedProductCodes = mutableListOf()
         unFoundProductsNumber = refillProducts.size
-        validScannedProductsNumber = 0
         uiList = mutableListOf()
         uiList = refillProducts
         openFileDialog = false
@@ -422,13 +422,13 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private fun openSendToStoreActivity() {
 
         Intent(this, SendToDestinationActivity::class.java).also {
-            it.putExtra("RefillProducts", Gson().toJson(refillProducts).toString())
-            it.putExtra("validScannedProductsNumber", validScannedProductsNumber)
+            it.putExtra("CheckOutRefillProducts", Gson().toJson(refillProducts).toString())
+            it.putExtra("CheckOutValidScannedProductsNumber", numberOfScanned)
             startActivity(it)
         }
     }
 
-    private fun openSearchActivity(product: RefillProduct) {
+    private fun openSearchActivity(product: CheckOutProduct) {
 
         val searchResultProduct = SearchResultProducts(
             name = product.name,

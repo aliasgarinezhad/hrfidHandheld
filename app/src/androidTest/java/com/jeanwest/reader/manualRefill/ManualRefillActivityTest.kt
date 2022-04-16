@@ -1,19 +1,18 @@
-package com.jeanwest.reader.manualRefillWarehouseManager
+package com.jeanwest.reader.manualRefill
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 
 @ExperimentalCoilApi
-class ManualRefillWarehouseManagerActivityTest{
+class ManualRefillActivityTest{
 
     @get:Rule
-    val manualRefillWarehouseManagerActivity = createAndroidComposeRule<ManualRefillWarehouseManagerActivity>()
+    val manualRefillWarehouseManagerActivity = createAndroidComposeRule<ManualRefillActivity>()
 
     //scan some items
     @Test

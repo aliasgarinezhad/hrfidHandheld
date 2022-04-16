@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-//import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -33,7 +33,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -420,7 +420,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     onClick = {
                         openSearchActivity(uiList[i])
                     },
-                ),
+                )
+                .testTag("SearchItems"),
         ) {
 
             Image(

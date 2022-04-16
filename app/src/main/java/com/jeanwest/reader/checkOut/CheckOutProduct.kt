@@ -1,11 +1,12 @@
 
-package com.jeanwest.reader.refill
+package com.jeanwest.reader.checkOut
 
-data class RefillProduct(
+data class CheckOutProduct(
     var name: String,
     var KBarCode: String,
     var imageUrl: String,
     var primaryKey: Long,
+    var scannedNumber: Int,
     var productCode : String,
     var size: String,
     var color: String,
@@ -14,7 +15,5 @@ data class RefillProduct(
     var rfidKey : Long,
     var wareHouseNumber : Int,
     var scannedEPCs : MutableList<String>,
-    var scannedBarcode : String,
-    var scannedBarcodeNumber : Int,
-    var scannedEPCNumber : Int,
+    var scannedBarcode : String
 )

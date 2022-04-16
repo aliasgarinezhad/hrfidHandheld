@@ -1,4 +1,4 @@
-package com.jeanwest.reader.manualRefillWarehouseManager
+package com.jeanwest.reader.manualRefill
 
 import android.content.Intent
 import android.os.Bundle
@@ -30,7 +30,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.R
-import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
@@ -48,7 +47,7 @@ import java.util.*
 @ExperimentalCoilApi
 class ManualRefillSendToStoreActivity : ComponentActivity() {
 
-    private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
+    private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
     private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
@@ -64,13 +63,13 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
             Page()
         }
 
-        val type = object : TypeToken<List<RefillProduct>>() {}.type
+        val type = object : TypeToken<List<ManualRefillProduct>>() {}.type
 
         uiList = Gson().fromJson(
-            intent.getStringExtra("RefillProducts"), type
+            intent.getStringExtra("ManualRefillProducts"), type
         ) ?: mutableListOf()
 
-        numberOfScanned = intent.getIntExtra("validScannedProductsNumber", 0)
+        numberOfScanned = intent.getIntExtra("ManualRefillValidScannedProductsNumber", 0)
 
         val util = JalaliDate()
         fileName += util.currentShamsidate
@@ -156,7 +155,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 val body = JSONObject()
                 val products = JSONArray()
 
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:s.SSS'Z'", Locale.ENGLISH)
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
                 Log.e("time", sdf.format(Date()))
 
                 uiList.forEach {

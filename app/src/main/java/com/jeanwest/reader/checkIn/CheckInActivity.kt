@@ -1,6 +1,6 @@
 package com.jeanwest.reader.checkIn
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -47,7 +47,7 @@ import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -81,7 +81,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var numberOfScanned by mutableStateOf(0)
     private var uiList by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
     private val scanValues =
-        arrayListOf("همه اجناس", "تایید شده ها", "اضافی ها", "کسری ها")
+        arrayListOf("همه اجناس", "تایید شده", "اضافی", "کسری")
     private var scanFilter by mutableStateOf(0)
     private var openClearDialog by mutableStateOf(false)
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
@@ -368,17 +368,17 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 scanValues[scanFilter] == "همه اجناس" -> {
                     conflictResult
                 }
-                scanValues[scanFilter] == "اضافی ها" -> {
+                scanValues[scanFilter] == "اضافی" -> {
                     conflictResult.filter {
                         it.scan == "اضافی"
                     } as ArrayList<CheckInConflictResultProduct>
                 }
-                scanValues[scanFilter] == "کسری ها" -> {
+                scanValues[scanFilter] == "کسری" -> {
                     conflictResult.filter {
                         it.scan == "کسری"
                     } as ArrayList<CheckInConflictResultProduct>
                 }
-                scanValues[scanFilter] == "تایید شده ها" -> {
+                scanValues[scanFilter] == "تایید شده" -> {
                     conflictResult.filter {
                         it.scan == "تایید شده"
                     } as ArrayList<CheckInConflictResultProduct>
@@ -796,7 +796,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-                IconButton(onClick = { openClearDialog = true }) {
+                IconButton(modifier = Modifier.testTag("CheckInTestTag"), onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
@@ -965,7 +965,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     onClick = {
                         openSearchActivity(uiList[i])
                     },
-                ),
+                )
+                .testTag("CheckInActivityLazyColumnItem"),
         ) {
 
             Image(

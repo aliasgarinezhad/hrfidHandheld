@@ -1,172 +1,88 @@
 package com.jeanwest.reader.search
 
 import android.view.KeyEvent
-import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import androidx.compose.ui.test.onNodeWithText
+import coil.annotation.ExperimentalCoilApi
+import com.google.gson.Gson
+import com.jeanwest.reader.MainActivity
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
+
+@OptIn(ExperimentalCoilApi::class)
 class SearchSubActivityTest {
 
     @get:Rule
     var searchSubActivity = createAndroidComposeRule<SearchSubActivity>()
 
     //Find special product and see results (found EPC, product specification and image matching and beep)
-
     @Test
     fun searchSubActivityTest1() {
         val name = "ساپورت"
         val kbarcode = "64822109J-8010-F"
         val rfidCode = 130290L
 
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        searchSubActivity.waitForIdle()
+        Thread.sleep(500)
+        searchSubActivity.waitForIdle()
+
+        searchSubActivity.activity.intent.putExtra("product", Gson().toJson(product).toString())
+
+        searchSubActivity.activity.runOnUiThread {
+            searchSubActivity.activity.recreate()
+        }
+
+        searchSubActivity.waitForIdle()
+
         searchSubActivity.onNodeWithText(name).assertExists()
         searchSubActivity.onNodeWithText(kbarcode).assertExists()
-
-        RFIDWithUHFUART.uhfTagInfo.clear()
-        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
-        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
-
-        var uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 50L)
-        uhfTagInfo.tid = "E28011702000015F195D0A18"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 101L)
-        uhfTagInfo.tid = "E28011702000015F195D0A19"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 201L)
-        uhfTagInfo.tid = "E28011702000015F195D0A17"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 301L)
-        uhfTagInfo.tid = "E28011702000015F195D0A16"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        searchSubActivity.waitForIdle()
-        Thread.sleep(1000)
-        searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        searchSubActivity.waitForIdle()
+        searchSubActivity.onNodeWithText("قیمت: " + product.originalPrice).assertExists()
+        searchSubActivity.onNodeWithText("فروش: " + product.salePrice).assertExists()
+        searchSubActivity.onNodeWithText("فروش: " + product.salePrice).assertExists()
+        searchSubActivity.onNodeWithText("موجودی فروشگاه: " + product.shoppingNumber.toString())
+            .assertExists()
+        searchSubActivity.onNodeWithText("موجودی انبار: " + product.warehouseNumber.toString())
+            .assertExists()
         searchSubActivity.onNodeWithText("پیدا شده: 0").assertExists()
-    }
 
-    //Find special product that its number is bigger than 3 and test clear button
-    @Test
-    fun searchSubActivityTest2() {
-
-        val name = "ساپورت"
-        val kbarcode = "64822109J-8010-F"
-        val rfidCode = 130290L
-
-        searchSubActivity.onNodeWithText(name).assertExists()
-        searchSubActivity.onNodeWithText(kbarcode).assertExists()
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
-        var uhfTagInfo = UHFTAGInfo()
+        val uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 50L)
         uhfTagInfo.tid = "E28011702000015F195D0A18"
         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
 
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 101L)
-        uhfTagInfo.tid = "E28011702000015F195D0A19"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 201L)
-        uhfTagInfo.tid = "E28011702000015F195D0A17"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 301L)
-        uhfTagInfo.tid = "E28011702000015F195D0A16"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
         searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-
-        searchSubActivity.waitForIdle()
-
-        Thread.sleep(1000)
-        searchSubActivity.waitForIdle()
-
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
-
-        searchSubActivity.onNodeWithTag("SearchSubClearButton").performClick()
-        searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 0").assertExists()
-    }
-
-    //Do last again and test check box
-    @Test
-    fun searchSubActivityTest3() {
-
-        val name = "ساپورت"
-        val kbarcode = "64822109J-8010-F"
-        val rfidCode = 130290L
-
-        searchSubActivity.onNodeWithText(name).assertExists()
-        searchSubActivity.onNodeWithText(kbarcode).assertExists()
-
-        RFIDWithUHFUART.uhfTagInfo.clear()
-        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
-        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
-
-        var uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 50L)
-        uhfTagInfo.tid = "E28011702000015F195D0A18"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 101L)
-        uhfTagInfo.tid = "E28011702000015F195D0A19"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 201L)
-        uhfTagInfo.tid = "E28011702000015F195D0A17"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 301L)
-        uhfTagInfo.tid = "E28011702000015F195D0A16"
-        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-
-        searchSubActivity.onNodeWithTag("SearchSubSaveSwitch").performClick()
-        searchSubActivity.waitForIdle()
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-
         searchSubActivity.waitForIdle()
         Thread.sleep(1000)
         searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
-
-        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        searchSubActivity.waitForIdle()
-        searchSubActivity.onNodeWithText("پیدا شده: 4").assertExists()
+        searchSubActivity.onNodeWithText("پیدا شده: 1").assertExists()
 
     }
+
+    private val product = SearchResultProducts(
+        name = "ساپورت",
+        KBarCode = "64822109J-8010-F",
+        imageUrl = "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
+        shoppingNumber = 1,
+        warehouseNumber = 0,
+        productCode = "64822109",
+        size = "F",
+        color = "8010",
+        originalPrice = "1490000",
+        salePrice = "1490000",
+        primaryKey = 9514289L,
+        rfidKey = 130290L
+    )
 
     private fun epcGenerator(
         header: Int,

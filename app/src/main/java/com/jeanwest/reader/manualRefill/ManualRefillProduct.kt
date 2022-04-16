@@ -1,6 +1,7 @@
+
 package com.jeanwest.reader.manualRefill
 
-data class ManualRefillAllProduct(
+data class ManualRefillProduct(
     var name: String,
     var KBarCode: String,
     var imageUrl: String,
@@ -12,7 +13,7 @@ data class ManualRefillAllProduct(
     var originalPrice : String,
     var salePrice : String,
     var rfidKey : Long,
-    var shoppingNumber: Int,
-    var warehouseNumber: Int,
-    var refillNumber: Int
+    var wareHouseNumber : Int,
+    var scannedEPCs : MutableList<String>,
+    var scannedBarcode : String
 )

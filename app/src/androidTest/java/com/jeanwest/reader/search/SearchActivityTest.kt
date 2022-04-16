@@ -15,7 +15,7 @@ class SearchActivityTest {
     @get:Rule
     var searchActivity = createAndroidComposeRule<SearchActivity>()
 
-    //Search product by writing K_Bar_Code, k_bar_code and barcode and check results (always K_Bar_Code should be showed on text field)
+    //Search product by writing K_Bar_Code, k_bar_code and barcode and check results (always K_Bar_Code should be showed on text field) (3 tests)
     @Test
     fun searchActivityTest1() {
         val productCode = "11531052"
@@ -73,6 +73,7 @@ class SearchActivityTest {
     fun searchActivityTest3() {
 
         searchActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+
 
         searchActivity.waitForIdle()
 

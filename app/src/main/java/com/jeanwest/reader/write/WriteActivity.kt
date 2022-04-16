@@ -1,7 +1,7 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent

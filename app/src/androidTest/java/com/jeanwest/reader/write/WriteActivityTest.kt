@@ -8,53 +8,69 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
+
+// before starting test, copy 1000000-1000120 serial range in iot hub
 class WriteActivityTest {
 
     @get:Rule
     var writeActivity = createAndroidComposeRule<WriteActivity>()
 
-    //Write one stuff and check whether result is correct
-
+    //write 100 stuffs
     @Test
     fun addProductTest1() {
 
-        RFIDWithUHFUART.uhfTagInfo.clear()
-        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
-        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+        val header = 48
+        val company = 101
+        val partition = 0
+        val filter = 0
+        val serialNumberRange = 1000000L..1000050L
+
+        val uhfTagInfo = UHFTAGInfo()
+        uhfTagInfo.epc = "E28011702000015F195D0A17"
+        uhfTagInfo.tid = "E28011702000015F195D0A18"
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
-        val uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = "E28011702000015F195D0A17"
-        uhfTagInfo.tid = "E28011702000015F195D0A17"
-        repeat(5) {
-            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        for (i in serialNumberRange) {
+
+            RFIDWithUHFUART.uhfTagInfo.clear()
+            RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+            RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+            repeat(3) {
+                RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+            }
+
+            writeActivity.waitForIdle()
+
+            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+            writeActivity.waitForIdle()
+
+            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
+
+            writeActivity.waitForIdle()
+            writeActivity.waitForIdle()
+            Thread.sleep(500)
+
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).header == header)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).company == company)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).filter == filter)
+            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).partition == partition)
         }
-
-        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
-
-        writeActivity.waitForIdle()
-
-        writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
-
-        writeActivity.waitForIdle()
-        Thread.sleep(1000)
-        writeActivity.waitForIdle()
-
-
-        assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }
 
     //Write one unProgrammed stuff that placed between four programmed stuffs
 
     @Test
-    fun addProductTest2() {
+    fun addProductTest3() {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -105,7 +121,7 @@ class WriteActivityTest {
     //rewrite programmed tag
 
     @Test
-    fun addProductTest3() {
+    fun addProductTest4() {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -141,7 +157,7 @@ class WriteActivityTest {
     }
 
     @Test
-    fun addProductTest4() {
+    fun addProductTest5() {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -164,54 +180,6 @@ class WriteActivityTest {
         writeActivity.waitForIdle()
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.epc == "")
-    }
-
-    @Test
-    fun addProductTest5() {
-
-        val header = 48
-        val company = 101
-        val partition = 0
-        val filter = 0
-        val serialNumberRange = 1000000L..1000100L // copy range +1  in iot hub
-
-        MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
-
-        for (i in serialNumberRange) {
-
-            RFIDWithUHFUART.uhfTagInfo.clear()
-            RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
-            RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
-
-            val uhfTagInfo = UHFTAGInfo()
-            uhfTagInfo.epc = "E28011702000015F195D0A17"
-            uhfTagInfo.tid = "E28011702000015F195D0A18"
-
-            repeat(5) {
-                RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-            }
-
-            writeActivity.waitForIdle()
-
-            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
-
-            writeActivity.waitForIdle()
-
-            writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
-
-            writeActivity.waitForIdle()
-
-            Thread.sleep(500)
-            writeActivity.waitForIdle()
-
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).header == header)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).company == company)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).filter == filter)
-            assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).partition == partition)
-        }
     }
 
     //Write one stuff and check whether result is correct by QR Code

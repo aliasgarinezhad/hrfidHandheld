@@ -1,11 +1,12 @@
 package com.jeanwest.reader.hardware
 
+import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Context
 import android.os.Build
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
 import com.jeanwest.reader.R
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

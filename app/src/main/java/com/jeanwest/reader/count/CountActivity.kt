@@ -1,6 +1,6 @@
 package com.jeanwest.reader.count
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -22,6 +22,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -40,9 +41,9 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.*
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -64,7 +65,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var scannedEpcTable = mutableListOf<String>()
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
-    private var excelBarcodes = mutableListOf<String>()
+    var excelBarcodes = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
     private val fileProducts = mutableListOf<FileProduct>()
     private val scannedProducts = mutableMapOf<String, ScannedProduct>()
@@ -875,7 +876,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    private fun saveToMemory() {
+    fun saveToMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
@@ -1047,7 +1048,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-                IconButton(onClick = { openClearDialog = true }) {
+                IconButton(modifier = Modifier.testTag("CountActivityClearButton"),
+                    onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
@@ -1297,7 +1299,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                             categoryFilter
                         )
                     },
-                ),
+                )
+                .testTag("CountActivityLazyColumnItem"),
         ) {
 
             Image(
@@ -1368,7 +1371,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = Modifier
+                .clickable { expanded = true }
+                .testTag("CountActivityFilterDropDownList")
+            ) {
                 Text(text = scanFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }

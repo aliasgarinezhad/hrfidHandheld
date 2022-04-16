@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -28,9 +28,9 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -155,7 +155,6 @@ class SearchSubActivity : ComponentActivity() {
 
             val epcTableWithRssi = mutableMapOf<String, String>()
             var isFound = false
-            var foundRssi = 100F
             var uhfTagInfo: UHFTAGInfo?
 
             while (true) {
@@ -179,10 +178,6 @@ class SearchSubActivity : ComponentActivity() {
                     matchedEpcTable.add(it.key)
                     matchedEpcTable = matchedEpcTable.distinct().toMutableList()
                     isFound = true
-                    val productRssi = it.value.toFloat() * -1
-                    if (productRssi < foundRssi) {
-                        foundRssi = productRssi
-                    }
                 }
             }
 
@@ -190,12 +185,7 @@ class SearchSubActivity : ComponentActivity() {
                 30 -> {
                     if (isFound) {
                         distance = 0.7f
-
-                        //if (foundRssi < 75F) {
                         changePowerWhileScanning(20)
-                        //} else {
-                        //delay(500)
-                        //}
                     } else {
                         distance = 1f
                         delay(500)
@@ -205,11 +195,7 @@ class SearchSubActivity : ComponentActivity() {
                 20 -> {
                     if (isFound) {
                         distance = 0.5f
-                        //if (foundRssi < 75F) {
                         changePowerWhileScanning(10)
-                        //} else {
-                        //    delay(500)
-                        //}
                     } else {
                         distance = 0.7f
                         changePowerWhileScanning(30)
@@ -219,11 +205,7 @@ class SearchSubActivity : ComponentActivity() {
                 10 -> {
                     if (isFound) {
                         distance = 0.2f
-                        //if (foundRssi < 75F) {
                         changePowerWhileScanning(5)
-                        //} else {
-                        //   delay(500)
-                        //}
                     } else {
                         distance = 0.5f
                         changePowerWhileScanning(20)
@@ -309,6 +291,27 @@ class SearchSubActivity : ComponentActivity() {
             }
         }
     }
+
+    /*private fun convertPersianNumbersToEnglish(input: String): String {
+
+        var inputCopy = input
+        inputCopy = inputCopy.replace("۰", "0")
+        inputCopy = inputCopy.replace("۱", "1")
+        inputCopy = inputCopy.replace("۲", "2")
+        inputCopy = inputCopy.replace("۳", "3")
+        inputCopy = inputCopy.replace("۴", "4")
+        inputCopy = inputCopy.replace("۵", "5")
+        inputCopy = inputCopy.replace("۶", "6")
+        inputCopy = inputCopy.replace("۷", "7")
+        inputCopy = inputCopy.replace("۸", "8")
+        inputCopy = inputCopy.replace("۹", "9")
+        inputCopy = inputCopy.replace("٫", ".")
+        inputCopy = inputCopy.replace("-", "-")
+        Log.e(
+            "convert", inputCopy
+        )
+        return inputCopy
+    }*/
 
     private fun back() {
         stopFinding()

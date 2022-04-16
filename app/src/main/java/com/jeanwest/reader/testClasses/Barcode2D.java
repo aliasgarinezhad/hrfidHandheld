@@ -9,17 +9,17 @@ import com.jeanwest.reader.hardware.IBarcodeResult;
  */
 
 public class Barcode2D {
-    IBarcodeResult iBarcodeResult=null;
+    IBarcodeResult iBarcodeResult = null;
     Context context;
-    public Barcode2D(Context context){
-        this.context=context;
+    public static String barcode = "J64822109801099001";
+
+    public Barcode2D(Context context) {
+        this.context = context;
     }
-    //开始扫码
-    public void startScan(Context context){
 
-        String barcode = "J64822109801099001";
+    public void startScan(Context context) {
 
-        if(iBarcodeResult!=null) {
+        if (iBarcodeResult != null) {
             try {
                 iBarcodeResult.getBarcode(barcode);
             } catch (InterruptedException e) {
@@ -27,17 +27,16 @@ public class Barcode2D {
             }
         }
     }
-    //停止扫描
-    public void stopScan(Context context){
+
+    public void stopScan(Context context) {
 
     }
 
-    //打开
-    public void open(Context context, IBarcodeResult iBarcodeResult){
-        this.iBarcodeResult=iBarcodeResult;
+    public void open(Context context, IBarcodeResult iBarcodeResult) {
+        this.iBarcodeResult = iBarcodeResult;
     }
-    //关闭
-    public void close(Context context){
+
+    public void close(Context context) {
 
     }
 }
