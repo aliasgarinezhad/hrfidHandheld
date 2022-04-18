@@ -37,6 +37,7 @@
         </activity>
 
         <activity android:name="com.jeanwest.reader.manualRefill.ManualRefillSendToStoreActivity" />
+        <activity android:name="com.jeanwest.reader.manualRefill.AddProductToManualRefillListActivityActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.SendToDestinationActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.ConfirmCheckInsActivity" />

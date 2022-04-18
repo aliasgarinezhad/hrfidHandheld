@@ -1,6 +1,6 @@
 package com.jeanwest.reader
 
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
@@ -40,7 +40,7 @@ import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.write.WriteActivity
-//import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 
 
@@ -482,7 +482,7 @@ class MainActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier
                         .width(240.dp)
-                        .height(136.dp),
+                        .height(120.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
 

@@ -1,7 +1,7 @@
 package com.jeanwest.reader.refill
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -42,10 +42,12 @@ import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.doneColor
+import com.jeanwest.reader.theme.doneColorDarkerShade
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -598,10 +600,17 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun back() {
 
-        saveToMemory()
-        stopRFScan()
-        stopBarcodeScan()
-        finish()
+        if (selectMode) {
+            refillSignedProductCodes = mutableListOf()
+            selectMode = false
+            uiList = mutableListOf()
+            uiList = refillProducts
+        } else {
+            saveToMemory()
+            stopRFScan()
+            stopBarcodeScan()
+            finish()
+        }
     }
 
     private fun openSendToStoreActivity() {
@@ -646,7 +655,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    bottomBar = { if (selectMode) SelectedBottomAppBar() else BottomAppBar() },
+                    bottomBar = { if (selectMode) SelectedBottomBar() else BottomBar() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -681,7 +690,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun BottomAppBar() {
+    fun BottomBar() {
 
         BottomAppBar(
             backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
@@ -725,7 +734,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun SelectedBottomAppBar() {
+    fun SelectedBottomBar() {
 
         BottomAppBar(
             backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
@@ -842,7 +851,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp).testTag("RefillActivityLazyColumn")) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(top = 8.dp, bottom = 56.dp)
+                    .testTag("RefillActivityLazyColumn")
+            ) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -858,6 +871,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
+
                 .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
                     color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber == 0) {
@@ -880,6 +894,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                                 refillSignedProductCodes.add(uiList[i].KBarCode)
                             } else {
                                 refillSignedProductCodes.remove(uiList[i].KBarCode)
+                                if(refillSignedProductCodes.size == 0) {
+                                    selectMode = false
+                                }
                             }
                             uiList = mutableListOf()
                             uiList = refillProducts
@@ -891,6 +908,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                             refillSignedProductCodes.add(uiList[i].KBarCode)
                         } else {
                             refillSignedProductCodes.remove(uiList[i].KBarCode)
+                            if(refillSignedProductCodes.size == 0) {
+                                selectMode = false
+                            }
                         }
                         uiList = mutableListOf()
                         uiList = refillProducts
@@ -901,8 +921,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             if (uiList[i].KBarCode in refillSignedProductCodes) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                    tint = MaterialTheme.colors.primary,
+                    painter = painterResource(id = R.drawable.ic_baseline_check_circle_24),
+                    tint = doneColor,
                     contentDescription = "",
                     modifier = Modifier
                         .fillMaxHeight()
@@ -918,7 +938,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
+                    .padding(horizontal = 8.dp)
             )
 
             Row(
@@ -961,6 +981,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
+                        color = if (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber > 0) {
+                            doneColorDarkerShade
+                        } else {
+                            MaterialTheme.colors.onBackground
+                        }
                     )
                 }
             }

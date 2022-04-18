@@ -1,6 +1,6 @@
 package com.jeanwest.reader.count
 
-//import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -41,7 +41,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.*
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.entity.UHFTAGInfo

@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-//import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -28,7 +28,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -39,7 +39,7 @@ import kotlinx.coroutines.Dispatchers.IO
 @ExperimentalCoilApi
 class SearchSubActivity : ComponentActivity() {
 
-    private var distance by mutableStateOf(1f)
+    var distance by mutableStateOf(1f)
     private var scannedNumber by mutableStateOf(0)
     private var rfPower by mutableStateOf(30)
     private var isScanning by mutableStateOf(false)
@@ -67,7 +67,23 @@ class SearchSubActivity : ComponentActivity() {
                         SnackbarDuration.Long
                     )
                 }
-                finish()
+                //finish()
+
+                product = SearchResultProducts(
+                    name = "ساپورت",
+                    KBarCode = "64822109J-8010-F",
+                    imageUrl = "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
+                    shoppingNumber = 1,
+                    warehouseNumber = 0,
+                    productCode = "64822109",
+                    size = "F",
+                    color = "8010",
+                    originalPrice = "1490000",
+                    salePrice = "1490000",
+                    primaryKey = 9514289L,
+                    rfidKey = 130290L
+                )
+
             } else {
                 val type = object : TypeToken<SearchResultProducts>() {}.type
                 product = Gson().fromJson(
@@ -153,7 +169,7 @@ class SearchSubActivity : ComponentActivity() {
 
         while (isScanning) {
 
-            val epcTableWithRssi = mutableMapOf<String, String>()
+            val epcTable = mutableListOf<String>()
             var isFound = false
             var uhfTagInfo: UHFTAGInfo?
 
@@ -162,20 +178,20 @@ class SearchSubActivity : ComponentActivity() {
                 uhfTagInfo = rf.readTagFromBuffer()
                 if (uhfTagInfo != null) {
                     if (uhfTagInfo.epc.startsWith("30")) {
-                        epcTableWithRssi[uhfTagInfo.epc] = uhfTagInfo.rssi
+                        epcTable.add(uhfTagInfo.epc)
                     }
                 } else {
                     break
                 }
             }
 
-            epcTableWithRssi.forEach {
+            epcTable.forEach {
 
-                val decodedEpc = epcDecoder(it.key)
+                val decodedEpc = epcDecoder(it)
                 if ((decodedEpc.company == 101 && decodedEpc.item == product.rfidKey) ||
                     (decodedEpc.company == 100 && decodedEpc.item == product.primaryKey)
                 ) {
-                    matchedEpcTable.add(it.key)
+                    matchedEpcTable.add(it)
                     matchedEpcTable = matchedEpcTable.distinct().toMutableList()
                     isFound = true
                 }

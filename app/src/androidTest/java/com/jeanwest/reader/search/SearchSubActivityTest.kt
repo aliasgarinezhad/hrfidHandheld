@@ -1,13 +1,17 @@
 package com.jeanwest.reader.search
 
+import android.content.Intent
 import android.view.KeyEvent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.test.runner.intent.IntentCallback
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART.uhfTagInfo
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
+import kotlinx.coroutines.processNextEventInCurrentThread
 import org.junit.Rule
 import org.junit.Test
 
@@ -21,29 +25,17 @@ class SearchSubActivityTest {
     //Find special product and see results (found EPC, product specification and image matching and beep)
     @Test
     fun searchSubActivityTest1() {
-        val name = "ساپورت"
-        val kbarcode = "64822109J-8010-F"
-        val rfidCode = 130290L
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
         searchSubActivity.waitForIdle()
-        Thread.sleep(500)
+        Thread.sleep(1000)
         searchSubActivity.waitForIdle()
 
-        searchSubActivity.activity.intent.putExtra("product", Gson().toJson(product).toString())
-
-        searchSubActivity.activity.runOnUiThread {
-            searchSubActivity.activity.recreate()
-        }
-
-        searchSubActivity.waitForIdle()
-
-        searchSubActivity.onNodeWithText(name).assertExists()
-        searchSubActivity.onNodeWithText(kbarcode).assertExists()
+        searchSubActivity.onNodeWithText(product.name).assertExists()
+        searchSubActivity.onNodeWithText(product.KBarCode).assertExists()
         searchSubActivity.onNodeWithText("قیمت: " + product.originalPrice).assertExists()
-        searchSubActivity.onNodeWithText("فروش: " + product.salePrice).assertExists()
         searchSubActivity.onNodeWithText("فروش: " + product.salePrice).assertExists()
         searchSubActivity.onNodeWithText("موجودی فروشگاه: " + product.shoppingNumber.toString())
             .assertExists()
@@ -51,21 +43,79 @@ class SearchSubActivityTest {
             .assertExists()
         searchSubActivity.onNodeWithText("پیدا شده: 0").assertExists()
 
-
-        RFIDWithUHFUART.uhfTagInfo.clear()
+        uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.rssi = ""
 
         val uhfTagInfo = UHFTAGInfo()
-        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, rfidCode, 50L)
+        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, product.rfidKey, 50L)
         uhfTagInfo.tid = "E28011702000015F195D0A18"
+        uhfTagInfo.rssi = ""
+
         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+
 
         searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
         searchSubActivity.waitForIdle()
-        Thread.sleep(1000)
+
+        var time = System.currentTimeMillis()
+        var currentDistance = 1F
+
+        while (System.currentTimeMillis() - time < 2000) {
+
+            searchSubActivity.waitForIdle()
+
+            if (currentDistance == 1F && searchSubActivity.activity.distance == 0.7F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.7F
+            } else if (currentDistance == 0.7F && searchSubActivity.activity.distance == 0.5F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.5F
+            } else if (currentDistance == 0.5F && searchSubActivity.activity.distance == 0.2F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.2F
+            }else if (currentDistance == 0.7F && searchSubActivity.activity.distance == 0.5F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.5F
+            }
+        }
         searchSubActivity.waitForIdle()
         searchSubActivity.onNodeWithText("پیدا شده: 1").assertExists()
+
+        searchSubActivity.waitForIdle()
+
+        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.rssi = ""
+
+        currentDistance = 0.05F
+        time = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - time < 2000) {
+
+            searchSubActivity.waitForIdle()
+
+            if (currentDistance == 0.05F && searchSubActivity.activity.distance == 0.2F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.2F
+            } else if (currentDistance == 0.2F && searchSubActivity.activity.distance == 0.5F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.5F
+            } else if (currentDistance == 0.5F && searchSubActivity.activity.distance == 0.7F) {
+                time = System.currentTimeMillis()
+                currentDistance = 0.7F
+            } else if (currentDistance == 0.7F && searchSubActivity.activity.distance == 1F) {
+                time = System.currentTimeMillis()
+                currentDistance = 1F
+            }
+        }
+
+        searchSubActivity.waitForIdle()
+        searchSubActivity.onNodeWithText("پیدا شده: 1").assertExists()
+
+        searchSubActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        searchSubActivity.waitForIdle()
 
     }
 

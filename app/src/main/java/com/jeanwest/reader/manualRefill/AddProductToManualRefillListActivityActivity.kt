@@ -1,12 +1,15 @@
-package com.jeanwest.reader.search
+package com.jeanwest.reader.manualRefill
 
-import com.jeanwest.reader.testClasses.Barcode2D
-import android.content.Intent
+//import com.jeanwest.reader.testClasses.Barcode2D
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
@@ -31,10 +34,9 @@ import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.google.gson.Gson
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
@@ -43,20 +45,14 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 
 @ExperimentalCoilApi
-class SearchActivity : ComponentActivity(), IBarcodeResult {
+class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
-    private var uiList by mutableStateOf(mutableListOf<SearchResultProducts>())
-    private var filteredUiList by mutableStateOf(mutableListOf<SearchResultProducts>())
+    private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
+    private var filteredUiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
     private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
     private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
-    private var wareHouseFilterValues by mutableStateOf(
-        mutableListOf(
-            "فروشگاه و انبار",
-            "فروشگاه",
-            "انبار"
-        )
-    )
+
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
@@ -159,28 +155,12 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         barcode2D.close(this)
     }
 
-    private fun filterUiList(uiList: MutableList<SearchResultProducts>): MutableList<SearchResultProducts> {
-
-        val wareHouseFilterOutput = when (wareHouseFilterValue) {
-            "فروشگاه" -> {
-                uiList.filter {
-                    it.shoppingNumber > 0
-                }
-            }
-            "انبار" -> {
-                uiList.filter {
-                    it.warehouseNumber > 0
-                }
-            }
-            else -> {
-                uiList
-            }
-        }
+    private fun filterUiList(uiList: MutableList<ManualRefillProduct>): MutableList<ManualRefillProduct> {
 
         val sizeFilterOutput = if (sizeFilterValue == "همه سایز ها") {
-            wareHouseFilterOutput
+            uiList
         } else {
-            wareHouseFilterOutput.filter {
+            uiList.filter {
                 it.size == sizeFilterValue
             }
         }
@@ -287,22 +267,25 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             sizeFilterValues.add(json.getString("Size"))
 
             uiList.add(
-                SearchResultProducts(
+                ManualRefillProduct(
                     name = json.getString("productName"),
                     KBarCode = json.getString("KBarCode"),
                     imageUrl = json.getString("ImgUrl"),
-                    shoppingNumber = json.getInt("dbCountStore"),
-                    warehouseNumber = json.getInt("dbCountDepo"),
+                    wareHouseNumber = json.getInt("dbCountDepo"),
                     productCode = json.getString("K_Bar_Code"),
                     size = json.getString("Size"),
                     color = json.getString("Color"),
                     originalPrice = json.getString("OrigPrice"),
                     salePrice = json.getString("SalePrice"),
                     primaryKey = json.getLong("BarcodeMain_ID"),
-                    rfidKey = json.getLong("RFID")
+                    rfidKey = json.getLong("RFID"),
+                    scannedEPCs = mutableListOf(),
+                    scannedBarcode = "",
+                    scannedNumber = 0
                 )
             )
         }
+
 
         productCode = uiList[0].productCode
         colorFilterValues = colorFilterValues.distinct().toMutableList()
@@ -310,11 +293,24 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         filteredUiList = filterUiList(uiList)
     }
 
-    private fun openSearchActivity(product: SearchResultProducts) {
+    private fun backToManualRefillActivity(product: ManualRefillProduct) {
 
-        val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", Gson().toJson(product).toString())
-        startActivity(intent)
+        Log.e("error", ManualRefillActivity.uiList.size.toString())
+
+        ManualRefillActivity.uiList.forEach {
+            if (product.KBarCode == it.KBarCode) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "این کد محصول قبلا اضافه شده است.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                return
+            }
+        }
+        ManualRefillActivity.userDefinedProducts.add(product)
+        finish()
     }
 
     private fun back() {
@@ -348,7 +344,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "جست و جو", textAlign = TextAlign.Center,
+                        "اضافه کردن کالای جدید", textAlign = TextAlign.Center,
                     )
                 }
             },
@@ -387,7 +383,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        WarehouseFilterDropDownList()
                         ColorFilterDropDownList()
                         SizeFilterDropDownList()
                     }
@@ -418,7 +413,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                 .height(80.dp)
                 .clickable(
                     onClick = {
-                        openSearchActivity(uiList[i])
+                        backToManualRefillActivity(uiList[i])
                     },
                 )
                 .testTag("SearchItems"),
@@ -559,40 +554,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     DropdownMenuItem(onClick = {
                         expanded = false
                         colorFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun WarehouseFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier
-                .clickable { expanded = true }
-                .testTag("SearchWarehouseFilterDropDownList")) {
-                Text(text = wareHouseFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                wareHouseFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        wareHouseFilterValue = it
                         filteredUiList = filterUiList(uiList)
                     }) {
                         Text(text = it)
