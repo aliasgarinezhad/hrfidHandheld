@@ -200,7 +200,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
             return
         }
 
-        val url = "http://rfid-api.avakatan.ir/stock-draft/confirm"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/confirm"
         val request = object : JsonArrayRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {

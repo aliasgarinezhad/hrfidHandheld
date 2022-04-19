@@ -3,7 +3,7 @@ package com.jeanwest.reader.JalaliDate;
 public class JalaliDateConverter {
 
     /**  Gregorian & Jalali (Hijri_Shamsi,Solar) Date Converter Functions
-     Author: JDF.SCR.IR =>> Download Full Version :  http://jdf.scr.ir/jdf
+     Author: JDF.SCR.IR =>> Download Full Version :  https://jdf.scr.ir/jdf
      License: GNU/LGPL _ Open Source & Free :: Version: 2.80 : [2020=1399]
      ---------------------------------------------------------------------
      355746=361590-5844 & 361590=(30*33*365)+(30*8) & 5844=(16*365)+(16/4)

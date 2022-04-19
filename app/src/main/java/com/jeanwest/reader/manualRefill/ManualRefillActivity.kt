@@ -1,7 +1,7 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -44,8 +44,8 @@ import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.theme.doneColor
@@ -73,7 +73,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     //ui parameters
     private var isScanning by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
-    private var validScannedProductsNumber by mutableStateOf(0)
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -181,7 +180,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         while (isScanning) {
 
-
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
@@ -240,7 +238,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v4"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -350,13 +348,14 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api.avakatan.ir/products/v4"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             val epcs = it.getJSONArray("epcs")
             val barcodes = it.getJSONArray("KBarCodes")
 
+            scannedEpcTable.clear()
             scannedProducts.clear()
             for (i in 0 until epcs.length()) {
                 val refillProduct = ManualRefillProduct(
@@ -377,6 +376,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 )
 
                 refillProduct.scannedEPCs.add(epcs.getJSONObject(i).getString("epc"))
+                scannedEpcTable.add(epcs.getJSONObject(i).getString("epc"))
 
                 var isInRefillProductList = false
                 scannedProducts.forEach { it1 ->
@@ -392,6 +392,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
+            scannedBarcodeTable.clear()
             for (i in 0 until barcodes.length()) {
                 val refillProduct = ManualRefillProduct(
                     name = barcodes.getJSONObject(i).getString("productName"),
@@ -409,6 +410,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
                     scannedEPCs = mutableListOf(),
                 )
+
+                scannedBarcodeTable.add(barcodes.getJSONObject(i).getString("kbarcode"))
+
                 var isInRefillProductList = false
                 scannedProducts.forEach { it1 ->
                     if (it1.KBarCode == refillProduct.KBarCode) {
@@ -650,7 +654,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         Intent(this, ManualRefillSendToStoreActivity::class.java).also {
             it.putExtra("ManualRefillProducts", Gson().toJson(scannedProducts).toString())
-            it.putExtra("ManualRefillValidScannedProductsNumber", validScannedProductsNumber)
+            it.putExtra("ManualRefillValidScannedProductsNumber", numberOfScanned)
             startActivity(it)
         }
     }
@@ -719,12 +723,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     Button(onClick = {
                         uiList.forEach {
                             signedProductCodes.add(it.KBarCode)
-                            uiList.clear()
-                            uiList.addAll(scannedProducts)
-                            uiList.addAll(userDefinedProducts)
-                            uiList.sortBy { it1 ->
-                                it1.scannedNumber > 0
-                            }
+                        }
+                        uiList.clear()
+                        uiList.addAll(scannedProducts)
+                        uiList.addAll(userDefinedProducts)
+                        uiList.sortBy { it1 ->
+                            it1.scannedNumber > 0
                         }
                     }) {
                         Text(text = "انتخاب همه")

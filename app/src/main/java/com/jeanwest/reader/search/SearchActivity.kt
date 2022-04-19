@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -33,7 +33,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -101,7 +101,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             productCode = ""
 
             val url =
-                "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
+                "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
 
             val request = JsonObjectRequest(url, {
 
@@ -205,7 +205,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         sizeFilterValues = mutableListOf("همه سایز ها")
 
         val url1 =
-            "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
+            "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
 
         val request1 = JsonObjectRequest(url1, { response1 ->
 
@@ -216,7 +216,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             } else {
 
                 val url2 =
-                    "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
+                    "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
 
                 val request2 = JsonObjectRequest(url2, { response2 ->
 

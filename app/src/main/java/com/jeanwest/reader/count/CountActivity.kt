@@ -1,6 +1,6 @@
 package com.jeanwest.reader.count
 
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -41,7 +41,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.*
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -347,7 +347,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -494,7 +494,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v4"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -655,7 +655,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun getSearchModeProductsProperties() {
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 

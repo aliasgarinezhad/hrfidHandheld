@@ -1,7 +1,7 @@
 package com.jeanwest.reader.refill
 
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -42,8 +42,8 @@ import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.theme.doneColor
@@ -205,7 +205,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillBarcodes() {
 
-        val url = "http://rfid-api.avakatan.ir/refill"
+        val url = "https://rfid-api.avakatan.ir/refill"
 
         val request = object : JsonArrayRequest(Method.GET, url, null, {
 
@@ -258,7 +258,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillItems() {
 
-        val url = "http://rfid-api.avakatan.ir/products/v4"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -380,7 +380,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -752,9 +752,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     Button(onClick = {
                         uiList.forEach {
                             refillSignedProductCodes.add(it.KBarCode)
-                            uiList = mutableListOf()
-                            uiList = refillProducts
                         }
+                        uiList = mutableListOf()
+                        uiList = refillProducts
                     }) {
                         Text(text = "انتخاب همه")
                     }

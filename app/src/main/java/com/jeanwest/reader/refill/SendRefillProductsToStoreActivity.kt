@@ -115,7 +115,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
 
     private fun sendToStore() {
 
-        val url = "http://rfid-api.avakatan.ir:3100/stock-draft/refill"
+        val url = "https://rfid-api.avakatan.ir/test/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {

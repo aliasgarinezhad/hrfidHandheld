@@ -41,7 +41,7 @@ class OperatorLoginActivity : ComponentActivity() {
 
     private fun advanceUserAuthenticate() {
 
-        val url = "http://rfid-api.avakatan.ir/login/operators"
+        val url = "https://rfid-api.avakatan.ir/login/operators"
         val request = object : JsonObjectRequest(Method.POST, url, null, fun(it) {
             advanceSettingToken = it.getString("accessToken")
             Intent(this, DeviceRegisterActivity::class.java).also {

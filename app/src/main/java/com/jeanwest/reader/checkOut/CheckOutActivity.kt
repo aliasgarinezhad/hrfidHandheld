@@ -1,7 +1,7 @@
 package com.jeanwest.reader.checkOut
 
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -18,6 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -34,8 +36,7 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
@@ -43,6 +44,8 @@ import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.doneColor
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -59,23 +62,21 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val refillProducts = ArrayList<CheckOutProduct>()
+    val scannedProducts = ArrayList<CheckOutProduct>()
     private var scanningJob: Job? = null
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
-    private var unFoundProductsNumber by mutableStateOf(0)
-    private var openFileDialog by mutableStateOf(false)
-    private var uiList by mutableStateOf(mutableListOf<CheckOutProduct>())
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var signedProductCodes = mutableListOf<String>()
+    var signedProductCodes = mutableListOf<String>()
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
     var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
-
+    private var selectMode by mutableStateOf(false)
+    var uiList = mutableStateListOf<CheckOutProduct>()
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -94,9 +95,17 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         setContent {
             Page()
         }
+
+        /*scannedProducts.clear()
+        scannedEpcTable.clear()
+        scannedBarcodeTable.clear()
+        saveToMemory()*/
+
         loadMemory()
 
-        syncScannedItemsToServer()
+        if (numberOfScanned != 0) {
+            syncScannedItemsToServer()
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -199,65 +208,87 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             val epcs = it.getJSONArray("epcs")
             val barcodes = it.getJSONArray("KBarCodes")
-            val similarIndexes = arrayListOf<Int>()
 
-            for (i in 0 until barcodes.length()) {
-
-                for (j in 0 until epcs.length()) {
-
-                    if (barcodes.getJSONObject(i)
-                            .getString("KBarCode") == epcs.getJSONObject(j)
-                            .getString("KBarCode")
-                    ) {
-                        epcs.getJSONObject(j).put(
-                            "handheldCount",
-                            epcs.getJSONObject(j)
-                                .getInt("handheldCount") + barcodes.getJSONObject(i)
-                                .getInt("handheldCount")
-                        )
-                        similarIndexes.add(i)
-                        break
-                    }
-                }
-            }
-
-            for (i in 0 until barcodes.length()) {
-
-                if (i !in similarIndexes) {
-                    epcs.put(it.getJSONArray("KBarCodes")[i])
-                }
-            }
-
-            refillProducts.clear()
-
+            scannedEpcTable.clear()
+            scannedProducts.clear()
             for (i in 0 until epcs.length()) {
-                val refillProduct = CheckOutProduct(
+                val checkOutProduct = CheckOutProduct(
                     name = epcs.getJSONObject(i).getString("productName"),
                     KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedNumber = epcs.getJSONObject(i).getInt("handheldCount"),
+                    scannedNumber = 1,
                     productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
                     size = epcs.getJSONObject(i).getString("Size"),
                     color = epcs.getJSONObject(i).getString("Color"),
                     originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
                     salePrice = epcs.getJSONObject(i).getString("SalePrice"),
                     rfidKey = epcs.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = 0,
+                    wareHouseNumber = epcs.getJSONObject(i).getInt("depoCount"),
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(),
                 )
-                refillProducts.add(refillProduct)
+
+                checkOutProduct.scannedEPCs.add(epcs.getJSONObject(i).getString("epc"))
+                scannedEpcTable.add(epcs.getJSONObject(i).getString("epc"))
+
+                var isInRefillProductList = false
+                scannedProducts.forEach { it1 ->
+                    if (it1.KBarCode == checkOutProduct.KBarCode) {
+                        it1.scannedEPCs.add(checkOutProduct.scannedEPCs[0])
+                        it1.scannedNumber += 1
+                        isInRefillProductList = true
+                        return@forEach
+                    }
+                }
+                if (!isInRefillProductList) {
+                    scannedProducts.add(checkOutProduct)
+                }
             }
 
-            uiList = mutableListOf()
-            uiList = refillProducts
+            scannedBarcodeTable.clear()
+            for (i in 0 until barcodes.length()) {
+                val checkOutProduct = CheckOutProduct(
+                    name = barcodes.getJSONObject(i).getString("productName"),
+                    KBarCode = barcodes.getJSONObject(i).getString("KBarCode"),
+                    imageUrl = barcodes.getJSONObject(i).getString("ImgUrl"),
+                    primaryKey = barcodes.getJSONObject(i).getLong("BarcodeMain_ID"),
+                    scannedNumber = 1,
+                    productCode = barcodes.getJSONObject(i).getString("K_Bar_Code"),
+                    size = barcodes.getJSONObject(i).getString("Size"),
+                    color = barcodes.getJSONObject(i).getString("Color"),
+                    originalPrice = barcodes.getJSONObject(i).getString("OrgPrice"),
+                    salePrice = barcodes.getJSONObject(i).getString("SalePrice"),
+                    rfidKey = barcodes.getJSONObject(i).getLong("RFID"),
+                    wareHouseNumber = barcodes.getJSONObject(i).getInt("depoCount"),
+                    scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
+                    scannedEPCs = mutableListOf(),
+                )
+
+                scannedBarcodeTable.add(barcodes.getJSONObject(i).getString("kbarcode"))
+
+                var isInCheckOutProductList = false
+                scannedProducts.forEach { it1 ->
+                    if (it1.KBarCode == checkOutProduct.KBarCode) {
+                        it1.scannedBarcode = checkOutProduct.scannedBarcode
+                        it1.scannedNumber += 1
+                        isInCheckOutProductList = true
+                        return@forEach
+                    }
+                }
+                if (!isInCheckOutProductList) {
+                    scannedProducts.add(checkOutProduct)
+                }
+            }
+
+            uiList.clear()
+            uiList.addAll(scannedProducts)
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
@@ -269,10 +300,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                         SnackbarDuration.Long
                     )
                 }
-
             } else {
                 when (it) {
-
                     is NoConnectionError -> {
 
                         CoroutineScope(Dispatchers.Default).launch {
@@ -294,8 +323,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
-            uiList = mutableListOf()
-            uiList = refillProducts
+            uiList.clear()
+            uiList.addAll(scannedProducts)
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -332,7 +361,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CheckOutActivity)
+        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -383,18 +412,27 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
     }
 
-    private fun clear() {
+    fun clear() {
 
-        scannedBarcodeTable.clear()
-        scannedEpcTable.clear()
-        epcTablePreviousSize = 0
-        numberOfScanned = 0
-        refillProducts.clear()
+        val removedRefillProducts = mutableListOf<CheckOutProduct>()
+
+        scannedProducts.forEach {
+            if (it.KBarCode in signedProductCodes) {
+
+                scannedEpcTable.removeAll(it.scannedEPCs)
+                scannedBarcodeTable.removeAll { it1 ->
+                    it1 == it.scannedBarcode
+                }
+                removedRefillProducts.add(it)
+            }
+        }
+        scannedProducts.removeAll(removedRefillProducts)
+
+        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
+        uiList.clear()
+        uiList.addAll(scannedProducts)
+        selectMode = false
         signedProductCodes = mutableListOf()
-        unFoundProductsNumber = refillProducts.size
-        uiList = mutableListOf()
-        uiList = refillProducts
-        openFileDialog = false
         saveToMemory()
     }
 
@@ -413,16 +451,23 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private fun back() {
 
-        saveToMemory()
-        stopRFScan()
-        stopBarcodeScan()
-        finish()
+        if (selectMode) {
+            signedProductCodes = mutableListOf()
+            selectMode = false
+            uiList.clear()
+            uiList.addAll(scannedProducts)
+        } else {
+            saveToMemory()
+            stopRFScan()
+            stopBarcodeScan()
+            finish()
+        }
     }
 
     private fun openSendToStoreActivity() {
 
         Intent(this, SendToDestinationActivity::class.java).also {
-            it.putExtra("CheckOutRefillProducts", Gson().toJson(refillProducts).toString())
+            it.putExtra("CheckOutProducts", Gson().toJson(scannedProducts).toString())
             it.putExtra("CheckOutValidScannedProductsNumber", numberOfScanned)
             startActivity(it)
         }
@@ -458,9 +503,88 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
+                    bottomBar = { if (selectMode) SelectedBottomAppBar() else BottomBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun SelectedBottomAppBar() {
+        BottomAppBar(
+            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
+            modifier = Modifier.wrapContentHeight()
+        ) {
+
+            Column {
+
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = {
+                        uiList.forEach {
+                            signedProductCodes.add(it.KBarCode)
+                        }
+                        uiList.clear()
+                        uiList.addAll(scannedProducts)
+                    }) {
+                        Text(text = "انتخاب همه")
+                    }
+                    Button(onClick = {
+                        openClearDialog = true
+                    }) {
+                        Text(text = "پاک کردن")
+                    }
+                    Button(onClick = {
+                        signedProductCodes.clear()
+                        selectMode = false
+                        uiList.clear()
+                        uiList.addAll(scannedProducts)
+                    }) {
+                        Text(text = "بازگشت")
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun BottomBar() {
+        BottomAppBar(
+            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
+            modifier = Modifier.wrapContentHeight()
+        ) {
+
+            Column {
+
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    ScanTypeDropDownList(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                    )
+
+                    Text(
+                        text = "اسکن شده: $numberOfScanned",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                    )
+
+                    Button(onClick = { openSendToStoreActivity() }) {
+                        Text(text = "ارسال")
+                    }
+                }
             }
         }
     }
@@ -479,26 +603,11 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 }
             },
 
-            actions = {
-                IconButton(onClick = { openSendToStoreActivity() }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                        contentDescription = ""
-                    )
-                }
-                IconButton(onClick = { openClearDialog = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
-                        contentDescription = ""
-                    )
-                }
-            },
-
             title = {
                 Text(
                     text = stringResource(id = R.string.checkOut),
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(end = 50.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -529,26 +638,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .fillMaxWidth()
             ) {
-
-                Row(
-                    modifier = Modifier
-                        .padding(bottom = 8.dp, top = 8.dp, start = 16.dp, end = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    Text(
-                        text = "اسکن شده: $numberOfScanned",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-
-                    ScanTypeDropDownList(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
-                }
 
                 if (scanTypeValue == "RFID") {
                     Row {
@@ -585,7 +674,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 2.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -603,7 +692,11 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             modifier = Modifier
                 .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
-                    color = MaterialTheme.colors.onPrimary,
+                    color = //if (uiList[i].scannedNumber == 0) {
+                    MaterialTheme.colors.onPrimary
+                    /*} else {
+                        MaterialTheme.colors.onSecondary
+                    }*/,
                     shape = MaterialTheme.shapes.small
                 )
 
@@ -611,10 +704,51 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 .height(80.dp)
                 .combinedClickable(
                     onClick = {
-                        openSearchActivity(uiList[i])
+                        if (!selectMode) {
+                            openSearchActivity(uiList[i])
+                        } else {
+                            if (uiList[i].KBarCode !in signedProductCodes) {
+                                signedProductCodes.add(uiList[i].KBarCode)
+                            } else {
+                                signedProductCodes.remove(uiList[i].KBarCode)
+                                if (signedProductCodes.size == 0) {
+                                    selectMode = false
+                                }
+                            }
+                            uiList.clear()
+                            uiList.addAll(scannedProducts)
+                        }
                     },
-                ),
+                    onLongClick = {
+                        selectMode = true
+                        if (uiList[i].KBarCode !in signedProductCodes) {
+                            signedProductCodes.add(uiList[i].KBarCode)
+                        } else {
+                            signedProductCodes.remove(uiList[i].KBarCode)
+                            if (signedProductCodes.size == 0) {
+                                selectMode = false
+                            }
+                        }
+                        uiList.clear()
+                        uiList.addAll(scannedProducts)
+                        uiList.sortBy { it1 ->
+                            it1.scannedNumber > 0
+                        }
+                    },
+                )
+                .testTag("refillItems"),
         ) {
+
+            if (uiList[i].KBarCode in signedProductCodes) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_baseline_check_circle_24),
+                    tint = doneColor,
+                    contentDescription = "",
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .align(Alignment.CenterVertically)
+                )
+            }
 
             Image(
                 painter = rememberImagePainter(
@@ -624,7 +758,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
+                    .padding(horizontal = 8.dp)
             )
 
             Row(
@@ -690,7 +824,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "کالاهای اسکن شده پاک شوند؟",
+                        text = "کالاهای انتخاب شده پاک شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )
@@ -727,7 +861,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clickable { expanded = true }) {
+                    .clickable { expanded = true }
+                    .testTag("scanTypeDropDownList")) {
                 Text(text = scanTypeValue)
                 Icon(
                     painter = if (!expanded) {

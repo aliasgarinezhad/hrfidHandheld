@@ -79,7 +79,7 @@ class SendToDestinationActivity : ComponentActivity() {
         val type = object : TypeToken<List<CheckOutProduct>>() {}.type
 
         uiList = Gson().fromJson(
-            intent.getStringExtra("CheckOutRefillProducts"), type
+            intent.getStringExtra("CheckOutProducts"), type
         ) ?: mutableListOf()
 
         numberOfScanned = intent.getIntExtra("CheckOutValidScannedProductsNumber", 0)
@@ -109,7 +109,7 @@ class SendToDestinationActivity : ComponentActivity() {
 
     private fun getDestinationLists() {
 
-        val url = "http://rfid-api.avakatan.ir/department-infos"
+        val url = "https://rfid-api.avakatan.ir/department-infos"
         val request = object : JsonArrayRequest(Method.GET, url, null, {
 
             for (i in 0 until it.length()) {
@@ -212,7 +212,7 @@ class SendToDestinationActivity : ComponentActivity() {
             return
         }
 
-        val url = "http://rfid-api.avakatan.ir:3100/stock-draft"
+        val url = "https://rfid-api.avakatan.ir/test/stock-draft"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {

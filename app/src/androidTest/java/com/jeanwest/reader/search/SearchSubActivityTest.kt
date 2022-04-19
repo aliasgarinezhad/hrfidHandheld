@@ -8,8 +8,8 @@ import androidx.test.runner.intent.IntentCallback
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART.uhfTagInfo
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART.uhfTagInfo
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import kotlinx.coroutines.processNextEventInCurrentThread
 import org.junit.Rule

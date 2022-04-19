@@ -1,7 +1,7 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+//import com.jeanwest.reader.hardware.Barcode2D
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
@@ -37,7 +37,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
 import com.jeanwest.reader.hardware.setRFPower
@@ -46,7 +46,7 @@ import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.theme.doneColor
 import com.jeanwest.reader.theme.errorColor
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -503,7 +503,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
@@ -607,7 +607,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "http://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v3"
         val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
             val decodedTagEpc = epcDecoder(epc)

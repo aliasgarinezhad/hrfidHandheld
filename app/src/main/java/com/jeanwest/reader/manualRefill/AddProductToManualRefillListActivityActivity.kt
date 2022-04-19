@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.hardware.Barcode2D
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
@@ -36,7 +36,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 
 @ExperimentalCoilApi
-class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarcodeResult {
+class AddProductToManualRefillListActivityActivity : ComponentActivity() {
 
     private var productCode by mutableStateOf("")
     private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
@@ -56,10 +56,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
-    private var wareHouseFilterValue by mutableStateOf("فروشگاه و انبار")
     private var state = SnackbarHostState()
-
-    private var barcode2D = Barcode2D(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,98 +66,30 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         loadMemory()
     }
 
-    override fun onResume() {
-        super.onResume()
-        open()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        close()
-    }
-
     private fun loadMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         storeFilterValue = memory.getInt("userLocationCode", 0)
     }
 
-    @Throws(InterruptedException::class)
-    override fun getBarcode(barcode: String) {
-
-        if (barcode.isNotEmpty()) {
-
-            filteredUiList = mutableListOf()
-            uiList = mutableListOf()
-            colorFilterValues = mutableListOf("همه رنگ ها")
-            sizeFilterValues = mutableListOf("همه سایز ها")
-            productCode = ""
-
-            val url =
-                "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
-
-            val request = JsonObjectRequest(url, {
-
-                val products = it.getJSONArray("products")
-                if (products.length() > 0) {
-                    jsonArrayProcess(products)
-                }
-            }, {
-                when (it) {
-                    is NoConnectionError -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                it.toString(),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                }
-            })
-            val queue = Volley.newRequestQueue(this)
-            queue.add(request)
-        }
-    }
-
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
-        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
-            start()
-        } else if (keyCode == 4) {
+        if (keyCode == 4) {
             back()
         }
         return true
     }
 
-    private fun start() {
-        barcode2D.startScan(this)
-    }
-
-    private fun open() {
-        barcode2D.open(this, this)
-    }
-
-    private fun close() {
-        barcode2D.stopScan(this)
-        barcode2D.close(this)
-    }
-
     private fun filterUiList(uiList: MutableList<ManualRefillProduct>): MutableList<ManualRefillProduct> {
 
+        val wareHouseFilterOutput = uiList.filter {
+            it.wareHouseNumber > 0
+        }
+
         val sizeFilterOutput = if (sizeFilterValue == "همه سایز ها") {
-            uiList
+            wareHouseFilterOutput
         } else {
-            uiList.filter {
+            wareHouseFilterOutput.filter {
                 it.size == sizeFilterValue
             }
         }
@@ -185,7 +114,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         sizeFilterValues = mutableListOf("همه سایز ها")
 
         val url1 =
-            "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
+            "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
 
         val request1 = JsonObjectRequest(url1, { response1 ->
 
@@ -196,7 +125,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
             } else {
 
                 val url2 =
-                    "http://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
+                    "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
 
                 val request2 = JsonObjectRequest(url2, { response2 ->
 
@@ -314,7 +243,6 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
     }
 
     private fun back() {
-        close()
         finish()
     }
 
