@@ -34,11 +34,14 @@ import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.write.WriteRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,11 +71,53 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
 
     private fun loadMemory() {
 
+        val type = object : TypeToken<List<ManualRefillProduct>>() {}.type
+
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         storeFilterValue = memory.getInt("userLocationCode", 0)
+
+        productCode = memory.getString("productCodeAddManualRefill", "") ?: ""
+        colorFilterValue = memory.getString("colorFilterValueAddManualRefill", "همه رنگ ها") ?: "همه رنگ ها"
+        sizeFilterValue = memory.getString("sizeFilterValueAddManualRefill", "همه سایز ها") ?: "همه سایز ها"
+
+        uiList = Gson().fromJson(
+            memory.getString("uiListAddManualRefill", ""),
+            type
+        ) ?: mutableListOf()
+
+        filteredUiList = Gson().fromJson(
+            memory.getString("filteredUiListAddManualRefill", ""),
+            type
+        ) ?: mutableListOf()
+
+        sizeFilterValues = Gson().fromJson(
+            memory.getString("sizeFilterValuesAddManualRefill", ""),
+            sizeFilterValues.javaClass
+        ) ?: mutableListOf("همه سایز ها")
+
+        colorFilterValues = Gson().fromJson(
+            memory.getString("colorFilterValuesAddManualRefill", ""),
+            colorFilterValues.javaClass
+        ) ?: mutableListOf("همه رنگ ها")
+
     }
 
+    private fun saveToMemory() {
 
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val edit = memory.edit()
+
+        edit.putString("colorFilterValuesAddManualRefill", JSONArray(colorFilterValues).toString())
+        edit.putString("sizeFilterValuesAddManualRefill", JSONArray(sizeFilterValues).toString())
+        edit.putString("uiListAddManualRefill", Gson().toJson(uiList).toString())
+        edit.putString("filteredUiListAddManualRefill", Gson().toJson(filteredUiList).toString())
+
+        edit.putString("productCodeAddManualRefill", productCode)
+        edit.putString("colorFilterValueAddManualRefill", colorFilterValue)
+        edit.putString("sizeFilterValueAddManualRefill", sizeFilterValue)
+
+        edit.apply()
+    }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
@@ -245,7 +290,8 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
     }
 
     private fun back() {
-        onBackPressed()
+        saveToMemory()
+        finish()
     }
 
     @ExperimentalCoilApi
