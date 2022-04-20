@@ -285,6 +285,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
                 return
             }
         }
+        saveToMemory()
         ManualRefillActivity.userDefinedProducts.add(product)
         finish()
     }
