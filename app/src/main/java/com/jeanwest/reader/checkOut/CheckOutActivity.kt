@@ -101,7 +101,16 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         scannedBarcodeTable.clear()
         saveToMemory()*/
 
-        loadMemory()
+        if (intent.getStringExtra("productEPCs") ?: "" == "") {
+            loadMemory()
+        } else {
+            scannedEpcTable = Gson().fromJson(
+                intent.getStringExtra("productEPCs") ?: "",
+                scannedEpcTable.javaClass
+            ) ?: mutableListOf()
+            numberOfScanned = scannedEpcTable.size
+            saveToMemory()
+        }
 
         if (numberOfScanned != 0) {
             syncScannedItemsToServer()

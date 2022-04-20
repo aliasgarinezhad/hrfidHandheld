@@ -209,8 +209,8 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                     topBar = { AppBar() },
                     content = { Content() },
                     floatingActionButton = { OpenCheckInButton() },
+                    floatingActionButtonPosition = FabPosition.Center,
                     snackbarHost = { ErrorSnackBar(state) },
-                    floatingActionButtonPosition = FabPosition.Center
                 )
             }
         }

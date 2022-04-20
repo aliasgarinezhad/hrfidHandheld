@@ -78,6 +78,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     //ui parameters
     private var conflictResultProducts = mutableStateMapOf<String, ConflictResultProduct>()
     private var syncScannedProductsRunning by mutableStateOf(false)
+    private var syncFileProductsRunning by mutableStateOf(false)
     private var isScanning by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
@@ -347,6 +348,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
+        syncFileProductsRunning = true
+
         val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -385,6 +388,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             conflictResultProducts = getConflicts(fileProducts, scannedProducts)
             uiList = filterResult(conflictResultProducts, signedFilter, scanFilter, categoryFilter)
             syncScannedItemsToServer()
+            syncFileProductsRunning = false
 
         }, {
 
@@ -410,6 +414,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             syncScannedItemsToServer()
+            syncFileProductsRunning = false
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -1156,7 +1161,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                if (isScanning || syncScannedProductsRunning) {
+                if (isScanning || syncScannedProductsRunning || syncFileProductsRunning) {
                     Row(
                         modifier = Modifier
                             .padding(32.dp)
@@ -1173,7 +1178,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                                     .align(Alignment.CenterVertically)
                             )
                         }
-                        if (syncScannedProductsRunning) {
+                        if (syncScannedProductsRunning || syncFileProductsRunning) {
                             Text(
                                 text = "در حال بارگذاری",
                                 modifier = Modifier

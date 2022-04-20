@@ -341,7 +341,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
                 .height(80.dp)
                 .clickable(
                     onClick = {
-                        backToManualRefillActivity(uiList[i])
+                        backToManualRefillActivity(filteredUiList[i])
                     },
                 )
                 .testTag("SearchItems"),

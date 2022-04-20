@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.Volley
@@ -37,6 +36,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
@@ -52,11 +52,8 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import com.android.volley.toolbox.JsonObjectRequest as JsonObjectRequest1
@@ -84,7 +81,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var resultColor by mutableStateOf(Color.White)
     private var fileName by mutableStateOf("خروجی")
     private var writeRecords = mutableListOf<WriteRecord>()
-    private var userWriteRecords = mutableListOf<WriteRecord>()
+    private var writtenEPCs = mutableListOf<String>()
     private var barcodeInformation = JSONObject()
     private val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
     var tagTypeValue by mutableStateOf("تگ سفید")
@@ -143,55 +140,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
-    private fun exportFile() {
-        val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("کالا های رایت شده")
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("بارکد کالا")
-        headerRow.createCell(1).setCellValue("EPC")
-        headerRow.createCell(2).setCellValue("تاریخ")
-        headerRow.createCell(3).setCellValue("کاربر")
-        headerRow.createCell(4).setCellValue("شماره سریال دستگاه")
-        headerRow.createCell(5).setCellValue("روی تگ خام رایت شده است")
-
-        val dir = File(this.getExternalFilesDir(null), "/")
-        val outFile = File(dir, "$fileName.xlsx")
-
-        userWriteRecords.forEach {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it.barcode)
-            row.createCell(1).setCellValue(it.epc)
-            row.createCell(2).setCellValue(it.dateAndTime)
-            row.createCell(3).setCellValue(it.username)
-            row.createCell(4).setCellValue(it.deviceSerialNumber)
-            row.createCell(5).setCellValue(it.wroteOnRawTag)
-
-            val outputStream = FileOutputStream(outFile.absolutePath)
-            workbook.write(outputStream)
-            outputStream.flush()
-            outputStream.close()
-        }
-
-        val uri = FileProvider.getUriForFile(
-            this,
-            this.applicationContext.packageName + ".provider",
-            outFile
-        )
-
-        if (iotHubConnected) {
-            if (iotHubService.sendLogFile(writeRecords)) {
-                writeRecords.clear()
-                saveMemory()
-            }
-        }
-
-        val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
-        shareIntent.type = "application/octet-stream"
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        applicationContext.startActivity(shareIntent)
-    }
-
     private fun loadMemory() {
         val type = object : TypeToken<List<WriteRecord>>() {}.type
 
@@ -209,16 +157,17 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             companyNumber = memory.getInt("company", -1)
             tagPassword = memory.getString("password", "") ?: "00000000"
 
-            userWriteRecords = Gson().fromJson(
-                memory.getString("WriteActivityUserWriteRecords", ""),
-                type
+            writtenEPCs = Gson().fromJson(
+                memory.getString("WriteActivityWrittenEPCs", ""),
+                writtenEPCs.javaClass
             ) ?: mutableListOf()
+
             writeRecords = Gson().fromJson(
                 memory.getString("WriteActivityWriteRecords", ""),
                 type
             ) ?: mutableListOf()
 
-            counter = userWriteRecords.size
+            counter = writtenEPCs.size
         }
 
         numberOfWrittenRfTags = counterValue - counterMinValue
@@ -231,8 +180,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         memoryEditor.putLong("value", counterValue)
 
         memoryEditor.putString(
-            "WriteActivityUserWriteRecords",
-            Gson().toJson(userWriteRecords).toString()
+            "WriteActivityWrittenEPCs", JSONArray(writtenEPCs).toString()
         )
         memoryEditor.putString("WriteActivityWriteRecords", Gson().toJson(writeRecords).toString())
 
@@ -299,8 +247,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun clear() {
-        userWriteRecords.clear()
-        counter = userWriteRecords.size
+        writtenEPCs.clear()
+        counter = writtenEPCs.size
         saveMemory()
     }
 
@@ -429,9 +377,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             wroteOnRawTag = writeOnRawTag
         )
         writeRecords.add(writeRecord)
-        userWriteRecords.add(writeRecord)
+        writtenEPCs.add(productEPC)
 
-        counter = userWriteRecords.size
+        counter = writtenEPCs.size
         numberOfWrittenRfTags = counterValue - counterMinValue
         saveMemory()
         if (writeRecords.size % 100 == 0) {
@@ -685,6 +633,13 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         queue.add(request)
     }
 
+    private fun openCheckOutActivity() {
+        Intent(this, CheckOutActivity::class.java).apply {
+            this.putExtra("productEPCs", JSONArray(writtenEPCs).toString())
+            startActivity(this)
+        }
+    }
+
     private fun epcGenerator(
         header: Int,
         filter: Int,
@@ -743,8 +698,21 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     topBar = { AppBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
+                    floatingActionButton = { OpenCheckOutActivityFun() },
+                    floatingActionButtonPosition = FabPosition.Center,
                 )
             }
+        }
+    }
+
+    @Composable
+    fun OpenCheckOutActivityFun() {
+        Button(onClick = {
+            openCheckOutActivity()
+        }) {
+            Text(
+                text = "ثبت حواله کالاهای رایت شده " + "(" + "$counter" + " کالا" + ")",
+            )
         }
     }
 
@@ -763,12 +731,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             actions = {
 
-                IconButton(onClick = { openFileDialog = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_share_24),
-                        contentDescription = ""
-                    )
-                }
                 IconButton(onClick = {
                     openClearDialog = true
                 }) {
@@ -783,7 +745,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = "رایت",
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(end = 10.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -806,10 +768,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .fillMaxWidth()
             ) {
-
-                if (openFileDialog) {
-                    FileAlertDialog()
-                }
 
                 if (openClearDialog) {
                     ClearAlertDialog()
@@ -868,47 +826,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 )
             }
         }
-    }
-
-    @Composable
-    fun FileAlertDialog() {
-
-        AlertDialog(
-
-            buttons = {
-
-                Column {
-
-                    Text(
-                        text = "نام فایل خروجی را وارد کنید", modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = fileName, onValueChange = {
-                            fileName = it
-                        },
-                        modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Button(modifier = Modifier
-                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally),
-                        onClick = {
-                            openFileDialog = false
-                            exportFile()
-                        }) {
-                        Text(text = "ذخیره")
-                    }
-                }
-            },
-
-            onDismissRequest = {
-                openFileDialog = false
-            }
-        )
     }
 
     @Composable
