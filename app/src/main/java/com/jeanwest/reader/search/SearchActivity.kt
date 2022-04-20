@@ -426,7 +426,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
             Image(
                 painter = rememberImagePainter(
-                    uiList[i].imageUrl,
+                    filteredUiList[i].imageUrl,
                 ),
                 contentDescription = "",
                 modifier = Modifier

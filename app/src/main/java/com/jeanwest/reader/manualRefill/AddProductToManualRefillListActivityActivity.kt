@@ -72,6 +72,8 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
         storeFilterValue = memory.getInt("userLocationCode", 0)
     }
 
+
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
         if (keyCode == 4) {
@@ -243,7 +245,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
     }
 
     private fun back() {
-        finish()
+        onBackPressed()
     }
 
     @ExperimentalCoilApi
@@ -349,7 +351,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
 
             Image(
                 painter = rememberImagePainter(
-                    uiList[i].imageUrl,
+                    filteredUiList[i].imageUrl,
                 ),
                 contentDescription = "",
                 modifier = Modifier
