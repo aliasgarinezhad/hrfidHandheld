@@ -72,6 +72,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
+    private var isDataLoading by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
@@ -223,130 +224,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
     }
 
-    private fun checkInputBarcode(KBarCode: String) {
-
-        uiList.forEach {
-            if (KBarCode == it.KBarCode) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "این کد محصول قبلا وارد شده است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                return
-            }
-        }
-
-        val url = "https://rfid-api.avakatan.ir/products/v4"
-
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val barcodes = it.getJSONArray("KBarCodes")
-
-            if (!barcodes.isNull(0)) {
-
-                val userDefinedProduct = ManualRefillProduct(
-                    name = barcodes.getJSONObject(0).getString("productName"),
-                    KBarCode = barcodes.getJSONObject(0).getString("KBarCode"),
-                    imageUrl = barcodes.getJSONObject(0).getString("ImgUrl"),
-                    primaryKey = barcodes.getJSONObject(0).getLong("BarcodeMain_ID"),
-                    scannedNumber = 0,
-                    productCode = barcodes.getJSONObject(0).getString("K_Bar_Code"),
-                    size = barcodes.getJSONObject(0).getString("Size"),
-                    color = barcodes.getJSONObject(0).getString("Color"),
-                    originalPrice = barcodes.getJSONObject(0).getString("OrgPrice"),
-                    salePrice = barcodes.getJSONObject(0).getString("SalePrice"),
-                    rfidKey = barcodes.getJSONObject(0).getLong("RFID"),
-                    wareHouseNumber = barcodes.getJSONObject(0).getInt("depoCount"),
-                    scannedBarcode = "",
-                    scannedEPCs = mutableListOf(),
-                )
-
-                userDefinedProducts.add(userDefinedProduct)
-
-                uiList.clear()
-                uiList.addAll(scannedProducts)
-                uiList.addAll(userDefinedProducts)
-                uiList.sortBy { it1 ->
-                    it1.scannedNumber > 0
-                }
-
-            } else {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "کد محصول وارد شده نامعتبر است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-
-        }, {
-
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-
-            uiList.clear()
-            uiList.addAll(scannedProducts)
-            uiList.addAll(userDefinedProducts)
-            uiList.sortBy { it1 ->
-                it1.scannedNumber > 0
-            }
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                val epcArray = JSONArray()
-
-                json.put("epcs", epcArray)
-
-                val barcodeArray = JSONArray()
-
-                barcodeArray.put(KBarCode)
-
-                json.put("KBarCodes", barcodeArray)
-
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        val queue = Volley.newRequestQueue(this@ManualRefillActivity)
-        queue.add(request)
-    }
-
     private fun syncScannedItemsToServer() {
+
+        isDataLoading = true
 
         val url = "https://rfid-api.avakatan.ir/products/v4"
 
@@ -443,6 +323,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.scannedNumber > 0
             }
+            isDataLoading = false
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
@@ -483,6 +364,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.scannedNumber > 0
             }
+            isDataLoading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -697,9 +579,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     bottomBar = { if (selectMode) SelectedBottomAppBar() else BottomBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
-                    //floatingActionButton = { OpenNewProductAlertDialog() },
-                    //floatingActionButtonPosition = FabPosition.Center
-
                 )
             }
         }
@@ -839,10 +718,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 ClearAlertDialog()
             }
 
-            if (openNewProductAlertDialog) {
-                NewProductAlertDialog()
-            }
-
             Column(
                 modifier = Modifier
                     .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
@@ -876,14 +751,30 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         )
                     }
                 }
-
-                if (isScanning) {
+                if (isScanning || isDataLoading) {
                     Row(
                         modifier = Modifier
                             .padding(32.dp)
                             .fillMaxWidth(), horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colors.primary)
+
+                        if (isScanning) {
+                            Text(
+                                text = "در حال اسکن",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
+                        if (isDataLoading) {
+                            Text(
+                                text = "در حال بارگذاری",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }
@@ -1129,52 +1020,5 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         }
-    }
-
-    @Composable
-    fun NewProductAlertDialog() {
-
-        var productCode by rememberSaveable {
-            mutableStateOf("")
-        }
-
-        AlertDialog(
-
-            buttons = {
-
-                Column {
-
-                    Text(
-                        text = "کد محصول را وارد کنید", modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = productCode, onValueChange = {
-                            productCode = it
-                        },
-                        modifier = Modifier
-                            .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                            .align(Alignment.CenterHorizontally)
-                            .testTag("NewProductKBarCode")
-                    )
-
-                    Button(modifier = Modifier
-                        .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
-                        .align(Alignment.CenterHorizontally),
-                        onClick = {
-                            openNewProductAlertDialog = false
-                            checkInputBarcode(productCode)
-
-                        }) {
-                        Text(text = "اضافه کردن")
-                    }
-                }
-            },
-
-            onDismissRequest = {
-                openNewProductAlertDialog = false
-            }
-        )
     }
 }

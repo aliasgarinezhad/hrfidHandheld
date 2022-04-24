@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
@@ -53,7 +55,8 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var state = SnackbarHostState()
-
+    private val apiTimeout = 30000
+    private var isSubmitting by mutableStateOf(false)
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -115,6 +118,8 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
 
     private fun sendToStore() {
 
+        isSubmitting = true
+
         val url = "https://rfid-api.avakatan.ir/test/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -125,6 +130,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
+            isSubmitting = false
         }, {
             if (it is NoConnectionError) {
                 CoroutineScope(Dispatchers.Default).launch {
@@ -143,6 +149,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                     )
                 }
             }
+            isSubmitting = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -178,6 +185,13 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 return body.toString().toByteArray()
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
@@ -222,10 +236,16 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            sendToStore()
+                            if(!isSubmitting) {
+                                sendToStore()
+                            }
                         },
                     ) {
-                        Text(text = "ارسال به فروشگاه")
+                        if(!isSubmitting) {
+                            Text(text = "ارسال به فروشگاه")
+                        } else {
+                            Text(text = "در حال ارسال ...")
+                        }
                     }
                 }
             }

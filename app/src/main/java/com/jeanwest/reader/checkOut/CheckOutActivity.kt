@@ -1,7 +1,5 @@
 package com.jeanwest.reader.checkOut
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -67,6 +65,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
+    private var isDataLoading by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
@@ -95,11 +94,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         setContent {
             Page()
         }
-
-        /*scannedProducts.clear()
-        scannedEpcTable.clear()
-        scannedBarcodeTable.clear()
-        saveToMemory()*/
 
         if (intent.getStringExtra("productEPCs") ?: "" == "") {
             loadMemory()
@@ -217,6 +211,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
+        isDataLoading = true
+
         val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -298,6 +294,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
             uiList.clear()
             uiList.addAll(scannedProducts)
+            isDataLoading = false
 
         }, {
             if ((scannedEpcTable.size + scannedBarcodeTable.size) == 0) {
@@ -334,6 +331,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             }
             uiList.clear()
             uiList.addAll(scannedProducts)
+            isDataLoading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -672,13 +670,30 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                if (isScanning) {
+                if (isScanning || isDataLoading) {
                     Row(
                         modifier = Modifier
                             .padding(32.dp)
                             .fillMaxWidth(), horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colors.primary)
+
+                        if (isScanning) {
+                            Text(
+                                text = "در حال اسکن",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
+                        if (isDataLoading) {
+                            Text(
+                                text = "در حال بارگذاری",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }

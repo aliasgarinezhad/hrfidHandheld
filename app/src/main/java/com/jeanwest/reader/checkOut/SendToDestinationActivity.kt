@@ -28,6 +28,7 @@ import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
@@ -65,7 +66,8 @@ class SendToDestinationActivity : ComponentActivity() {
     private var scannedBarcodeTable = mutableListOf<String>()
     private var scannedEpcTable = mutableListOf<String>()
     private var state = SnackbarHostState()
-
+    private val apiTimeout = 30000
+    private var isSubmitting by mutableStateOf(false)
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -212,6 +214,8 @@ class SendToDestinationActivity : ComponentActivity() {
             return
         }
 
+        isSubmitting = true
+
         val url = "https://rfid-api.avakatan.ir/test/stock-draft"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -222,6 +226,7 @@ class SendToDestinationActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
+            isSubmitting = false
         }, {
             if (it is NoConnectionError) {
 
@@ -241,6 +246,7 @@ class SendToDestinationActivity : ComponentActivity() {
                     )
                 }
             }
+            isSubmitting = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -280,6 +286,13 @@ class SendToDestinationActivity : ComponentActivity() {
                 return body.toString().toByteArray()
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
@@ -326,10 +339,16 @@ class SendToDestinationActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            sendToDestination()
+                            if(!isSubmitting) {
+                                sendToDestination()
+                            }
                         },
                     ) {
-                        Text(text = "ثبت حواله")
+                        if(!isSubmitting) {
+                            Text(text = "ثبت حواله")
+                        } else {
+                            Text(text = "در حال ثبت ...")
+                        }
                     }
                 }
             }

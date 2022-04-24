@@ -205,6 +205,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillBarcodes() {
 
+        isDataLoading = true
+
         val url = "https://rfid-api.avakatan.ir/refill"
 
         val request = object : JsonArrayRequest(Method.GET, url, null, {
@@ -215,6 +217,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
                 inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
             }
+            isDataLoading = false
             getRefillItems()
         }, {
             when (it) {
@@ -237,6 +240,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
+            isDataLoading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -257,6 +261,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun getRefillItems() {
+
+        isDataLoading = true
 
         val url = "https://rfid-api.avakatan.ir/products/v4"
 
@@ -287,6 +293,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 refillProducts.add(fileProduct)
             }
 
+            isDataLoading = false
+
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             } else {
@@ -298,8 +306,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 uiList = refillProducts
                 unFoundProductsNumber = uiList.size
             }
-
-            isDataLoading = false
 
         }, {
 
@@ -336,11 +342,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
+            isDataLoading = false
+
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             }
-
-            isDataLoading = false
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {

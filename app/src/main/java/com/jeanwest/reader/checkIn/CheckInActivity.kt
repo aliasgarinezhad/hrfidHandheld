@@ -74,6 +74,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     //ui parameters
     private var conflictResultProducts by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
     private var isScanning by mutableStateOf(false)
+    private var isDataLoading by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
     private var shortageCodesNumber by mutableStateOf(0)
@@ -393,6 +394,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncInputItemsToServer() {
 
+        isDataLoading = true
+
         val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -418,12 +421,15 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 inputProducts.add(fileProduct)
             }
 
+            isDataLoading = false
+
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             } else {
                 conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
                 uiList = filterResult(conflictResultProducts)
             }
+
         }, {
 
             if (excelBarcodes.isEmpty()) {
@@ -457,6 +463,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
+            isDataLoading = false
 
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
@@ -499,6 +506,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun syncScannedItemsToServer() {
+
+        isDataLoading = true
 
         val url = "https://rfid-api.avakatan.ir/products/v3"
 
@@ -563,6 +572,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
 
+            isDataLoading = false
+
         }, {
             if ((epcTable.size + barcodeTable.size) == 0) {
 
@@ -596,6 +607,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
             uiList = filterResult(conflictResultProducts)
+
+            isDataLoading = false
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -926,13 +939,30 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     )
                 }
 
-                if (isScanning) {
+                if (isScanning || isDataLoading) {
                     Row(
                         modifier = Modifier
                             .padding(32.dp)
                             .fillMaxWidth(), horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colors.primary)
+
+                        if (isScanning) {
+                            Text(
+                                text = "در حال اسکن",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
+                        if (isDataLoading) {
+                            Text(
+                                text = "در حال بارگذاری",
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
@@ -52,7 +53,8 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var state = SnackbarHostState()
-
+    private val apiTimeout = 30000
+    private var isSubmitting by mutableStateOf(false)
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -112,6 +114,9 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
     }
 
     private fun sendToStore() {
+
+        isSubmitting = true
+
         val url = "https://rfid-api.avakatan.ir/test/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -122,7 +127,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
-
+            isSubmitting = false
         }, {
             if (it is NoConnectionError) {
                 CoroutineScope(Dispatchers.Default).launch {
@@ -141,6 +146,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                     )
                 }
             }
+            isSubmitting = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -174,6 +180,13 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 return body.toString().toByteArray()
             }
         }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
@@ -218,10 +231,16 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            sendToStore()
+                            if(!isSubmitting) {
+                                sendToStore()
+                            }
                         },
                     ) {
-                        Text(text = "ارسال به فروشگاه")
+                        if(!isSubmitting) {
+                            Text(text = "ارسال به فروشگاه")
+                        } else {
+                            Text(text = "در حال ارسال ...")
+                        }
                     }
                 }
             }

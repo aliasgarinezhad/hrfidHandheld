@@ -418,7 +418,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                 .height(80.dp)
                 .clickable(
                     onClick = {
-                        openSearchActivity(uiList[i])
+                        openSearchActivity(filteredUiList[i])
                     },
                 )
                 .testTag("SearchItems"),
