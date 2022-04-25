@@ -1,7 +1,10 @@
 package com.jeanwest.reader.manualRefill
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +34,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.R
+import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +59,20 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
     private var state = SnackbarHostState()
     private val apiTimeout = 30000
     private var isSubmitting by mutableStateOf(false)
+    private lateinit var iotHubService: IotHub
+    private var iotHubConnected = false
+    private val serviceConnection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as IotHub.LocalBinder
+            iotHubService = binder.service
+            iotHubConnected = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            iotHubConnected = false
+        }
+    }
 
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
@@ -75,6 +93,9 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
 
         val util = JalaliDate()
         fileName += util.currentShamsidate
+
+        val intent = Intent(this, IotHub::class.java)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
     private fun exportFile() {
@@ -128,6 +149,11 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                 )
             }
             isSubmitting = false
+
+            if (iotHubConnected) {
+                iotHubService.sendManualRefillLogFile(uiList)
+            }
+
         }, {
             if (it is NoConnectionError) {
                 CoroutineScope(Dispatchers.Default).launch {
@@ -169,6 +195,7 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                         val productJson = JSONObject()
                         productJson.put("BarcodeMain_ID", it.primaryKey)
                         productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
                         products.put(productJson)
                     }
                 }

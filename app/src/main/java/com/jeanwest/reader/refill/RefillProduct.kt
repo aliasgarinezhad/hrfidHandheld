@@ -17,4 +17,5 @@ data class RefillProduct(
     var scannedBarcode : String,
     var scannedBarcodeNumber : Int,
     var scannedEPCNumber : Int,
+    var kName : String,
 )

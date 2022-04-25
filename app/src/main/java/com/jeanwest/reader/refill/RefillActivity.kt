@@ -2,10 +2,13 @@ package com.jeanwest.reader.refill
 
 //import com.jeanwest.reader.hardware.Barcode2D
 //import com.rscja.deviceapi.RFIDWithUHFUART
+import android.content.ComponentName
 import android.content.Intent
+import android.content.ServiceConnection
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
+import android.os.IBinder
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,6 +46,7 @@ import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.iotHub.IotHub
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -288,7 +292,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(),
                     scannedBarcodeNumber = 0,
-                    scannedEPCNumber = 0
+                    scannedEPCNumber = 0,
+                    kName = refillItemsJsonArray.getJSONObject(i).getString("K_Name")
                 )
                 refillProducts.add(fileProduct)
             }

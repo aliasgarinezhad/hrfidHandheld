@@ -15,5 +15,6 @@ data class CheckOutProduct(
     var rfidKey : Long,
     var wareHouseNumber : Int,
     var scannedEPCs : MutableList<String>,
-    var scannedBarcode : String
+    var scannedBarcode : String,
+    var kName: String,
 )

@@ -251,6 +251,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = epcs.getJSONObject(i).getString("SalePrice"),
                     rfidKey = epcs.getJSONObject(i).getLong("RFID"),
                     wareHouseNumber = epcs.getJSONObject(i).getInt("depoCount"),
+                    kName = epcs.getJSONObject(i).getString("K_Name"),
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(),
                 )
@@ -289,6 +290,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = barcodes.getJSONObject(i).getInt("depoCount"),
                     scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
                     scannedEPCs = mutableListOf(),
+                    kName = barcodes.getJSONObject(i).getString("K_Name")
                 )
 
                 scannedBarcodeTable.add(barcodes.getJSONObject(i).getString("kbarcode"))

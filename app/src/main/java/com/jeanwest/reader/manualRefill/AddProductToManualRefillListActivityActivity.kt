@@ -257,7 +257,8 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
                     rfidKey = json.getLong("RFID"),
                     scannedEPCs = mutableListOf(),
                     scannedBarcode = "",
-                    scannedNumber = 0
+                    scannedNumber = 0,
+                    kName = json.getString("K_Name")
                 )
             )
         }

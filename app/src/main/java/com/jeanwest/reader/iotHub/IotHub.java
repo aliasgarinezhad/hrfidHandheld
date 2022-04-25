@@ -15,6 +15,8 @@ import androidx.preference.PreferenceManager;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
+import com.jeanwest.reader.manualRefill.ManualRefillProduct;
+import com.jeanwest.reader.refill.RefillProduct;
 import com.jeanwest.reader.updateActivity.UpdateActivity;
 import com.jeanwest.reader.write.WriteRecord;
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification;
@@ -190,6 +192,186 @@ public class IotHub extends Service {
             row.createCell(3).setCellValue(it.getUsername());
             row.createCell(4).setCellValue(it.getDeviceSerialNumber());
             row.createCell(5).setCellValue(it.getWroteOnRawTag());
+
+            FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
+            workbook.write(outputStream);
+            outputStream.flush();
+            outputStream.close();
+        }
+        sendLogFileSuccess = false;
+
+        Thread thread = new Thread(() -> {
+            try {
+                if (outFile.isDirectory()) {
+                    throw new IllegalArgumentException(outFile.getName() + " is a directory, please provide a single file name, or use the FileUploadSample to upload directories.");
+                }
+
+                Log.e("error", outFile.getName());
+                Log.e("error in sending file", "Retrieving SAS URI from IoT Hub...");
+                FileUploadSasUriResponse sasUriResponse = client.getFileUploadSasUri(new FileUploadSasUriRequest(outFile.getName()));
+
+                Log.e("error in sending file", "Successfully got SAS URI from IoT Hub");
+                Log.e("error in sending file", "Correlation Id: " + sasUriResponse.getCorrelationId());
+                Log.e("error in sending file", "Container name: " + sasUriResponse.getContainerName());
+                Log.e("error in sending file", "Blob name: " + sasUriResponse.getBlobName());
+                Log.e("error in sending file", "Blob Uri: " + sasUriResponse.getBlobUri());
+
+                Log.e("error in sending file", "Using the Azure Storage SDK to upload file to Azure Storage...");
+
+                try {
+
+                    BlobClient blobClient =
+                            new BlobClientBuilder()
+                                    .endpoint(sasUriResponse.getBlobUri().toString())
+                                    .buildClient();
+                    Log.e("error", blobClient.toString());
+
+                    blobClient.uploadFromFile(outFile.getAbsolutePath());
+                    sendLogFileSuccess = true;
+                    JSONObject json = new JSONObject();
+                    json.put("Blob name", sasUriResponse.getBlobName());
+                    IotHub.this.sendMessage(json.toString());
+
+                } catch (Exception e) {
+                    Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
+
+                    Log.e("error in sending file", "Failed to upload file to Azure Storage.");
+
+                    Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
+
+                    FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
+                    client.completeFileUpload(completionNotification);
+
+                    Log.e("error in sending file", "Notified IoT Hub that the SAS URI can be freed and that the file upload was a failure.");
+
+                    client.closeNow();
+                }
+
+                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.");
+
+                Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload was a success.");
+                FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), true);
+                client.completeFileUpload(completionNotification);
+                Log.e("error in sending file", "Successfully notified IoT Hub that the SAS URI can be freed, and that the file upload was a success");
+            } catch (Exception e) {
+                Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \nERROR: " + e.getMessage() + e.toString());
+                Log.e("error in sending file", "Shutting down...");
+            }
+        });
+
+        thread.start();
+        thread.join();
+        Log.e("thread error", String.valueOf(sendLogFileSuccess));
+        return sendLogFileSuccess;
+    }
+
+    public boolean sendRefillLogFile(List<RefillProduct> refillProducts) throws IOException, InterruptedException {
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("خطی");
+        Row headerRow = sheet.createRow(sheet.getPhysicalNumberOfRows());
+        headerRow.createCell(0).setCellValue("بارکد");
+        headerRow.createCell(1).setCellValue("تعداد");
+
+        @SuppressLint("SimpleDateFormat")
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
+        File dir = new File(this.getExternalFilesDir(null), "/");
+        File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
+
+        for (RefillProduct it : refillProducts) {
+            Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
+            row.createCell(0).setCellValue(it.getKBarCode());
+            row.createCell(1).setCellValue(it.getScannedEPCNumber() + it.getScannedBarcodeNumber());
+
+            FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
+            workbook.write(outputStream);
+            outputStream.flush();
+            outputStream.close();
+        }
+        sendLogFileSuccess = false;
+
+        Thread thread = new Thread(() -> {
+            try {
+                if (outFile.isDirectory()) {
+                    throw new IllegalArgumentException(outFile.getName() + " is a directory, please provide a single file name, or use the FileUploadSample to upload directories.");
+                }
+
+                Log.e("error", outFile.getName());
+                Log.e("error in sending file", "Retrieving SAS URI from IoT Hub...");
+                FileUploadSasUriResponse sasUriResponse = client.getFileUploadSasUri(new FileUploadSasUriRequest(outFile.getName()));
+
+                Log.e("error in sending file", "Successfully got SAS URI from IoT Hub");
+                Log.e("error in sending file", "Correlation Id: " + sasUriResponse.getCorrelationId());
+                Log.e("error in sending file", "Container name: " + sasUriResponse.getContainerName());
+                Log.e("error in sending file", "Blob name: " + sasUriResponse.getBlobName());
+                Log.e("error in sending file", "Blob Uri: " + sasUriResponse.getBlobUri());
+
+                Log.e("error in sending file", "Using the Azure Storage SDK to upload file to Azure Storage...");
+
+                try {
+
+                    BlobClient blobClient =
+                            new BlobClientBuilder()
+                                    .endpoint(sasUriResponse.getBlobUri().toString())
+                                    .buildClient();
+                    Log.e("error", blobClient.toString());
+
+                    blobClient.uploadFromFile(outFile.getAbsolutePath());
+                    sendLogFileSuccess = true;
+                    JSONObject json = new JSONObject();
+                    json.put("Blob name", sasUriResponse.getBlobName());
+                    IotHub.this.sendMessage(json.toString());
+
+                } catch (Exception e) {
+                    Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
+
+                    Log.e("error in sending file", "Failed to upload file to Azure Storage.");
+
+                    Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
+
+                    FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
+                    client.completeFileUpload(completionNotification);
+
+                    Log.e("error in sending file", "Notified IoT Hub that the SAS URI can be freed and that the file upload was a failure.");
+
+                    client.closeNow();
+                }
+
+                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.");
+
+                Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload was a success.");
+                FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), true);
+                client.completeFileUpload(completionNotification);
+                Log.e("error in sending file", "Successfully notified IoT Hub that the SAS URI can be freed, and that the file upload was a success");
+            } catch (Exception e) {
+                Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \nERROR: " + e.getMessage() + e.toString());
+                Log.e("error in sending file", "Shutting down...");
+            }
+        });
+
+        thread.start();
+        thread.join();
+        Log.e("thread error", String.valueOf(sendLogFileSuccess));
+        return sendLogFileSuccess;
+    }
+
+    public boolean sendManualRefillLogFile(List<ManualRefillProduct> manualRefillProducts) throws IOException, InterruptedException {
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("شارژ");
+        Row headerRow = sheet.createRow(sheet.getPhysicalNumberOfRows());
+        headerRow.createCell(0).setCellValue("بارکد");
+        headerRow.createCell(1).setCellValue("تعداد");
+
+        @SuppressLint("SimpleDateFormat")
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
+        File dir = new File(this.getExternalFilesDir(null), "/");
+        File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
+
+        for (ManualRefillProduct it : manualRefillProducts) {
+            Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
+            row.createCell(0).setCellValue(it.getKBarCode());
+            row.createCell(1).setCellValue(it.getScannedNumber());
 
             FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
             workbook.write(outputStream);

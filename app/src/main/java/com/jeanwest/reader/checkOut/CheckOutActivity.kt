@@ -238,6 +238,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = epcs.getJSONObject(i).getInt("depoCount"),
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(),
+                    kName = epcs.getJSONObject(i).getString("K_Name"),
                 )
 
                 checkOutProduct.scannedEPCs.add(epcs.getJSONObject(i).getString("epc"))
@@ -274,6 +275,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = barcodes.getJSONObject(i).getInt("depoCount"),
                     scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
                     scannedEPCs = mutableListOf(),
+                    kName = barcodes.getJSONObject(i).getString("K_Name"),
                 )
 
                 scannedBarcodeTable.add(barcodes.getJSONObject(i).getString("kbarcode"))
