@@ -1,5 +1,6 @@
 package com.jeanwest.reader.refill
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -11,7 +12,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -42,6 +42,7 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -151,6 +152,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
+            sendLog(uiList)
             isSubmitting = false
         }, {
             if (it is NoConnectionError) {
@@ -169,10 +171,6 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                         SnackbarDuration.Long
                     )
                 }
-            }
-
-            if (iotHubConnected) {
-                iotHubService.sendRefillLogFile(uiList)
             }
 
             isSubmitting = false
@@ -223,6 +221,33 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
         queue.add(request)
     }
 
+    fun sendLog(refillProducts: List<RefillProduct>) {
+
+        if (!iotHubConnected) {
+            return
+        }
+
+        val workbook = XSSFWorkbook()
+        val sheet: Sheet = workbook.createSheet("خطی")
+        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
+        headerRow.createCell(0).setCellValue("بارکد")
+        headerRow.createCell(1).setCellValue("تعداد")
+        @SuppressLint("SimpleDateFormat") val sdf =
+            SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
+        val dir = File(getExternalFilesDir(null), "/")
+        val outFile = File(dir, "refillLog" + sdf.format(Date()) + ".xlsx")
+        for ((_, KBarCode, _, _, _, _, _, _, _, _, _, _, _, scannedBarcodeNumber, scannedEPCNumber) in refillProducts) {
+            val row = sheet.createRow(sheet.physicalNumberOfRows)
+            row.createCell(0).setCellValue(KBarCode)
+            row.createCell(1).setCellValue((scannedEPCNumber + scannedBarcodeNumber).toDouble())
+            val outputStream = FileOutputStream(outFile.absolutePath)
+            workbook.write(outputStream)
+            outputStream.flush()
+            outputStream.close()
+        }
+        iotHubService.sendFile(outFile)
+    }
+
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
@@ -263,12 +288,12 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            if(!isSubmitting) {
+                            if (!isSubmitting) {
                                 sendToStore()
                             }
                         },
                     ) {
-                        if(!isSubmitting) {
+                        if (!isSubmitting) {
                             Text(text = "ارسال به فروشگاه")
                         } else {
                             Text(text = "در حال ارسال ...")
@@ -285,7 +310,8 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
         TopAppBar(
 
             navigationIcon = {
-                IconButton(onClick = { finish()
+                IconButton(onClick = {
+                    finish()
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),

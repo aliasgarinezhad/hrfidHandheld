@@ -1,545 +1,296 @@
-package com.jeanwest.reader.iotHub;
+package com.jeanwest.reader.iotHub
 
+import android.annotation.SuppressLint
+import android.app.Service
+import android.content.Intent
+import android.os.Binder
+import android.os.IBinder
+import android.util.Log
+import androidx.preference.PreferenceManager
+import com.azure.storage.blob.BlobClientBuilder
+import com.jeanwest.reader.updateActivity.UpdateActivity
+import com.jeanwest.reader.write.WriteRecord
+import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification
+import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriRequest
+import com.microsoft.azure.sdk.iot.device.*
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device
+import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.launch
+import org.apache.poi.ss.usermodel.Sheet
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
-import android.annotation.SuppressLint;
-import android.app.Service;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Binder;
-import android.os.IBinder;
-import android.util.Log;
+class IotHub : Service() {
 
-import androidx.annotation.Nullable;
-import androidx.preference.PreferenceManager;
+    private var deviceId = ""
+    private var iotToken = ""
+    private var serial = ""
+    private var serialNumber = 0L
+    private var serialNumberMax = 0L
+    private var tagPassword = "00000000"
+    private var serialNumberMin = 0L
+    private var filterNumber = 0
+    private var partitionNumber = 0
+    private var headerNumber = 0
+    private var companyNumber = 0
+    private lateinit var client: DeviceClient
+    private val binder: IBinder = LocalBinder()
+    private var sendLogFileSuccess = false
 
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
-import com.jeanwest.reader.manualRefill.ManualRefillProduct;
-import com.jeanwest.reader.refill.RefillProduct;
-import com.jeanwest.reader.updateActivity.UpdateActivity;
-import com.jeanwest.reader.write.WriteRecord;
-import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification;
-import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriRequest;
-import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriResponse;
-import com.microsoft.azure.sdk.iot.device.DeviceClient;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device;
-import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property;
-import com.microsoft.azure.sdk.iot.device.IotHubClientProtocol;
-import com.microsoft.azure.sdk.iot.device.IotHubEventCallback;
-import com.microsoft.azure.sdk.iot.device.IotHubStatusCode;
-import com.microsoft.azure.sdk.iot.device.Message;
+    private var deviceLocationCode = 0
+    private var deviceLocation = ""
 
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-
-public class IotHub extends Service {
-
-    private String deviceId = "";
-    private String iotToken = "";
-    public static String appVersion = "";
-    private String Serial = "";
-    private long serialNumber;
-    private long serialNumberMax;
-    private String tagPassword;
-    private long serialNumberMin;
-    private int filterNumber;
-    private int partitionNumber;
-    private int headerNumber;
-    private int companyNumber;
-    DeviceClient client;
-    private final IBinder binder = new LocalBinder();
-    public boolean sendLogFileSuccess = false;
-    private int deviceLocationCode = 0;
-    private String deviceLocation = "";
-
-    public class LocalBinder extends Binder {
-        public IotHub getService() {
-            return IotHub.this;
-        }
+    inner class LocalBinder : Binder() {
+        val service: IotHub
+            get() = this@IotHub
     }
 
-    IotHubClientProtocol protocol = IotHubClientProtocol.MQTT;
-
-    Device dataCollector = new Device() {
-        @Override
-        public void PropertyCall(String propertyKey, Object propertyValue, Object context) {
-
-            if (propertyKey.equals("appVersion")) {
-                appVersion = propertyValue.toString();
-                Log.e("error", propertyValue.toString());
+    private var dataCollector = object : Device() {
+        override fun PropertyCall(propertyKey: String, propertyValue: Any, context: Any) {
+            if (propertyKey == "appVersion") {
+                appVersion = propertyValue.toString()
             }
-            if (propertyKey.equals("epcGenerationProps")) {
-                try {
-                    JSONObject epcGenerationProps = new JSONObject(propertyValue.toString());
-                    if (epcGenerationProps.getInt("header") != headerNumber) {
-                        headerNumber = epcGenerationProps.getInt("header");
-                        Log.e("error", "header changed to " + headerNumber);
-                        saveToMemory();
-                    }
-                    if (epcGenerationProps.getInt("filter") != filterNumber) {
-                        filterNumber = epcGenerationProps.getInt("filter");
-                        Log.e("error", "filter changed to " + filterNumber);
-                        saveToMemory();
-                    }
-                    if (epcGenerationProps.getInt("partition") != partitionNumber) {
-                        partitionNumber = epcGenerationProps.getInt("partition");
-                        Log.e("error", "partition changed " + partitionNumber);
-                        saveToMemory();
-                    }
-                    if (!epcGenerationProps.getString("tagPassword").equals(tagPassword)) {
-                        tagPassword = epcGenerationProps.getString("tagPassword");
-                        Log.e("error", "tag password changed to " + tagPassword);
-                        saveToMemory();
-                    }
-                    if (epcGenerationProps.getInt("companyName") != companyNumber) {
-                        companyNumber = epcGenerationProps.getInt("companyName");
-                        Log.e("error", "company number changed to " + companyNumber);
-                        saveToMemory();
-                    }
-                    JSONObject tagSerialNumberRange = epcGenerationProps.getJSONObject("tagSerialNumberRange");
-
-                    if (tagSerialNumberRange.getLong("min") != serialNumberMin ||
-                            tagSerialNumberRange.getLong("max") != serialNumberMax) {
-
-                        serialNumberMin = tagSerialNumberRange.getLong("min");
-                        serialNumberMax = tagSerialNumberRange.getLong("max");
-                        serialNumber = serialNumberMin;
-                        Log.e("error", "tag serial number range changed to " + serialNumberMin + ":" + serialNumberMax);
-                        saveToMemory();
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
+            if (propertyKey == "epcGenerationProps") {
+                val epcGenerationProps = JSONObject(propertyValue.toString())
+                if (epcGenerationProps.getInt("header") != headerNumber) {
+                    headerNumber = epcGenerationProps.getInt("header")
+                    saveToMemory()
                 }
-            }
-
-            try {
-                if (!getPackageManager().getPackageInfo(getPackageName(), 0).versionName.equals(IotHub.appVersion) &&
-                        !IotHub.appVersion.isEmpty()
+                if (epcGenerationProps.getInt("filter") != filterNumber) {
+                    filterNumber = epcGenerationProps.getInt("filter")
+                    saveToMemory()
+                }
+                if (epcGenerationProps.getInt("partition") != partitionNumber) {
+                    partitionNumber = epcGenerationProps.getInt("partition")
+                    saveToMemory()
+                }
+                if (epcGenerationProps.getString("tagPassword") != tagPassword) {
+                    tagPassword = epcGenerationProps.getString("tagPassword")
+                    saveToMemory()
+                }
+                if (epcGenerationProps.getInt("companyName") != companyNumber) {
+                    companyNumber = epcGenerationProps.getInt("companyName")
+                    saveToMemory()
+                }
+                val tagSerialNumberRange =
+                    epcGenerationProps.getJSONObject("tagSerialNumberRange")
+                if (tagSerialNumberRange.getLong("min") != serialNumberMin ||
+                    tagSerialNumberRange.getLong("max") != serialNumberMax
                 ) {
-                    Intent intent = new Intent(IotHub.this, UpdateActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
+                    serialNumberMin = tagSerialNumberRange.getLong("min")
+                    serialNumberMax = tagSerialNumberRange.getLong("max")
+                    serialNumber = serialNumberMin
+                    saveToMemory()
                 }
-            } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
             }
 
-            Log.e("error", propertyKey + " changed to " + propertyValue);
-        }
-    };
-
-    public IotHub() {
-
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        loadMemory();
-        Thread sendThread = new Thread(() -> {
-            try {
-                initClient();
-            } catch (Exception e) {
-                Log.e("error", "Exception while opening IoTHub connection: " + e);
+            if (packageManager.getPackageInfo(packageName, 0).versionName != appVersion &&
+                appVersion.isNotEmpty()
+            ) {
+                val intent = Intent(this@IotHub, UpdateActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                startActivity(intent)
             }
-        });
 
-        sendThread.start();
-        return START_STICKY;
-    }
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
-    }
-
-    public boolean sendLogFile(List<WriteRecord> writeRecords) throws IOException, InterruptedException {
-
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("کالا های رایت شده");
-        Row headerRow = sheet.createRow(sheet.getPhysicalNumberOfRows());
-        headerRow.createCell(0).setCellValue("barcode");
-        headerRow.createCell(1).setCellValue("EPC");
-        headerRow.createCell(2).setCellValue("date and time");
-        headerRow.createCell(3).setCellValue("username");
-        headerRow.createCell(4).setCellValue("device serial number");
-        headerRow.createCell(5).setCellValue("wrote on raw tag");
-
-        @SuppressLint("SimpleDateFormat")
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
-        File dir = new File(this.getExternalFilesDir(null), "/");
-        File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
-
-        for (WriteRecord it : writeRecords) {
-            Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
-            row.createCell(0).setCellValue(it.getBarcode());
-            row.createCell(1).setCellValue(it.getEpc());
-            row.createCell(2).setCellValue(it.getDateAndTime());
-            row.createCell(3).setCellValue(it.getUsername());
-            row.createCell(4).setCellValue(it.getDeviceSerialNumber());
-            row.createCell(5).setCellValue(it.getWroteOnRawTag());
-
-            FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
-            workbook.write(outputStream);
-            outputStream.flush();
-            outputStream.close();
+            Log.e("error", "$propertyKey changed to $propertyValue")
         }
-        sendLogFileSuccess = false;
+    }
 
-        Thread thread = new Thread(() -> {
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        loadMemory()
+        CoroutineScope(IO).launch {
+            initClient()
+        }
+        return START_STICKY
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        return binder
+    }
+
+    fun sendWriteLog(writeRecords: List<WriteRecord>): Boolean {
+        val workbook = XSSFWorkbook()
+        val sheet: Sheet = workbook.createSheet("کالا های رایت شده")
+        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
+        headerRow.createCell(0).setCellValue("barcode")
+        headerRow.createCell(1).setCellValue("EPC")
+        headerRow.createCell(2).setCellValue("date and time")
+        headerRow.createCell(3).setCellValue("username")
+        headerRow.createCell(4).setCellValue("device serial number")
+        headerRow.createCell(5).setCellValue("wrote on raw tag")
+        @SuppressLint("SimpleDateFormat") val sdf =
+            SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
+        val dir = File(getExternalFilesDir(null), "/")
+        val outFile = File(dir, "log" + sdf.format(Date()) + ".xlsx")
+        for ((epc, barcode, dateAndTime, username, deviceSerialNumber, wroteOnRawTag) in writeRecords) {
+            val row = sheet.createRow(sheet.physicalNumberOfRows)
+            row.createCell(0).setCellValue(barcode)
+            row.createCell(1).setCellValue(epc)
+            row.createCell(2).setCellValue(dateAndTime)
+            row.createCell(3).setCellValue(username)
+            row.createCell(4).setCellValue(deviceSerialNumber)
+            row.createCell(5).setCellValue(wroteOnRawTag)
+            val outputStream = FileOutputStream(outFile.absolutePath)
+            workbook.write(outputStream)
+            outputStream.flush()
+            outputStream.close()
+        }
+        return sendFile(outFile)
+    }
+
+    fun sendFile(outFile: File) : Boolean {
+
+        sendLogFileSuccess = false
+        val thread = Thread {
             try {
-                if (outFile.isDirectory()) {
-                    throw new IllegalArgumentException(outFile.getName() + " is a directory, please provide a single file name, or use the FileUploadSample to upload directories.");
-                }
-
-                Log.e("error", outFile.getName());
-                Log.e("error in sending file", "Retrieving SAS URI from IoT Hub...");
-                FileUploadSasUriResponse sasUriResponse = client.getFileUploadSasUri(new FileUploadSasUriRequest(outFile.getName()));
-
-                Log.e("error in sending file", "Successfully got SAS URI from IoT Hub");
-                Log.e("error in sending file", "Correlation Id: " + sasUriResponse.getCorrelationId());
-                Log.e("error in sending file", "Container name: " + sasUriResponse.getContainerName());
-                Log.e("error in sending file", "Blob name: " + sasUriResponse.getBlobName());
-                Log.e("error in sending file", "Blob Uri: " + sasUriResponse.getBlobUri());
-
-                Log.e("error in sending file", "Using the Azure Storage SDK to upload file to Azure Storage...");
-
+                Log.e("error", outFile.name)
+                val sasUriResponse = client.getFileUploadSasUri(FileUploadSasUriRequest(outFile.name))
+                Log.e("send file", "Correlation Id: " + sasUriResponse.correlationId)
+                Log.e("send file", "Container name: " + sasUriResponse.containerName)
+                Log.e("send file", "Blob name: " + sasUriResponse.blobName)
+                Log.e("send file", "Blob Uri: " + sasUriResponse.blobUri)
                 try {
-
-                    BlobClient blobClient =
-                            new BlobClientBuilder()
-                                    .endpoint(sasUriResponse.getBlobUri().toString())
-                                    .buildClient();
-                    Log.e("error", blobClient.toString());
-
-                    blobClient.uploadFromFile(outFile.getAbsolutePath());
-                    sendLogFileSuccess = true;
-                    JSONObject json = new JSONObject();
-                    json.put("Blob name", sasUriResponse.getBlobName());
-                    IotHub.this.sendMessage(json.toString());
-
-                } catch (Exception e) {
-                    Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
-
-                    Log.e("error in sending file", "Failed to upload file to Azure Storage.");
-
-                    Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
-
-                    FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
-                    client.completeFileUpload(completionNotification);
-
-                    Log.e("error in sending file", "Notified IoT Hub that the SAS URI can be freed and that the file upload was a failure.");
-
-                    client.closeNow();
+                    val blobClient = BlobClientBuilder()
+                        .endpoint(sasUriResponse.blobUri.toString())
+                        .buildClient()
+                    blobClient.uploadFromFile(outFile.absolutePath)
+                    sendLogFileSuccess = true
+                    val json = JSONObject()
+                    sendMessage(json.toString())
+                } catch (e: Exception) {
+                    Log.e(
+                        "error in sending file",
+                        "Exception encountered while uploading file to blob: " + e.message
+                    )
+                    val completionNotification =
+                        FileUploadCompletionNotification(sasUriResponse.correlationId, false)
+                    client.completeFileUpload(completionNotification)
+                    client.closeNow()
                 }
-
-                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.");
-
-                Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload was a success.");
-                FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), true);
-                client.completeFileUpload(completionNotification);
-                Log.e("error in sending file", "Successfully notified IoT Hub that the SAS URI can be freed, and that the file upload was a success");
-            } catch (Exception e) {
-                Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \nERROR: " + e.getMessage() + e.toString());
-                Log.e("error in sending file", "Shutting down...");
+                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.")
+                val completionNotification =
+                    FileUploadCompletionNotification(sasUriResponse.correlationId, true)
+                client.completeFileUpload(completionNotification)
+            } catch (e: Exception) {
+                Log.e(
+                    "error in sending file",
+                    "On exception, shutting down Cause: ${e.cause} ERROR: ${e.message}$e"
+                )
             }
-        });
-
-        thread.start();
-        thread.join();
-        Log.e("thread error", String.valueOf(sendLogFileSuccess));
-        return sendLogFileSuccess;
-    }
-
-    public boolean sendRefillLogFile(List<RefillProduct> refillProducts) throws IOException, InterruptedException {
-
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("خطی");
-        Row headerRow = sheet.createRow(sheet.getPhysicalNumberOfRows());
-        headerRow.createCell(0).setCellValue("بارکد");
-        headerRow.createCell(1).setCellValue("تعداد");
-
-        @SuppressLint("SimpleDateFormat")
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
-        File dir = new File(this.getExternalFilesDir(null), "/");
-        File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
-
-        for (RefillProduct it : refillProducts) {
-            Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
-            row.createCell(0).setCellValue(it.getKBarCode());
-            row.createCell(1).setCellValue(it.getScannedEPCNumber() + it.getScannedBarcodeNumber());
-
-            FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
-            workbook.write(outputStream);
-            outputStream.flush();
-            outputStream.close();
         }
-        sendLogFileSuccess = false;
-
-        Thread thread = new Thread(() -> {
-            try {
-                if (outFile.isDirectory()) {
-                    throw new IllegalArgumentException(outFile.getName() + " is a directory, please provide a single file name, or use the FileUploadSample to upload directories.");
-                }
-
-                Log.e("error", outFile.getName());
-                Log.e("error in sending file", "Retrieving SAS URI from IoT Hub...");
-                FileUploadSasUriResponse sasUriResponse = client.getFileUploadSasUri(new FileUploadSasUriRequest(outFile.getName()));
-
-                Log.e("error in sending file", "Successfully got SAS URI from IoT Hub");
-                Log.e("error in sending file", "Correlation Id: " + sasUriResponse.getCorrelationId());
-                Log.e("error in sending file", "Container name: " + sasUriResponse.getContainerName());
-                Log.e("error in sending file", "Blob name: " + sasUriResponse.getBlobName());
-                Log.e("error in sending file", "Blob Uri: " + sasUriResponse.getBlobUri());
-
-                Log.e("error in sending file", "Using the Azure Storage SDK to upload file to Azure Storage...");
-
-                try {
-
-                    BlobClient blobClient =
-                            new BlobClientBuilder()
-                                    .endpoint(sasUriResponse.getBlobUri().toString())
-                                    .buildClient();
-                    Log.e("error", blobClient.toString());
-
-                    blobClient.uploadFromFile(outFile.getAbsolutePath());
-                    sendLogFileSuccess = true;
-                    JSONObject json = new JSONObject();
-                    json.put("Blob name", sasUriResponse.getBlobName());
-                    IotHub.this.sendMessage(json.toString());
-
-                } catch (Exception e) {
-                    Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
-
-                    Log.e("error in sending file", "Failed to upload file to Azure Storage.");
-
-                    Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
-
-                    FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
-                    client.completeFileUpload(completionNotification);
-
-                    Log.e("error in sending file", "Notified IoT Hub that the SAS URI can be freed and that the file upload was a failure.");
-
-                    client.closeNow();
-                }
-
-                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.");
-
-                Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload was a success.");
-                FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), true);
-                client.completeFileUpload(completionNotification);
-                Log.e("error in sending file", "Successfully notified IoT Hub that the SAS URI can be freed, and that the file upload was a success");
-            } catch (Exception e) {
-                Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \nERROR: " + e.getMessage() + e.toString());
-                Log.e("error in sending file", "Shutting down...");
-            }
-        });
-
-        thread.start();
-        thread.join();
-        Log.e("thread error", String.valueOf(sendLogFileSuccess));
-        return sendLogFileSuccess;
+        thread.start()
+        thread.join()
+        Log.e("is sending file successfully", sendLogFileSuccess.toString())
+        return sendLogFileSuccess
     }
 
-    public boolean sendManualRefillLogFile(List<ManualRefillProduct> manualRefillProducts) throws IOException, InterruptedException {
-
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("شارژ");
-        Row headerRow = sheet.createRow(sheet.getPhysicalNumberOfRows());
-        headerRow.createCell(0).setCellValue("بارکد");
-        headerRow.createCell(1).setCellValue("تعداد");
-
-        @SuppressLint("SimpleDateFormat")
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH);
-        File dir = new File(this.getExternalFilesDir(null), "/");
-        File outFile = new File(dir, "log" + sdf.format(new Date()) + ".xlsx");
-
-        for (ManualRefillProduct it : manualRefillProducts) {
-            Row row = sheet.createRow(sheet.getPhysicalNumberOfRows());
-            row.createCell(0).setCellValue(it.getKBarCode());
-            row.createCell(1).setCellValue(it.getScannedNumber());
-
-            FileOutputStream outputStream = new FileOutputStream(outFile.getAbsolutePath());
-            workbook.write(outputStream);
-            outputStream.flush();
-            outputStream.close();
-        }
-        sendLogFileSuccess = false;
-
-        Thread thread = new Thread(() -> {
-            try {
-                if (outFile.isDirectory()) {
-                    throw new IllegalArgumentException(outFile.getName() + " is a directory, please provide a single file name, or use the FileUploadSample to upload directories.");
-                }
-
-                Log.e("error", outFile.getName());
-                Log.e("error in sending file", "Retrieving SAS URI from IoT Hub...");
-                FileUploadSasUriResponse sasUriResponse = client.getFileUploadSasUri(new FileUploadSasUriRequest(outFile.getName()));
-
-                Log.e("error in sending file", "Successfully got SAS URI from IoT Hub");
-                Log.e("error in sending file", "Correlation Id: " + sasUriResponse.getCorrelationId());
-                Log.e("error in sending file", "Container name: " + sasUriResponse.getContainerName());
-                Log.e("error in sending file", "Blob name: " + sasUriResponse.getBlobName());
-                Log.e("error in sending file", "Blob Uri: " + sasUriResponse.getBlobUri());
-
-                Log.e("error in sending file", "Using the Azure Storage SDK to upload file to Azure Storage...");
-
-                try {
-
-                    BlobClient blobClient =
-                            new BlobClientBuilder()
-                                    .endpoint(sasUriResponse.getBlobUri().toString())
-                                    .buildClient();
-                    Log.e("error", blobClient.toString());
-
-                    blobClient.uploadFromFile(outFile.getAbsolutePath());
-                    sendLogFileSuccess = true;
-                    JSONObject json = new JSONObject();
-                    json.put("Blob name", sasUriResponse.getBlobName());
-                    IotHub.this.sendMessage(json.toString());
-
-                } catch (Exception e) {
-                    Log.e("error in sending file", "Exception encountered while uploading file to blob: " + e.getMessage());
-
-                    Log.e("error in sending file", "Failed to upload file to Azure Storage.");
-
-                    Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload failed.");
-
-                    FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), false);
-                    client.completeFileUpload(completionNotification);
-
-                    Log.e("error in sending file", "Notified IoT Hub that the SAS URI can be freed and that the file upload was a failure.");
-
-                    client.closeNow();
-                }
-
-                Log.e("error in sending file", "Successfully uploaded file to Azure Storage.");
-
-                Log.e("error in sending file", "Notifying IoT Hub that the SAS URI can be freed and that the file upload was a success.");
-                FileUploadCompletionNotification completionNotification = new FileUploadCompletionNotification(sasUriResponse.getCorrelationId(), true);
-                client.completeFileUpload(completionNotification);
-                Log.e("error in sending file", "Successfully notified IoT Hub that the SAS URI can be freed, and that the file upload was a success");
-            } catch (Exception e) {
-                Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \nERROR: " + e.getMessage() + e.toString());
-                Log.e("error in sending file", "Shutting down...");
-            }
-        });
-
-        thread.start();
-        thread.join();
-        Log.e("thread error", String.valueOf(sendLogFileSuccess));
-        return sendLogFileSuccess;
+    private fun loadMemory() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        serialNumber = memory.getLong("value", -1L)
+        serialNumberMax = memory.getLong("max", -1L)
+        serialNumberMin = memory.getLong("min", -1L)
+        headerNumber = memory.getInt("header", -1)
+        filterNumber = memory.getInt("filter", -1)
+        partitionNumber = memory.getInt("partition", -1)
+        companyNumber = memory.getInt("company", -1)
+        tagPassword = memory.getString("password", "") ?: ""
+        deviceId = memory.getString("deviceId", "") ?: ""
+        iotToken = memory.getString("iotToken", "") ?: ""
+        serial = memory.getString("deviceSerialNumber", "") ?: ""
+        deviceLocationCode = memory.getInt("deviceLocationCode", 0)
+        deviceLocation = memory.getString("deviceLocation", "") ?: ""
     }
 
-    private void loadMemory() {
-
-        SharedPreferences memory = PreferenceManager.getDefaultSharedPreferences(this);
-
-        serialNumber = memory.getLong("value", -1L);
-        serialNumberMax = memory.getLong("max", -1L);
-        serialNumberMin = memory.getLong("min", -1L);
-        headerNumber = memory.getInt("header", -1);
-        filterNumber = memory.getInt("filter", -1);
-        partitionNumber = memory.getInt("partition", -1);
-        companyNumber = memory.getInt("company", -1);
-        tagPassword = memory.getString("password", "");
-        deviceId = memory.getString("deviceId", "");
-        iotToken = memory.getString("iotToken", "");
-        Serial = memory.getString("deviceSerialNumber", "");
-        deviceLocationCode = memory.getInt("deviceLocationCode", 0);
-        deviceLocation = memory.getString("deviceLocation", "");
+    private fun saveToMemory() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val memoryEditor = memory.edit()
+        memoryEditor.putLong("value", serialNumber)
+        memoryEditor.putLong("max", serialNumberMax)
+        memoryEditor.putLong("min", serialNumberMin)
+        memoryEditor.putInt("header", headerNumber)
+        memoryEditor.putInt("filter", filterNumber)
+        memoryEditor.putInt("partition", partitionNumber)
+        memoryEditor.putInt("company", companyNumber)
+        memoryEditor.putLong("counterModified", 0L)
+        memoryEditor.putString("password", tagPassword)
+        memoryEditor.putString("deviceId", deviceId)
+        memoryEditor.putString("iotToken", iotToken)
+        memoryEditor.putString("deviceSerialNumber", serial)
+        memoryEditor.apply()
     }
 
-    private void saveToMemory() {
+    private fun initClient() {
 
-        SharedPreferences memory = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor memoryEditor = memory.edit();
-
-        memoryEditor.putLong("value", serialNumber);
-        memoryEditor.putLong("max", serialNumberMax);
-        memoryEditor.putLong("min", serialNumberMin);
-        memoryEditor.putInt("header", headerNumber);
-        memoryEditor.putInt("filter", filterNumber);
-        memoryEditor.putInt("partition", partitionNumber);
-        memoryEditor.putInt("company", companyNumber);
-        memoryEditor.putLong("counterModified", 0L);
-        memoryEditor.putString("password", tagPassword);
-        memoryEditor.putString("deviceId", deviceId);
-        memoryEditor.putString("iotToken", iotToken);
-        memoryEditor.putString("deviceSerialNumber", Serial);
-        memoryEditor.apply();
-    }
-
-    private void initClient() throws URISyntaxException, IOException {
-
-        final String connString = "HostName=rfid-frce.azure-devices.net;DeviceId=" + deviceId +
-                ";SharedAccessKey=" + iotToken;
-
-        client = new DeviceClient(connString, protocol);
-
+        val connString = "HostName=rfid-frce.azure-devices.net;DeviceId=" + deviceId +
+                ";SharedAccessKey=" + iotToken
+        client = DeviceClient(connString, IotHubClientProtocol.MQTT)
         try {
-            client.open();
-            client.startDeviceTwin(new DeviceTwinStatusCallBack(), null, dataCollector, null);
-
-            JSONObject location = new JSONObject();
-            location.put("deviceLocationCode", deviceLocationCode);
-            location.put("deviceLocation", deviceLocation);
-
-            dataCollector.setReportedProp(new Property("connectivityType", null));
-            dataCollector.setReportedProp(new Property("installedAppVersion", getPackageManager().getPackageInfo(getPackageName(), 0).versionName));
-            dataCollector.setReportedProp(new Property("Serial", Serial));
-            dataCollector.setReportedProp(new Property("nextTagSerialNumber", serialNumber));
-            dataCollector.setReportedProp(new Property("location", location));
-            dataCollector.setReportedProp(new Property("username", ""));
-            client.sendReportedProperties(dataCollector.getReportedProp());
-        } catch (Exception e) {
-            Log.e("error in sending file", "On exception, shutting down \n" + " Cause: " + e.getCause() + " \n" + e.getMessage());
-            dataCollector.clean();
-            client.closeNow();
-            Log.e("error in sending file", "Shutting down...");
+            client.open()
+            client.startDeviceTwin(DeviceTwinStatusCallBack(), null, dataCollector, null)
+            val location = JSONObject()
+            location.put("deviceLocationCode", deviceLocationCode)
+            location.put("deviceLocation", deviceLocation)
+            dataCollector.setReportedProp(Property("connectivityType", null))
+            dataCollector.setReportedProp(
+                Property(
+                    "installedAppVersion", packageManager.getPackageInfo(
+                        packageName, 0
+                    ).versionName
+                )
+            )
+            dataCollector.setReportedProp(Property("Serial", serial))
+            dataCollector.setReportedProp(Property("nextTagSerialNumber", serialNumber))
+            dataCollector.setReportedProp(Property("location", location))
+            dataCollector.setReportedProp(Property("username", ""))
+            client.sendReportedProperties(dataCollector.reportedProp)
+        } catch (e: Exception) {
+            Log.e(
+                "error in sending file",
+                "On exception, shutting down Cause: ${e.cause} ${e.message}"
+            )
+            dataCollector.clean()
+            client.closeNow()
+            Log.e("error in sending file", "Shutting down...")
         }
     }
 
-    private void sendMessage(String message) {
-        Message sendMessage = new Message(message);
-        sendMessage.setProperty("message-type", "writeTagsFileUploadNotification");
-        sendMessage.setMessageId(java.util.UUID.randomUUID().toString());
-        sendMessage.setContentTypeFinal("application/json");
-        sendMessage.setContentEncoding("utf-8");
-        System.out.println("Message Sent: " + message);
-        EventCallback eventCallback = new EventCallback();
-        client.sendEventAsync(sendMessage, eventCallback, 0);
+    private fun sendMessage(message: String) {
+        val sendMessage = Message(message)
+        sendMessage.setProperty("message-type", "writeTagsFileUploadNotification")
+        sendMessage.messageId = UUID.randomUUID().toString()
+        sendMessage.setContentTypeFinal("application/json")
+        sendMessage.contentEncoding = "utf-8"
+        println("Message Sent: $message")
+        val eventCallback = EventCallback()
+        client.sendEventAsync(sendMessage, eventCallback, 0)
     }
 
-    protected static class DeviceTwinStatusCallBack implements IotHubEventCallback {
-        @Override
-        public void execute(IotHubStatusCode status, Object context) {
-            Log.e("error", "IoT Hub responded to device twin operation with status " + status.name());
+    private class DeviceTwinStatusCallBack : IotHubEventCallback {
+        override fun execute(responseStatus: IotHubStatusCode?, callbackContext: Any?) {
+            Log.e(
+                "error",
+                "IoT Hub responded to device twin operation with status " + responseStatus?.name
+            )
         }
     }
 
-    static class EventCallback implements IotHubEventCallback {
-        public void execute(IotHubStatusCode status, Object context) {
-
-            if ((status == IotHubStatusCode.OK) || (status == IotHubStatusCode.OK_EMPTY)) {
-
+    internal class EventCallback : IotHubEventCallback {
+        override fun execute(responseStatus: IotHubStatusCode?, callbackContext: Any?) {
+            if (responseStatus == IotHubStatusCode.OK || responseStatus == IotHubStatusCode.OK_EMPTY) {
+                Log.e("error", "event call back received ok")
             } else {
-
+                Log.e("error", responseStatus.toString())
             }
         }
+    }
+
+    companion object {
+        var appVersion = ""
     }
 }

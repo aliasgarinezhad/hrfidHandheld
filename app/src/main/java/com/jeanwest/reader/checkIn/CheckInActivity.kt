@@ -1,6 +1,6 @@
 package com.jeanwest.reader.checkIn
 
-import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -41,13 +41,13 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.search.SearchResultProducts
-import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.search.SearchResultProducts
+import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-//import com.rscja.deviceapi.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -602,7 +602,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                                 null,
                                 SnackbarDuration.Long
                             )
-                        }                    }
+                        }
+                    }
                 }
             }
             conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
@@ -809,7 +810,9 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-                IconButton(modifier = Modifier.testTag("CheckInTestTag"), onClick = { openClearDialog = true }) {
+                IconButton(
+                    modifier = Modifier.testTag("CheckInTestTag"),
+                    onClick = { openClearDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""

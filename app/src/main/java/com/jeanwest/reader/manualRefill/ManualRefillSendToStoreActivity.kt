@@ -1,5 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -40,6 +41,7 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -148,11 +150,9 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
-            isSubmitting = false
 
-            if (iotHubConnected) {
-                iotHubService.sendManualRefillLogFile(uiList)
-            }
+            sendLog(uiList)
+            isSubmitting = false
 
         }, {
             if (it is NoConnectionError) {
@@ -216,6 +216,32 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
 
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
+    }
+
+    fun sendLog(manualRefillProducts: List<ManualRefillProduct>) {
+
+        if(!iotHubConnected) {
+            return
+        }
+        val workbook = XSSFWorkbook()
+        val sheet: Sheet = workbook.createSheet("شارژ")
+        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
+        headerRow.createCell(0).setCellValue("بارکد")
+        headerRow.createCell(1).setCellValue("تعداد")
+        @SuppressLint("SimpleDateFormat") val sdf =
+            SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
+        val dir = File(getExternalFilesDir(null), "/")
+        val outFile = File(dir, "manualRefillLog" + sdf.format(Date()) + ".xlsx")
+        for ((_, KBarCode, _, _, scannedNumber) in manualRefillProducts) {
+            val row = sheet.createRow(sheet.physicalNumberOfRows)
+            row.createCell(0).setCellValue(KBarCode)
+            row.createCell(1).setCellValue(scannedNumber.toDouble())
+            val outputStream = FileOutputStream(outFile.absolutePath)
+            workbook.write(outputStream)
+            outputStream.flush()
+            outputStream.close()
+        }
+        iotHubService.sendFile(outFile)
     }
 
     @ExperimentalCoilApi

@@ -384,7 +384,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         saveMemory()
         if (writeRecords.size % 100 == 0) {
             if (iotHubConnected) {
-                if (iotHubService.sendLogFile(writeRecords)) {
+                if (iotHubService.sendWriteLog(writeRecords)) {
                     writeRecords.clear()
                     saveMemory()
                 }
