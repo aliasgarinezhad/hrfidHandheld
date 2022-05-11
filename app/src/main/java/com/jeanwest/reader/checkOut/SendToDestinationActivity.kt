@@ -53,7 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-@ExperimentalCoilApi
+@OptIn(ExperimentalFoundationApi::class)
 class SendToDestinationActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<CheckOutProduct>())
@@ -69,8 +69,6 @@ class SendToDestinationActivity : ComponentActivity() {
     private val apiTimeout = 30000
     private var isSubmitting by mutableStateOf(false)
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

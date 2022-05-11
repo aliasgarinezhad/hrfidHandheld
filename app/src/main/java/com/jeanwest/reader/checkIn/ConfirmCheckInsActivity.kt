@@ -42,7 +42,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 
-@ExperimentalCoilApi
+@OptIn(ExperimentalFoundationApi::class)
 class ConfirmCheckInsActivity : ComponentActivity() {
 
     private var conflictResultProducts by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
@@ -55,9 +55,6 @@ class ConfirmCheckInsActivity : ComponentActivity() {
     private var checkInProperties = mutableListOf<CheckInProperties>()
     private var state = SnackbarHostState()
 
-
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

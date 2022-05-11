@@ -51,7 +51,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import org.json.JSONObject
 
-@ExperimentalCoilApi
+@OptIn(ExperimentalFoundationApi::class)
 class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
@@ -77,8 +77,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var selectMode by mutableStateOf(false)
     var uiList = mutableStateListOf<CheckOutProduct>()
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

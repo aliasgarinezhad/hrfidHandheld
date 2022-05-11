@@ -5,7 +5,6 @@ data class ManualRefillProduct(
     var KBarCode: String,
     var imageUrl: String,
     var primaryKey: Long,
-    var scannedNumber: Int,
     var productCode: String,
     var size: String,
     var color: String,
@@ -15,5 +14,7 @@ data class ManualRefillProduct(
     var wareHouseNumber: Int,
     var scannedEPCs: MutableList<String>,
     var scannedBarcode: String,
+    var scannedBarcodeNumber : Int,
+    var scannedEPCNumber : Int,
     var kName: String,
 )

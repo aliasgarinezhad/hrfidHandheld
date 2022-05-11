@@ -227,6 +227,10 @@ class IotHub : Service() {
 
     private fun initClient() {
 
+        if(deviceId.isEmpty() || iotToken.isEmpty()) {
+            return
+        }
+
         val connString = "HostName=rfid-frce.azure-devices.net;DeviceId=" + deviceId +
                 ";SharedAccessKey=" + iotToken
         client = DeviceClient(connString, IotHubClientProtocol.MQTT)

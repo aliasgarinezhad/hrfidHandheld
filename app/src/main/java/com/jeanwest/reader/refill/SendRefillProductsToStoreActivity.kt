@@ -35,6 +35,7 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.ErrorSnackBar
@@ -52,7 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-@ExperimentalCoilApi
+@OptIn(ExperimentalFoundationApi::class)
 class SendRefillProductsToStoreActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
@@ -77,8 +78,6 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
         }
     }
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -140,9 +139,22 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
 
     private fun sendToStore() {
 
+        uiList.forEach {
+            if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                return
+            }
+        }
+
         isSubmitting = true
 
-        val url = "https://rfid-api.avakatan.ir/test/stock-draft/refill"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -179,7 +191,7 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
                 val params = HashMap<String, String>()
                 params["Content-Type"] = "application/json;charset=UTF-8"
                 params["Authorization"] =
-                    "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY0NjQ2MjI2NiwiZXhwIjoxNzA0NTIzMDY2LCJhdWQiOiJlcnAifQ.7GV9x6XPk5aDEo6Q_d6wpk052m5Defnav7G4dvTDC28"
+                    "Bearer " + MainActivity.token
                 return params
             }
 

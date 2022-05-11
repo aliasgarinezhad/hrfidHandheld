@@ -56,7 +56,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
 
-@ExperimentalCoilApi
+@OptIn(ExperimentalFoundationApi::class)
 class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
@@ -93,8 +93,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
