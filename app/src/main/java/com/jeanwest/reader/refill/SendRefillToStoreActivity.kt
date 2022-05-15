@@ -38,6 +38,7 @@ import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
+import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
@@ -54,7 +55,7 @@ import java.util.*
 
 
 @OptIn(ExperimentalFoundationApi::class)
-class SendRefillProductsToStoreActivity : ComponentActivity() {
+class SendRefillToStoreActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
     private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
@@ -166,6 +167,9 @@ class SendRefillProductsToStoreActivity : ComponentActivity() {
             }
             sendLog(uiList)
             isSubmitting = false
+            RefillActivity.scannedBarcodeTable.clear()
+            RefillActivity.scannedEpcTable.clear()
+            finish()
         }, {
             if (it is NoConnectionError) {
                 CoroutineScope(Dispatchers.Default).launch {

@@ -62,11 +62,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 5
-    private var scannedEpcTable = mutableListOf<String>()
-    private var epcTablePreviousSize = 0
-    private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    val scannedProducts = ArrayList<ManualRefillProduct>()
     private var scanningJob: Job? = null
 
     //ui parameters
@@ -78,9 +74,16 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     var signedProductCodes = mutableListOf<String>()
     private val scanTypeValues = mutableListOf("RFID", "بارکد")
-    var scanTypeValue by mutableStateOf("بارکد")
+    private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
+    var uiList = mutableStateListOf<ManualRefillProduct>()
     private var selectMode by mutableStateOf(false)
+
+    companion object {
+        var scannedEpcTable = mutableListOf<String>()
+        var scannedBarcodeTable = mutableListOf<String>()
+        var manualRefillProducts = ArrayList<ManualRefillProduct>()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,20 +109,26 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 */
         loadMemory()
 
-        if (numberOfScanned != 0 || userDefinedProducts.size > 0) {
+        if (numberOfScanned != 0) {
             syncScannedItemsToServer()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        saveToMemory()
         uiList.clear()
-        uiList.addAll(scannedProducts)
-        uiList.addAll(userDefinedProducts)
+        uiList.addAll(manualRefillProducts)
         uiList.sortBy { it1 ->
+
             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
         }
+        barcodeInit()
+        saveToMemory()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopBarcodeScan()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -172,6 +181,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             isScanning = false
             return
         }
+
+        var epcTablePreviousSize = scannedEpcTable.size
 
         rf.startInventoryTag(0, 0, 0)
 
@@ -227,7 +238,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         val alreadySyncedEpcs = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
-        scannedProducts.forEach {
+        manualRefillProducts.forEach {
             if (it.scannedEPCNumber > 0) {
                 alreadySyncedEpcs.addAll(it.scannedEPCs)
             }
@@ -246,10 +257,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             if (it !in alreadySyncedBarcodes) {
                 barcodeArray.put(it)
             } else {
-                val productIndex = scannedProducts.indexOf(scannedProducts.last { it1 ->
+                val productIndex = manualRefillProducts.indexOf(manualRefillProducts.last { it1 ->
                     it1.scannedBarcode == it
                 })
-                scannedProducts[productIndex].scannedBarcodeNumber =
+                manualRefillProducts[productIndex].scannedBarcodeNumber =
                     scannedBarcodeTable.count { it1 ->
                         it1 == it
                     }
@@ -258,8 +269,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         if (epcArray.length() == 0 && barcodeArray.length() == 0) {
             uiList.clear()
-            uiList.addAll(scannedProducts)
-            uiList.addAll(userDefinedProducts)
+            uiList.addAll(manualRefillProducts)
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -293,11 +303,13 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     kName = epcs.getJSONObject(i).getString("K_Name"),
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(epcs.getJSONObject(i).getString("epc")),
-                    scannedBarcodeNumber = 0
+                    scannedBarcodeNumber = 0,
+                    requestedNum = 0,
+                    storeNumber = 0,
                 )
 
                 var isInRefillProductList = false
-                scannedProducts.forEach { it1 ->
+                manualRefillProducts.forEach { it1 ->
                     if (it1.KBarCode == refillProduct.KBarCode) {
                         it1.scannedEPCs.add(refillProduct.scannedEPCs[0])
                         it1.scannedEPCNumber += 1
@@ -306,7 +318,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 if (!isInRefillProductList) {
-                    scannedProducts.add(refillProduct)
+                    manualRefillProducts.add(refillProduct)
                 }
             }
 
@@ -327,10 +339,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
                     scannedEPCs = mutableListOf(),
                     kName = barcodes.getJSONObject(i).getString("K_Name"),
-                    scannedEPCNumber = 0
+                    scannedEPCNumber = 0,
+                    requestedNum = 0,
+                    storeNumber = 0,
                 )
                 var isInRefillProductList = false
-                scannedProducts.forEach { it1 ->
+                manualRefillProducts.forEach { it1 ->
                     if (it1.KBarCode == refillProduct.KBarCode) {
                         it1.scannedBarcode = refillProduct.scannedBarcode
                         it1.scannedBarcodeNumber += 1
@@ -339,23 +353,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 if (!isInRefillProductList) {
-                    scannedProducts.add(refillProduct)
+                    manualRefillProducts.add(refillProduct)
                 }
             }
-
-            val similarItems = mutableListOf<ManualRefillProduct>()
-            userDefinedProducts.forEach { it1 ->
-                scannedProducts.forEach { it2 ->
-                    if (it2.KBarCode == it1.KBarCode) {
-                        similarItems.add(it1)
-                    }
-                }
-            }
-            userDefinedProducts.removeAll(similarItems)
 
             uiList.clear()
-            uiList.addAll(scannedProducts)
-            uiList.addAll(userDefinedProducts)
+            uiList.addAll(manualRefillProducts)
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -385,8 +388,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
 
             uiList.clear()
-            uiList.addAll(scannedProducts)
-            uiList.addAll(userDefinedProducts)
+            uiList.addAll(manualRefillProducts)
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -443,8 +445,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         )
 
         edit.putString(
-            "ManualRefillUserDefinedProducts",
-            Gson().toJson(userDefinedProducts).toString()
+            "ManualRefillProducts",
+            Gson().toJson(manualRefillProducts).toString()
         )
 
         edit.apply()
@@ -461,15 +463,13 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             scannedEpcTable.javaClass
         ) ?: mutableListOf()
 
-        epcTablePreviousSize = scannedEpcTable.size
-
         scannedBarcodeTable = Gson().fromJson(
             memory.getString("ManualRefillWarehouseManagerBarcodeTable", ""),
             scannedBarcodeTable.javaClass
         ) ?: mutableListOf()
 
-        userDefinedProducts = Gson().fromJson(
-            memory.getString("ManualRefillUserDefinedProducts", ""),
+        manualRefillProducts = Gson().fromJson(
+            memory.getString("ManualRefillProducts", ""),
             type
         ) ?: ArrayList()
 
@@ -480,7 +480,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         val removedRefillProducts = mutableListOf<ManualRefillProduct>()
 
-        scannedProducts.forEach {
+        manualRefillProducts.forEach {
             if (it.KBarCode in signedProductCodes) {
 
                 scannedEpcTable.removeAll(it.scannedEPCs)
@@ -490,20 +490,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 removedRefillProducts.add(it)
             }
         }
-        scannedProducts.removeAll(removedRefillProducts)
-
+        manualRefillProducts.removeAll(removedRefillProducts)
         removedRefillProducts.clear()
-        userDefinedProducts.forEach {
-            if (it.KBarCode in signedProductCodes) {
-                removedRefillProducts.add(it)
-            }
-        }
-        userDefinedProducts.removeAll(removedRefillProducts)
 
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList.clear()
-        uiList.addAll(scannedProducts)
-        uiList.addAll(userDefinedProducts)
+        uiList.addAll(manualRefillProducts)
         uiList.sortBy { it1 ->
             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
         }
@@ -531,8 +523,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             signedProductCodes = mutableListOf()
             selectMode = false
             uiList.clear()
-            uiList.addAll(scannedProducts)
-            uiList.addAll(userDefinedProducts)
+            uiList.addAll(manualRefillProducts)
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -546,8 +537,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSendToStoreActivity() {
 
-        Intent(this, ManualRefillSendToStoreActivity::class.java).also {
-            it.putExtra("ManualRefillProducts", Gson().toJson(scannedProducts).toString())
+        Intent(this, SendManualRefillToStoreActivity::class.java).also {
+            it.putExtra("ManualRefillProducts", Gson().toJson(manualRefillProducts.filter { it1 ->
+                it1.scannedBarcodeNumber + it1.scannedEPCNumber > 0
+            }).toString())
             it.putExtra("ManualRefillValidScannedProductsNumber", numberOfScanned)
             startActivity(it)
         }
@@ -573,11 +566,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         val intent = Intent(this, SearchSubActivity::class.java)
         intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
         startActivity(intent)
-    }
-
-    companion object {
-        var userDefinedProducts = ArrayList<ManualRefillProduct>()
-        var uiList = mutableStateListOf<ManualRefillProduct>()
     }
 
     @ExperimentalCoilApi
@@ -616,8 +604,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                             signedProductCodes.add(it.KBarCode)
                         }
                         uiList.clear()
-                        uiList.addAll(scannedProducts)
-                        uiList.addAll(userDefinedProducts)
+                        uiList.addAll(manualRefillProducts)
                         uiList.sortBy { it1 ->
                             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                         }
@@ -633,8 +620,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         signedProductCodes.clear()
                         selectMode = false
                         uiList.clear()
-                        uiList.addAll(scannedProducts)
-                        uiList.addAll(userDefinedProducts)
+                        uiList.addAll(manualRefillProducts)
                         uiList.sortBy { it1 ->
                             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                         }
@@ -812,7 +798,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             modifier = Modifier
                 .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
                 .background(
-                    color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber == 0) {
+                    color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber < uiList[i].requestedNum) {
                         MaterialTheme.colors.onPrimary
                     } else {
                         MaterialTheme.colors.onSecondary
@@ -836,8 +822,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                                 }
                             }
                             uiList.clear()
-                            uiList.addAll(scannedProducts)
-                            uiList.addAll(userDefinedProducts)
+                            uiList.addAll(manualRefillProducts)
                             uiList.sortBy { it1 ->
                                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                             }
@@ -854,8 +839,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                             }
                         }
                         uiList.clear()
-                        uiList.addAll(scannedProducts)
-                        uiList.addAll(userDefinedProducts)
+                        uiList.addAll(manualRefillProducts)
                         uiList.sortBy { it1 ->
                             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                         }
@@ -917,7 +901,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Text(
-                        text = "موجودی انبار: " + uiList[i].wareHouseNumber,
+                        text = "درخواستی: " + uiList[i].requestedNum,
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )
@@ -925,7 +909,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
-                        color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber > 0) {
+                        color = if (uiList[i].scannedBarcodeNumber + uiList[i].scannedEPCNumber >= uiList[i].requestedNum) {
                             doneColorDarkerShade
                         } else {
                             MaterialTheme.colors.onBackground
@@ -934,22 +918,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         }
-    }
-
-    @Composable
-    fun OpenNewProductAlertDialog() {
-        ExtendedFloatingActionButton(
-            onClick = {
-                //openNewProductAlertDialog = true
-                Intent(this, AddProductToManualRefillListActivityActivity::class.java).apply {
-                    startActivity(this)
-                }
-            },
-            text = { Text("اضافه کردن کالای جدید") },
-            icon = { Icon(Icons.Filled.Add, contentDescription = "") },
-            backgroundColor = MaterialTheme.colors.primary,
-            contentColor = MaterialTheme.colors.onPrimary,
-        )
     }
 
     @Composable

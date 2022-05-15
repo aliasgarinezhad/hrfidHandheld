@@ -1,8 +1,9 @@
 package com.jeanwest.reader.manualRefill
 
 //import com.jeanwest.reader.hardware.Barcode2D
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,35 +38,38 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
-import com.jeanwest.reader.write.WriteRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
 @ExperimentalCoilApi
-class AddProductToManualRefillListActivityActivity : ComponentActivity() {
+class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
     private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
     private var filteredUiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
     private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
     private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
+    private var barcode2D = Barcode2D(this)
 
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
     private var state = SnackbarHostState()
+    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Page()
         }
+        open()
         loadMemory()
     }
 
@@ -77,8 +81,10 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
         storeFilterValue = memory.getInt("userLocationCode", 0)
 
         productCode = memory.getString("productCodeAddManualRefill", "") ?: ""
-        colorFilterValue = memory.getString("colorFilterValueAddManualRefill", "همه رنگ ها") ?: "همه رنگ ها"
-        sizeFilterValue = memory.getString("sizeFilterValueAddManualRefill", "همه سایز ها") ?: "همه سایز ها"
+        colorFilterValue =
+            memory.getString("colorFilterValueAddManualRefill", "همه رنگ ها") ?: "همه رنگ ها"
+        sizeFilterValue =
+            memory.getString("sizeFilterValueAddManualRefill", "همه سایز ها") ?: "همه سایز ها"
 
         uiList = Gson().fromJson(
             memory.getString("uiListAddManualRefill", ""),
@@ -117,14 +123,6 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
         edit.putString("sizeFilterValueAddManualRefill", sizeFilterValue)
 
         edit.apply()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-
-        if (keyCode == 4) {
-            back()
-        }
-        return true
     }
 
     private fun filterUiList(uiList: MutableList<ManualRefillProduct>): MutableList<ManualRefillProduct> {
@@ -259,11 +257,12 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
                     scannedBarcode = "",
                     scannedEPCNumber = 0,
                     scannedBarcodeNumber = 0,
-                    kName = json.getString("K_Name")
+                    kName = json.getString("K_Name"),
+                    requestedNum = 0,
+                    storeNumber = json.getInt("dbCountStore"),
                 )
             )
         }
-
 
         productCode = uiList[0].productCode
         colorFilterValues = colorFilterValues.distinct().toMutableList()
@@ -271,29 +270,67 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
         filteredUiList = filterUiList(uiList)
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
+            start()
+        } else if (keyCode == 4) {
+            back()
+        }
+        return true
+    }
+
+    private fun start() {
+        barcode2D.startScan(this)
+    }
+
+    private fun open() {
+        barcode2D.open(this, this)
+    }
+
+    private fun close() {
+        barcode2D.stopScan(this)
+        barcode2D.close(this)
+    }
+
+    override fun getBarcode(barcode: String?) {
+        if (!barcode.isNullOrEmpty()) {
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            productCode = barcode
+            getSimilarProducts()
+        }
+    }
+
     private fun backToManualRefillActivity(product: ManualRefillProduct) {
 
-        Log.e("error", ManualRefillActivity.uiList.size.toString())
-
-        ManualRefillActivity.uiList.forEach {
+        ManualRefillActivity.manualRefillProducts.forEach {
             if (product.KBarCode == it.KBarCode) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "این کد محصول قبلا اضافه شده است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
+                if (it.requestedNum >= it.wareHouseNumber) {
+                    CoroutineScope(Main).launch {
+                        state.showSnackbar(
+                            "تعداد درخواستی از موجودی انبار بیشتر است.",
+                            null,
+                            SnackbarDuration.Long,
+                        )
+                    }
+                    return
+                } else {
+                    it.requestedNum++
+                    saveToMemory()
+                    finish()
+                    return
                 }
-                return
             }
         }
         saveToMemory()
-        ManualRefillActivity.userDefinedProducts.add(product)
+        product.requestedNum = 1
+        ManualRefillActivity.manualRefillProducts.add(product)
         finish()
     }
 
     private fun back() {
         saveToMemory()
+        close()
         finish()
     }
 
@@ -417,7 +454,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .weight(1.5F)
+                        .weight(1F)
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
@@ -428,25 +465,26 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity() {
                     )
 
                     Text(
-                        text = filteredUiList[i].KBarCode,
+                        text = filteredUiList[i].size + "-" +  filteredUiList[i].color,
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )
                 }
                 Column(
                     modifier = Modifier
-                        .weight(1F)
+                        .weight(1.2F)
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
 
                     Text(
-                        text = "رنگ: " + filteredUiList[i].color,
+                        text = "موجودی فروشگاه: " + filteredUiList[i].storeNumber,
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )
+
                     Text(
-                        text = "سایز: " + filteredUiList[i].size,
+                        text = "موجودی انبار: " + filteredUiList[i].wareHouseNumber,
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )

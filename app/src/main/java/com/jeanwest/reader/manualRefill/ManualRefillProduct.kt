@@ -17,4 +17,6 @@ data class ManualRefillProduct(
     var scannedBarcodeNumber : Int,
     var scannedEPCNumber : Int,
     var kName: String,
+    var requestedNum : Int,
+    var storeNumber : Int
 )

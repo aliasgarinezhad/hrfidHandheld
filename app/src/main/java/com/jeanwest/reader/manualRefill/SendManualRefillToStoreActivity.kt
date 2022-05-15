@@ -53,7 +53,7 @@ import java.util.*
 
 
 @OptIn(ExperimentalFoundationApi::class)
-class ManualRefillSendToStoreActivity : ComponentActivity() {
+class SendManualRefillToStoreActivity : ComponentActivity() {
 
     private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
     private var fileName by mutableStateOf("ارسالی شارژ تاریخ ")
@@ -165,6 +165,14 @@ class ManualRefillSendToStoreActivity : ComponentActivity() {
 
             sendLog(uiList)
             isSubmitting = false
+            ManualRefillActivity.scannedBarcodeTable.clear()
+            ManualRefillActivity.scannedEpcTable.clear()
+            uiList.forEach{
+                ManualRefillActivity.manualRefillProducts.removeAll { it1 ->
+                    it1.KBarCode == it.KBarCode
+                }
+            }
+            finish()
 
         }, {
             if (it is NoConnectionError) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -70,6 +71,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private val scannedProducts = ArrayList<CheckInScannedProduct>()
     private val invalidEpcs = ArrayList<String>()
     private var scanningJob: Job? = null
+    private val apiTimeout = 30000
+    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     //ui parameters
     private var conflictResultProducts by mutableStateOf(mutableListOf<CheckInConflictResultProduct>())
@@ -89,9 +92,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     var scanTypeValue by mutableStateOf("RFID")
     private var state = SnackbarHostState()
 
-    private val apiTimeout = 30000
-
-    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -691,29 +691,15 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun clear() {
 
-        if (numberOfScanned != 0) {
-            barcodeTable.clear()
-            epcTable.clear()
-            invalidEpcs.clear()
-            epcTablePreviousSize = 0
-            numberOfScanned = 0
-            scannedProducts.clear()
-            conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
-            uiList = filterResult(conflictResultProducts)
-            saveToMemory()
-        } else {
-            barcodeTable.clear()
-            epcTable.clear()
-            invalidEpcs.clear()
-            epcTablePreviousSize = 0
-            numberOfScanned = 0
-            excelBarcodes.clear()
-            scannedProducts.clear()
-            inputProducts.clear()
-            conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
-            uiList = filterResult(conflictResultProducts)
-            saveToMemory()
-        }
+        barcodeTable.clear()
+        epcTable.clear()
+        invalidEpcs.clear()
+        epcTablePreviousSize = 0
+        numberOfScanned = 0
+        scannedProducts.clear()
+        conflictResultProducts = getConflicts(inputProducts, scannedProducts, invalidEpcs)
+        uiList = filterResult(conflictResultProducts)
+        saveToMemory()
     }
 
     private fun startBarcodeScan() {
@@ -782,6 +768,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     topBar = { AppBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
+                    bottomBar = { BottomBar() },
                 )
             }
         }
@@ -802,12 +789,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             },
 
             actions = {
-                IconButton(onClick = { openConfirmCheckInsActivity() }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_check_24),
-                        contentDescription = ""
-                    )
-                }
+
                 IconButton(
                     modifier = Modifier.testTag("CheckInTestTag"),
                     onClick = { openClearDialog = true }) {
@@ -822,13 +804,39 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = stringResource(id = R.string.checkInText),
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(end = 10.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Right,
                 )
             }
         )
+    }
+
+    @Composable
+    fun BottomBar() {
+
+        BottomAppBar(
+            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
+            modifier = Modifier.wrapContentHeight()
+        ) {
+
+            Column {
+
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    ScanTypeDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
+                    ScanFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
+                    Button(onClick = { openConfirmCheckInsActivity() }) {
+                        Text(text = "تایید حواله ها")
+                    }
+                }
+            }
+        }
     }
 
     @ExperimentalCoilApi
@@ -854,20 +862,46 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-
                 Row(
                     modifier = Modifier
-                        .padding(top = 8.dp, bottom = 8.dp)
-                        .height(24.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    ScanTypeDropDownList(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .padding(start = 16.dp, end = 24.dp)
-                    )
 
-                    if (scanTypeValue == "RFID") {
+                    Text(
+                        text = "اسکن شده: $numberOfScanned",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .align(Alignment.CenterVertically)
+                            .weight(1F),
+                    )
+                    Text(
+                        text = "کسری: $shortagesNumber",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .weight(1F),
+                    )
+                    Text(
+                        text = "اضافی: $additionalNumber",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .weight(1F),
+                    )
+                }
+
+                if (scanTypeValue == "RFID") {
+
+                    Row(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .height(24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+
                         Row(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -892,52 +926,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                             )
                         }
                     }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-
-                    Text(
-                        text = "تعداد اسکن شده: $numberOfScanned",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .align(Alignment.CenterVertically)
-                            .weight(1F),
-                    )
-                    Text(
-                        //text = "کسری ها(یکتا): $shortagesNumber($shortageCodesNumber)",
-                        text = "کسری: $shortagesNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1F),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-
-                    ScanFilterDropDownList(
-                        modifier = Modifier
-                            .weight(1F)
-                            .padding(start = 16.dp)
-                    )
-
-                    Text(
-                        //text = "اضافی ها(یکتا): $additionalNumber($additionalCodesNumber)",
-                        text = "اضافی: $additionalNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1F),
-                    )
                 }
 
                 if (isScanning || isDataLoading) {
@@ -968,7 +956,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+            LazyColumn(modifier = Modifier.padding(top = 2.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -1109,11 +1097,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = if (numberOfScanned == 0) {
-                            "فایل پاک شود؟"
-                        } else {
-                            "کالاهای اسکن شده پاک شوند؟"
-                        },
+                        text = "کالاهای اسکن شده پاک شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )

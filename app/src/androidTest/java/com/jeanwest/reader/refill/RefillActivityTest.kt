@@ -99,9 +99,9 @@ class RefillActivityTest {
     private fun clearUserData() {
 
         refillActivity.activity.inputBarcodes.forEach {
-            refillActivity.activity.refillSignedProductCodes.add(it)
+            refillActivity.activity.signedProductCodes.add(it)
         }
-        refillActivity.activity.refillClear()
+        refillActivity.activity.clear()
 
         refillActivity.activity.runOnUiThread {
             refillActivity.activity.recreate()
