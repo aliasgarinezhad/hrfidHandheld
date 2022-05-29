@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -351,6 +352,9 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
     @Composable
     fun CheckInNumberTextField(modifier: Modifier) {
+
+        val focusManager = LocalFocusManager.current
+
         OutlinedTextField(
             value = checkInNumber,
             onValueChange = {
@@ -363,6 +367,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = {
+                focusManager.clearFocus()
                 getCheckInNumberDetails(checkInNumber)
             }),
         )

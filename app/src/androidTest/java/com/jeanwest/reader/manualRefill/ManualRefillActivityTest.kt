@@ -32,16 +32,16 @@ class ManualRefillActivityTest {
         manualRefillActivity.waitForIdle()
         epcScan()
 
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[0].KBarCode)
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[0].KBarCode)
             .assertExists()
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[1].KBarCode)
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[1].KBarCode)
             .assertExists()
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[2].KBarCode)
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[2].KBarCode)
             .assertExists()
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[3].KBarCode)
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[3].KBarCode)
             .assertExists()
 
-        manualRefillActivity.activity.scannedProducts.forEach {
+        ManualRefillActivity.manualRefillProducts.forEach {
             if (it.KBarCode == "11852002J-2430-F") {
                 if (!((it.scannedEPCNumber + it.scannedBarcodeNumber) == 1 && it.scannedEPCs[0] == "30C0194000DC20C000017A1C")) {
                     assert(false)
@@ -57,7 +57,7 @@ class ManualRefillActivityTest {
 
         manualRefillActivity.onNodeWithText("اسکن شده: ${barcodes.size + epcs.size}").assertExists()
 
-        manualRefillActivity.activity.scannedProducts.forEach {
+        ManualRefillActivity.manualRefillProducts.forEach {
             if (it.KBarCode == "11852002J-2430-F") {
                 if (!((it.scannedEPCNumber + it.scannedBarcodeNumber) == 3 && it.scannedEPCs[0] == "30C0194000DC20C000017A1C")) {
                     assert(false)
@@ -65,7 +65,7 @@ class ManualRefillActivityTest {
             }
         }
 
-        manualRefillActivity.activity.scannedProducts.forEach {
+        ManualRefillActivity.manualRefillProducts.forEach {
             if (it.KBarCode == "54822102J-8010-L") {
                 if (!((it.scannedEPCNumber + it.scannedBarcodeNumber) == 1 && it.scannedEPCs.isEmpty())) {
                     assert(false)
@@ -73,14 +73,14 @@ class ManualRefillActivityTest {
             }
         }
 
-        val removeItem1 = manualRefillActivity.activity.scannedProducts[0].KBarCode
-        val removeItem2 = manualRefillActivity.activity.scannedProducts[1].KBarCode
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[0].KBarCode)
+        val removeItem1 = ManualRefillActivity.manualRefillProducts[0].KBarCode
+        val removeItem2 = ManualRefillActivity.manualRefillProducts[1].KBarCode
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[0].KBarCode)
             .performTouchInput {
                 longClick()
             }
         manualRefillActivity.waitForIdle()
-        manualRefillActivity.onNodeWithText(manualRefillActivity.activity.scannedProducts[1].KBarCode)
+        manualRefillActivity.onNodeWithText(ManualRefillActivity.manualRefillProducts[1].KBarCode)
             .performClick()
         manualRefillActivity.waitForIdle()
         manualRefillActivity.onNodeWithText("پاک کردن").performClick()
@@ -167,7 +167,7 @@ class ManualRefillActivityTest {
 
     private fun clearUserData() {
 
-        manualRefillActivity.activity.scannedProducts.forEach {
+        ManualRefillActivity.manualRefillProducts.forEach {
             manualRefillActivity.activity.signedProductCodes.add(it.KBarCode)
         }
         manualRefillActivity.activity.clear()

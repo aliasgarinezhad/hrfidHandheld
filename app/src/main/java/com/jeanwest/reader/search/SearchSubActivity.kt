@@ -1,12 +1,12 @@
 package com.jeanwest.reader.search
 
-//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,7 +36,6 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 
-@ExperimentalCoilApi
 class SearchSubActivity : ComponentActivity() {
 
     var distance by mutableStateOf(1f)

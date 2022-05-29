@@ -15,9 +15,6 @@ import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriRequest
 import com.microsoft.azure.sdk.iot.device.*
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.launch
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONObject
@@ -51,8 +48,9 @@ class IotHub : Service() {
             get() = this@IotHub
     }
 
-    private var dataCollector = object : Device() {
-        override fun PropertyCall(propertyKey: String, propertyValue: Any, context: Any) {
+    var dataCollector = object : Device() {
+        override fun PropertyCall(propertyKey: String?, propertyValue: Any?, context: Any?) {
+
             if (propertyKey == "appVersion") {
                 appVersion = propertyValue.toString()
             }
@@ -104,9 +102,14 @@ class IotHub : Service() {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         loadMemory()
-        CoroutineScope(IO).launch {
-            initClient()
+        val sendThread = Thread {
+            try {
+                initClient()
+            } catch (e: Exception) {
+                Log.e("error", "Exception while opening IoTHub connection: $e");
+            }
         }
+        sendThread.start()
         return START_STICKY
     }
 
@@ -144,13 +147,14 @@ class IotHub : Service() {
         return sendFile(outFile)
     }
 
-    fun sendFile(outFile: File) : Boolean {
+    fun sendFile(outFile: File): Boolean {
 
         sendLogFileSuccess = false
         val thread = Thread {
             try {
                 Log.e("error", outFile.name)
-                val sasUriResponse = client.getFileUploadSasUri(FileUploadSasUriRequest(outFile.name))
+                val sasUriResponse =
+                    client.getFileUploadSasUri(FileUploadSasUriRequest(outFile.name))
                 Log.e("send file", "Correlation Id: " + sasUriResponse.correlationId)
                 Log.e("send file", "Container name: " + sasUriResponse.containerName)
                 Log.e("send file", "Blob name: " + sasUriResponse.blobName)
@@ -227,7 +231,7 @@ class IotHub : Service() {
 
     private fun initClient() {
 
-        if(deviceId.isEmpty() || iotToken.isEmpty()) {
+        if (deviceId.isEmpty() || iotToken.isEmpty()) {
             return
         }
 

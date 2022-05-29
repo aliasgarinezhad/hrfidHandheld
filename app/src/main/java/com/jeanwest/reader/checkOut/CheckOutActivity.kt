@@ -93,7 +93,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
 
-        if (intent.getStringExtra("productEPCs") ?: "" == "") {
+        if ((intent.getStringExtra("productEPCs") ?: "") == "") {
             loadMemory()
         } else {
             scannedEpcTable = Gson().fromJson(
@@ -226,7 +226,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedNumber = 1,
                     productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
                     size = epcs.getJSONObject(i).getString("Size"),
                     color = epcs.getJSONObject(i).getString("Color"),
@@ -237,6 +236,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     scannedBarcode = "",
                     scannedEPCs = mutableListOf(),
                     kName = epcs.getJSONObject(i).getString("K_Name"),
+                    scannedEPCNumber = 1,
+                    scannedBarcodeNumber = 0,
                 )
 
                 checkOutProduct.scannedEPCs.add(epcs.getJSONObject(i).getString("epc"))
@@ -246,7 +247,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 scannedProducts.forEach { it1 ->
                     if (it1.KBarCode == checkOutProduct.KBarCode) {
                         it1.scannedEPCs.add(checkOutProduct.scannedEPCs[0])
-                        it1.scannedNumber += 1
+                        it1.scannedEPCNumber += 1
                         isInRefillProductList = true
                         return@forEach
                     }
@@ -263,7 +264,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     KBarCode = barcodes.getJSONObject(i).getString("KBarCode"),
                     imageUrl = barcodes.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = barcodes.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedNumber = 1,
                     productCode = barcodes.getJSONObject(i).getString("K_Bar_Code"),
                     size = barcodes.getJSONObject(i).getString("Size"),
                     color = barcodes.getJSONObject(i).getString("Color"),
@@ -274,6 +274,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
                     scannedEPCs = mutableListOf(),
                     kName = barcodes.getJSONObject(i).getString("K_Name"),
+                    scannedEPCNumber = 0,
+                    scannedBarcodeNumber = 1,
                 )
 
                 scannedBarcodeTable.add(barcodes.getJSONObject(i).getString("kbarcode"))
@@ -282,7 +284,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 scannedProducts.forEach { it1 ->
                     if (it1.KBarCode == checkOutProduct.KBarCode) {
                         it1.scannedBarcode = checkOutProduct.scannedBarcode
-                        it1.scannedNumber += 1
+                        it1.scannedBarcodeNumber += 1
                         isInCheckOutProductList = true
                         return@forEach
                     }
@@ -756,7 +758,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                         uiList.clear()
                         uiList.addAll(scannedProducts)
                         uiList.sortBy { it1 ->
-                            it1.scannedNumber > 0
+                            it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                         }
                     },
                 )
@@ -821,7 +823,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                         textAlign = TextAlign.Right,
                     )
                     Text(
-                        text = "اسکن شده: " + uiList[i].scannedNumber.toString(),
+                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )

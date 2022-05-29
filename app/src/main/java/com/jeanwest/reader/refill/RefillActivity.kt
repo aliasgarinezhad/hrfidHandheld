@@ -1,7 +1,6 @@
 package com.jeanwest.reader.refill
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
+
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -106,6 +105,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     override fun onResume() {
         super.onResume()
+        saveToMemory()
+        loadMemory()
         getRefillBarcodes()
     }
 

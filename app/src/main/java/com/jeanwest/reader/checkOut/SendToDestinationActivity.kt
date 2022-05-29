@@ -174,7 +174,7 @@ class SendToDestinationActivity : ComponentActivity() {
         uiList.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
+            row.createCell(1).setCellValue((it.scannedEPCNumber + it.scannedBarcodeNumber).toDouble())
         }
 
         val dir = File(this.getExternalFilesDir(null), "/")
@@ -214,7 +214,7 @@ class SendToDestinationActivity : ComponentActivity() {
 
         isSubmitting = true
 
-        val url = "https://rfid-api.avakatan.ir/test/stock-draft"
+        val url = "https://rfid-api.avakatan.ir/stock-draft"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -250,26 +250,33 @@ class SendToDestinationActivity : ComponentActivity() {
                 val params = HashMap<String, String>()
                 params["Content-Type"] = "application/json;charset=UTF-8"
                 params["Authorization"] =
-                    "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY0NzQzMDM1NywiZXhwIjoxNzA1NDkxMTU3LCJhdWQiOiJlcnAifQ.ai8CAS5qWTUIKsrEni6HeJcVPxP4k07LQ4Tl0-VbgHs"
+                    "Bearer " + MainActivity.token
                 return params
             }
 
             override fun getBody(): ByteArray {
 
                 val body = JSONObject()
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:s.SSS'Z'", Locale.ENGLISH)
-
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+                val barcodeArray = JSONArray()
                 val epcArray = JSONArray()
 
-                scannedEpcTable.forEach {
-                    epcArray.put(it)
-                }
-
-                val barcodeArray = JSONArray()
-
-                scannedBarcodeTable.forEach {
-                    barcodeArray.put(it)
+                uiList.forEach {
+                    repeat(it.scannedEPCNumber) { i ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
+                        productJson.put("epc", it.scannedEPCs[i])
+                        epcArray.put(productJson)
+                    }
+                    repeat(it.scannedBarcodeNumber) { _ ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
+                        barcodeArray.put(productJson)
+                    }
                 }
 
                 body.put("desc", "برای تست")
@@ -278,8 +285,6 @@ class SendToDestinationActivity : ComponentActivity() {
                 body.put("toWarehouseId", destinations[destination])
                 body.put("kbarcodes", barcodeArray)
                 body.put("epcs", epcArray)
-
-                Log.e("error", body.toString())
 
                 return body.toString().toByteArray()
             }
@@ -474,7 +479,7 @@ class SendToDestinationActivity : ComponentActivity() {
                     )
 
                     Text(
-                        text = "اسکن شده: " + uiList[i].scannedNumber.toString(),
+                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )

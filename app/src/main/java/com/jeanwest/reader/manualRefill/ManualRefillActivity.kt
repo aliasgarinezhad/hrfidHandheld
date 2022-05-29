@@ -1,7 +1,5 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -33,6 +31,7 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -43,6 +42,7 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.refill.RefillProduct
 import com.jeanwest.reader.search.SearchResultProducts
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
@@ -64,6 +64,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private var rfPower = 5
     private val barcode2D = Barcode2D(this)
     private var scanningJob: Job? = null
+    val inputBarcodes = ArrayList<String>()
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
@@ -119,11 +120,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         uiList.clear()
         uiList.addAll(manualRefillProducts)
         uiList.sortBy { it1 ->
-
             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
         }
         barcodeInit()
         saveToMemory()
+        loadMemory()
+        getRefillBarcodes()
     }
 
     override fun onPause() {
@@ -172,6 +174,198 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 runBlocking { it.join() }
             }
         }
+    }
+
+    private fun getRefillBarcodes() {
+
+        isDataLoading = true
+
+        val url = "https://rfid-api.avakatan.ir/charge-requests"
+
+        val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+            inputBarcodes.clear()
+
+            for (i in 0 until it.length()) {
+
+                inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
+            }
+            isDataLoading = false
+            getRefillItems()
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+                else -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+            }
+            isDataLoading = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
+    }
+
+    private fun getRefillItems() {
+
+        isDataLoading = true
+
+        val url = "https://rfid-api.avakatan.ir/products/v4"
+
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            val refillItemsJsonArray = it.getJSONArray("KBarCodes")
+
+            for (i in 0 until refillItemsJsonArray.length()) {
+
+                val fileProduct = ManualRefillProduct(
+                    name = refillItemsJsonArray.getJSONObject(i).getString("productName"),
+                    KBarCode = refillItemsJsonArray.getJSONObject(i).getString("KBarCode"),
+                    imageUrl = refillItemsJsonArray.getJSONObject(i).getString("ImgUrl"),
+                    primaryKey = refillItemsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
+                    productCode = refillItemsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                    size = refillItemsJsonArray.getJSONObject(i).getString("Size"),
+                    color = refillItemsJsonArray.getJSONObject(i).getString("Color"),
+                    originalPrice = refillItemsJsonArray.getJSONObject(i).getString("OrgPrice"),
+                    salePrice = refillItemsJsonArray.getJSONObject(i).getString("SalePrice"),
+                    rfidKey = refillItemsJsonArray.getJSONObject(i).getLong("RFID"),
+                    wareHouseNumber = refillItemsJsonArray.getJSONObject(i).getInt("depoCount"),
+                    scannedBarcode = "",
+                    scannedEPCs = mutableListOf(),
+                    scannedBarcodeNumber = 0,
+                    scannedEPCNumber = 0,
+                    kName = refillItemsJsonArray.getJSONObject(i).getString("K_Name"),
+                    requestedNum = 1,
+                    storeNumber = 0,
+                )
+
+                var isInRefillProductList = false
+                manualRefillProducts.forEach { it1 ->
+                    if (it1.KBarCode == fileProduct.KBarCode) {
+                        it1.requestedNum += 1
+                        isInRefillProductList = true
+                        return@forEach
+                    }
+                }
+                if (!isInRefillProductList) {
+                    manualRefillProducts.add(fileProduct)
+                }
+            }
+
+            isDataLoading = false
+
+            if (numberOfScanned != 0) {
+                syncScannedItemsToServer()
+            } else {
+                uiList.clear()
+                uiList.addAll(manualRefillProducts)
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+            }
+
+        }, {
+
+            if (inputBarcodes.isEmpty()) {
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "شارژ صفر است!",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+
+            } else {
+                when (it) {
+                    is NoConnectionError -> {
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
+                    }
+                    else -> {
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                it.toString(),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
+                    }
+                }
+            }
+
+            isDataLoading = false
+
+            if (numberOfScanned != 0) {
+                syncScannedItemsToServer()
+            }
+
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+                val json = JSONObject()
+                val epcArray = JSONArray()
+
+                json.put("epcs", epcArray)
+
+                val barcodeArray = JSONArray()
+
+                inputBarcodes.forEach {
+                    barcodeArray.put(it)
+                }
+
+                json.put("KBarCodes", barcodeArray)
+
+                return json.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
     }
 
     private suspend fun startRFScan() {
@@ -291,6 +485,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     name = epcs.getJSONObject(i).getString("productName"),
                     KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
+
                     primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
                     scannedEPCNumber = 1,
                     productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),

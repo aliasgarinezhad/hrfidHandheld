@@ -111,7 +111,8 @@ class SendManualRefillToStoreActivity : ComponentActivity() {
         uiList.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue((it.scannedEPCNumber + it.scannedBarcodeNumber).toDouble())
+            row.createCell(1)
+                .setCellValue((it.scannedEPCNumber + it.scannedBarcodeNumber).toDouble())
         }
 
         val dir = File(this.getExternalFilesDir(null), "/")
@@ -136,6 +137,17 @@ class SendManualRefillToStoreActivity : ComponentActivity() {
     }
 
     private fun sendToStore() {
+
+        if (numberOfScanned == 0) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "کالایی برای ارسال وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
 
         uiList.forEach {
             if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
@@ -165,14 +177,13 @@ class SendManualRefillToStoreActivity : ComponentActivity() {
 
             sendLog(uiList)
             isSubmitting = false
+            ManualRefillActivity.manualRefillProducts.removeAll {
+                it.scannedBarcodeNumber + it.scannedEPCNumber > 0
+            }
             ManualRefillActivity.scannedBarcodeTable.clear()
             ManualRefillActivity.scannedEpcTable.clear()
-            uiList.forEach{
-                ManualRefillActivity.manualRefillProducts.removeAll { it1 ->
-                    it1.KBarCode == it.KBarCode
-                }
-            }
-            finish()
+            uiList = mutableListOf()
+            numberOfScanned = 0
 
         }, {
             if (it is NoConnectionError) {
@@ -240,7 +251,7 @@ class SendManualRefillToStoreActivity : ComponentActivity() {
 
     fun sendLog(manualRefillProducts: List<ManualRefillProduct>) {
 
-        if(!iotHubConnected) {
+        if (!iotHubConnected) {
             return
         }
         val workbook = XSSFWorkbook()
@@ -304,12 +315,12 @@ class SendManualRefillToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            if(!isSubmitting) {
+                            if (!isSubmitting) {
                                 sendToStore()
                             }
                         },
                     ) {
-                        if(!isSubmitting) {
+                        if (!isSubmitting) {
                             Text(text = "ارسال به فروشگاه")
                         } else {
                             Text(text = "در حال ارسال ...")

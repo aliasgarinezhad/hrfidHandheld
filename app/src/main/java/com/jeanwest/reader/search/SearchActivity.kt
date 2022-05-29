@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -484,6 +485,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun ProductCodeTextField() {
 
+        val focusManager = LocalFocusManager.current
+
         OutlinedTextField(
             value = productCode, onValueChange = {
                 productCode = it
@@ -493,7 +496,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                 .fillMaxWidth()
                 .testTag("SearchProductCodeTextField"),
             label = { Text(text = "کد محصول") },
-            keyboardActions = KeyboardActions(onSearch = { getSimilarProducts() }),
+            keyboardActions = KeyboardActions(onSearch = {
+                focusManager.clearFocus()
+                getSimilarProducts()
+            }),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
         )
     }

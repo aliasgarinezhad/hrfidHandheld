@@ -2,7 +2,6 @@ package com.jeanwest.reader.write
 
 //import com.jeanwest.reader.hardware.Barcode2D
 //import com.rscja.deviceapi.RFIDWithUHFUART
-import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -19,6 +18,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -33,7 +33,6 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.checkOut.CheckOutActivity
@@ -74,12 +73,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var numberOfWrittenRfTags by mutableStateOf(0L)
     private var result by mutableStateOf("")
     private var openClearDialog by mutableStateOf(false)
-    private var openFileDialog by mutableStateOf(false)
     private var openRewriteDialog by mutableStateOf(false)
+    private var openHelpDialog by mutableStateOf(true)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(Color.White)
-    private var fileName by mutableStateOf("خروجی")
     private var writeRecords = mutableListOf<WriteRecord>()
     private var writtenEPCs = mutableListOf<String>()
     private var barcodeInformation = JSONObject()
@@ -117,9 +115,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     override fun onResume() {
 
         super.onResume()
-
-        val util = JalaliDate()
-        fileName = util.currentShamsidate
 
         barcodeInit()
 
@@ -195,7 +190,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             barcodeIsScanning = false
             rf.stopInventory()
         }
-        finish()
+        finishAndRemoveTask()
     }
 
     override fun onPause() {
@@ -392,7 +387,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    @SuppressLint("SimpleDateFormat")
     @Throws(InterruptedException::class)
     private fun writeTagNoQRCode(barcodeID: String) {
 
@@ -732,6 +726,15 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             actions = {
 
                 IconButton(onClick = {
+                    openHelpDialog = true
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_help_24),
+                        contentDescription = ""
+                    )
+                }
+
+                IconButton(onClick = {
                     openClearDialog = true
                 }) {
                     Icon(
@@ -745,7 +748,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 Text(
                     text = "رایت",
                     modifier = Modifier
-                        .padding(end = 10.dp)
+                        .padding(start = 35.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -775,6 +778,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                 if (openRewriteDialog) {
                     RewriteAlertDialog()
+                }
+
+                if (openHelpDialog) {
+                    HelpAlertDialog()
                 }
 
                 Row(
@@ -913,6 +920,40 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         ) {
                             Text(text = "خیر")
                         }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun HelpAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openHelpDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = "ابتدا با فشار دادن دکمه روی دسته هندهلد، بارکد کالا را اسکن کنید. سپس آنتن هندهلد را به تگ روی لباس نزدیک کرده و مجددا دکمه را فشار دهید تا اطلاعات بارکد به تگ RFID منتقل شود.",
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 18.sp
+                    )
+
+                    Button(
+                        onClick = { openHelpDialog = false },
+                        modifier = Modifier.padding(top = 10.dp).align(CenterHorizontally)
+                    ) {
+                        Text(text = "باشه")
                     }
                 }
             }

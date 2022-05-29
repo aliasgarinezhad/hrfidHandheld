@@ -140,6 +140,17 @@ class SendRefillToStoreActivity : ComponentActivity() {
 
     private fun sendToStore() {
 
+        if(numberOfScanned == 0) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "کالایی برای ارسال وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
         uiList.forEach {
             if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
                 CoroutineScope(Dispatchers.Default).launch {
@@ -169,7 +180,9 @@ class SendRefillToStoreActivity : ComponentActivity() {
             isSubmitting = false
             RefillActivity.scannedBarcodeTable.clear()
             RefillActivity.scannedEpcTable.clear()
-            finish()
+            uiList = mutableListOf()
+            numberOfScanned = 0
+
         }, {
             if (it is NoConnectionError) {
                 CoroutineScope(Dispatchers.Default).launch {

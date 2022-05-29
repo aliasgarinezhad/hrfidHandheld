@@ -35,14 +35,14 @@ class CheckInActivityTest {
 
         checkInActivity.onNodeWithText("کسری: $fileNumber").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("تعداد اسکن شده: 0").assertExists()
+        checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
         checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem")[0].assertExists()
 
         epcScan()
 
         checkInActivity.onNodeWithText("کسری: $shortagesNumber").assertExists()
         checkInActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
-        checkInActivity.onNodeWithText("تعداد اسکن شده: $scannedNumber").assertExists()
+        checkInActivity.onNodeWithText("اسکن شده: $scannedNumber").assertExists()
         checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem")[0].assertExists()
 
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()

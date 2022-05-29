@@ -6,7 +6,6 @@ data class CheckOutProduct(
     var KBarCode: String,
     var imageUrl: String,
     var primaryKey: Long,
-    var scannedNumber: Int,
     var productCode : String,
     var size: String,
     var color: String,
@@ -17,4 +16,6 @@ data class CheckOutProduct(
     var scannedEPCs : MutableList<String>,
     var scannedBarcode : String,
     var kName: String,
+    var scannedEPCNumber : Int,
+    var scannedBarcodeNumber : Int,
 )
