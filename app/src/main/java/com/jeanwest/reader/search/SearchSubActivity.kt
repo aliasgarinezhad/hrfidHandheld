@@ -28,8 +28,10 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.manualRefill.Product
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
+import com.jeanwest.reader.theme.LoadingCircularProgressIndicator
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -42,7 +44,7 @@ class SearchSubActivity : ComponentActivity() {
     private var scannedNumber by mutableStateOf(0)
     private var rfPower by mutableStateOf(30)
     private var isScanning by mutableStateOf(false)
-    private lateinit var product: SearchResultProducts
+    private lateinit var product: Product
     private var scanningJob: Job? = null
     private var beepJob: Job? = null
     private var matchedEpcTable = mutableListOf<String>()
@@ -68,23 +70,23 @@ class SearchSubActivity : ComponentActivity() {
                 }
                 //finish()
 
-                product = SearchResultProducts(
+                product = Product(
                     name = "ساپورت",
                     KBarCode = "64822109J-8010-F",
                     imageUrl = "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
-                    shoppingNumber = 1,
-                    warehouseNumber = 0,
+                    storeNumber = 1,
+                    wareHouseNumber = 0,
                     productCode = "64822109",
                     size = "F",
                     color = "8010",
                     originalPrice = "1490000",
                     salePrice = "1490000",
                     primaryKey = 9514289L,
-                    rfidKey = 130290L
+                    rfidKey = 130290L,
                 )
 
             } else {
-                val type = object : TypeToken<SearchResultProducts>() {}.type
+                val type = object : TypeToken<Product>() {}.type
                 product = Gson().fromJson(
                     it,
                     type
@@ -416,16 +418,7 @@ class SearchSubActivity : ComponentActivity() {
                         backgroundColor = MaterialTheme.colors.background
                     )
                 }
-
-                if (isScanning) {
-                    Row(
-                        modifier = Modifier
-                            .padding(32.dp)
-                            .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colors.primary)
-                    }
-                }
+                LoadingCircularProgressIndicator(isScanning)
             }
 
             Column(
@@ -496,13 +489,13 @@ class SearchSubActivity : ComponentActivity() {
                     modifier = modifier,
                 )
                 Text(
-                    text = "موجودی فروشگاه: " + product.shoppingNumber.toString(),
+                    text = "موجودی فروشگاه: " + product.storeNumber.toString(),
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,
                 )
                 Text(
-                    text = "موجودی انبار: " + product.warehouseNumber.toString(),
+                    text = "موجودی انبار: " + product.wareHouseNumber.toString(),
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Right,
                     modifier = modifier,

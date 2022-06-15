@@ -1,4 +1,4 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.inventory
 
 import android.content.Intent
 import android.os.Bundle

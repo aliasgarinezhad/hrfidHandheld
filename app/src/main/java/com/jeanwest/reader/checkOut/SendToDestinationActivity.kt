@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -38,8 +39,9 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.refill.RefillProduct
+import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.theme.ErrorSnackBar
+import com.jeanwest.reader.theme.Item
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +58,7 @@ import java.util.*
 @OptIn(ExperimentalFoundationApi::class)
 class SendToDestinationActivity : ComponentActivity() {
 
-    private var uiList by mutableStateOf(mutableListOf<CheckOutProduct>())
+    private var uiList = mutableStateListOf<Product>()
     private var fileName by mutableStateOf("حواله ارسالی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
@@ -76,11 +78,11 @@ class SendToDestinationActivity : ComponentActivity() {
             Page()
         }
 
-        val type = object : TypeToken<List<CheckOutProduct>>() {}.type
+        val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
         uiList = Gson().fromJson(
             intent.getStringExtra("CheckOutProducts"), type
-        ) ?: mutableListOf()
+        ) ?: mutableStateListOf()
 
         numberOfScanned = intent.getIntExtra("CheckOutValidScannedProductsNumber", 0)
 
@@ -408,81 +410,9 @@ class SendToDestinationActivity : ComponentActivity() {
             LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
-                    LazyColumnItem(i)
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun LazyColumnItem(i: Int) {
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = MaterialTheme.colors.onPrimary,
-                    shape = MaterialTheme.shapes.small,
-                )
-                .fillMaxWidth()
-                .height(80.dp),
-        ) {
-
-            Image(
-                painter = rememberImagePainter(
-                    uiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .fillMaxHeight()
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .weight(1.5F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = uiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = uiList[i].KBarCode,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    Text(
-                        text = "موجودی انبار: " + uiList[i].wareHouseNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
+                    Item(i, uiList,
+                        text1 = "اسکن: " + uiList[i].scannedNumber,
+                        text2 = "انبار: " + uiList[i].wareHouseNumber.toString())
                 }
             }
         }

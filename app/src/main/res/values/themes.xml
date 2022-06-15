@@ -3,5 +3,6 @@
 
 <style name="Theme.Handheld" parent="android:Theme.Material.Light.NoActionBar">
     <item name="android:statusBarColor">@color/jeanswest_status_bar</item>
+    <!--- <item name="android:windowLightStatusBar">true</item> -->
 </style>
 </resources>

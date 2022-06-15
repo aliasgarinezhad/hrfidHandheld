@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -17,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -38,11 +38,9 @@ import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
-import com.jeanwest.reader.search.SearchResultProducts
+import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.MyApplicationTheme
-import com.jeanwest.reader.theme.doneColor
+import com.jeanwest.reader.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -60,7 +58,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    val scannedProducts = ArrayList<CheckOutProduct>()
+    val scannedProducts = mutableListOf<Product>()
     private var scanningJob: Job? = null
 
     //ui parameters
@@ -70,12 +68,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    var signedProductCodes = mutableListOf<String>()
-    private val scanTypeValues = mutableListOf("RFID", "بارکد")
     var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
-    private var selectMode by mutableStateOf(false)
-    var uiList = mutableStateListOf<CheckOutProduct>()
+    var uiList = mutableStateListOf<Product>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -221,7 +216,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             scannedEpcTable.clear()
             scannedProducts.clear()
             for (i in 0 until epcs.length()) {
-                val checkOutProduct = CheckOutProduct(
+                val checkOutProduct = Product(
                     name = epcs.getJSONObject(i).getString("productName"),
                     KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
                     imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
@@ -259,7 +254,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
             scannedBarcodeTable.clear()
             for (i in 0 until barcodes.length()) {
-                val checkOutProduct = CheckOutProduct(
+                val checkOutProduct = Product(
                     name = barcodes.getJSONObject(i).getString("productName"),
                     KBarCode = barcodes.getJSONObject(i).getString("KBarCode"),
                     imageUrl = barcodes.getJSONObject(i).getString("ImgUrl"),
@@ -421,12 +416,12 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
     }
 
-    fun clear() {
+    fun clear(product: Product) {
 
-        val removedRefillProducts = mutableListOf<CheckOutProduct>()
+        val removedRefillProducts = mutableListOf<Product>()
 
         scannedProducts.forEach {
-            if (it.KBarCode in signedProductCodes) {
+            if (it.KBarCode == product.KBarCode) {
 
                 scannedEpcTable.removeAll(it.scannedEPCs)
                 scannedBarcodeTable.removeAll { it1 ->
@@ -440,8 +435,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList.clear()
         uiList.addAll(scannedProducts)
-        selectMode = false
-        signedProductCodes = mutableListOf()
         saveToMemory()
     }
 
@@ -459,18 +452,10 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun back() {
-
-        if (selectMode) {
-            signedProductCodes = mutableListOf()
-            selectMode = false
-            uiList.clear()
-            uiList.addAll(scannedProducts)
-        } else {
-            saveToMemory()
-            stopRFScan()
-            stopBarcodeScan()
-            finish()
-        }
+        saveToMemory()
+        stopRFScan()
+        stopBarcodeScan()
+        finish()
     }
 
     private fun openSendToStoreActivity() {
@@ -482,9 +467,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    private fun openSearchActivity(product: CheckOutProduct) {
+    private fun openSearchActivity(product: Product) {
 
-        val searchResultProduct = SearchResultProducts(
+        val searchResultProduct = Product(
             name = product.name,
             KBarCode = product.KBarCode,
             imageUrl = product.imageUrl,
@@ -495,8 +480,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             primaryKey = product.primaryKey,
             originalPrice = product.originalPrice,
             salePrice = product.salePrice,
-            shoppingNumber = 0,
-            warehouseNumber = 0
         )
 
         val intent = Intent(this, SearchSubActivity::class.java)
@@ -512,7 +495,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    bottomBar = { if (selectMode) SelectedBottomAppBar() else BottomBar() },
+                    bottomBar = { BottomBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
@@ -521,51 +504,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun SelectedBottomAppBar() {
-        BottomAppBar(
-            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
-            modifier = Modifier.wrapContentHeight()
-        ) {
-
-            Column {
-
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(onClick = {
-                        uiList.forEach {
-                            signedProductCodes.add(it.KBarCode)
-                        }
-                        uiList.clear()
-                        uiList.addAll(scannedProducts)
-                    }) {
-                        Text(text = "انتخاب همه")
-                    }
-                    Button(onClick = {
-                        openClearDialog = true
-                    }) {
-                        Text(text = "پاک کردن")
-                    }
-                    Button(onClick = {
-                        signedProductCodes.clear()
-                        selectMode = false
-                        uiList.clear()
-                        uiList.addAll(scannedProducts)
-                    }) {
-                        Text(text = "بازگشت")
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
     fun BottomBar() {
         BottomAppBar(
-            backgroundColor = colorResource(id = R.color.JeanswestBottomBar),
+            backgroundColor = JeanswestBottomBar,
             modifier = Modifier.wrapContentHeight()
         ) {
 
@@ -579,9 +520,10 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     ScanTypeDropDownList(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
+                        Modifier.align(Alignment.CenterVertically), scanTypeValue
+                    ) {
+                        scanTypeValue = it
+                    }
 
                     Text(
                         text = "اسکن شده: $numberOfScanned",
@@ -630,77 +572,20 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
 
-        var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
-
         Column {
-
-            if (openClearDialog) {
-                ClearAlertDialog()
-            }
 
             Column(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
-                    .background(
-                        MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.small
-                    )
+                    .padding(start = 8.dp, end = 8.dp)
+                    .background(JeanswestBackground, Shapes.small)
                     .fillMaxWidth()
             ) {
 
-                if (scanTypeValue == "RFID") {
-                    Row {
-
-                        Text(
-                            text = "قدرت آنتن (" + slideValue.toInt() + ")  ",
-                            modifier = Modifier
-                                .padding(start = 16.dp)
-                                .align(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Slider(
-                            value = slideValue,
-                            onValueChange = {
-                                slideValue = it
-                                rfPower = it.toInt()
-                            },
-                            enabled = true,
-                            valueRange = 5f..30f,
-                            modifier = Modifier.padding(end = 16.dp),
-                        )
-                    }
-                }
-
-                if (isScanning || isDataLoading) {
-                    Row(
-                        modifier = Modifier
-                            .padding(32.dp)
-                            .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colors.primary)
-
-                        if (isScanning) {
-                            Text(
-                                text = "در حال اسکن",
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .align(Alignment.CenterVertically)
-                            )
-                        }
-                        if (isDataLoading) {
-                            Text(
-                                text = "در حال بارگذاری",
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .align(Alignment.CenterVertically)
-                            )
-                        }
-                    }
-                }
+                PowerSlider(scanTypeValue == "RFID", rfPower) { rfPower = it }
+                LoadingCircularProgressIndicator(isScanning, isDataLoading)
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp, bottom = 56.dp)) {
+            LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
                     LazyColumnItem(i)
@@ -709,210 +594,40 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    @ExperimentalFoundationApi
     @Composable
     fun LazyColumnItem(i: Int) {
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = //if (uiList[i].scannedNumber == 0) {
-                    MaterialTheme.colors.onPrimary
-                    /*} else {
-                        MaterialTheme.colors.onSecondary
-                    }*/,
-                    shape = MaterialTheme.shapes.small
-                )
+        val topPaddingClearButton = if (i == 0) 8.dp else 4.dp
 
-                .fillMaxWidth()
-                .height(80.dp)
-                .combinedClickable(
-                    onClick = {
-                        if (!selectMode) {
-                            openSearchActivity(uiList[i])
-                        } else {
-                            if (uiList[i].KBarCode !in signedProductCodes) {
-                                signedProductCodes.add(uiList[i].KBarCode)
-                            } else {
-                                signedProductCodes.remove(uiList[i].KBarCode)
-                                if (signedProductCodes.size == 0) {
-                                    selectMode = false
-                                }
-                            }
-                            uiList.clear()
-                            uiList.addAll(scannedProducts)
-                        }
-                    },
-                    onLongClick = {
-                        selectMode = true
-                        if (uiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(uiList[i].KBarCode)
-                        } else {
-                            signedProductCodes.remove(uiList[i].KBarCode)
-                            if (signedProductCodes.size == 0) {
-                                selectMode = false
-                            }
-                        }
-                        uiList.clear()
-                        uiList.addAll(scannedProducts)
-                        uiList.sortBy { it1 ->
-                            it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
-                        }
-                    },
-                )
-                .testTag("refillItems"),
-        ) {
+        Box {
 
-            if (uiList[i].KBarCode in signedProductCodes) {
+            Item(i, uiList, true,
+                text1 = "اسکن: " + uiList[i].scannedNumber,
+                text2 = "انبار: " + uiList[i].wareHouseNumber.toString()) {
+                openSearchActivity(uiList[i])
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(top = topPaddingClearButton, end = 8.dp)
+                    .background(
+                        shape = RoundedCornerShape(36.dp),
+                        color = deleteCircleColor
+                    )
+                    .size(30.dp)
+                    .align(Alignment.TopEnd)
+                    .clickable {
+                        clear(uiList[i])
+                    }
+            ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_check_circle_24),
-                    tint = doneColor,
+                    painter = painterResource(id = R.drawable.ic_baseline_clear_24),
                     contentDescription = "",
+                    tint = deleteColor,
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .align(Alignment.CenterVertically)
+                        .align(Alignment.Center)
+                        .size(20.dp)
                 )
-            }
-
-            Image(
-                painter = rememberImagePainter(
-                    uiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .fillMaxHeight()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1.5F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = uiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = uiList[i].KBarCode,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = "موجودی انبار: " + uiList[i].wareHouseNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                    Text(
-                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun ClearAlertDialog() {
-
-        AlertDialog(
-            onDismissRequest = {
-                openClearDialog = false
-            },
-            buttons = {
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.SpaceAround
-                ) {
-
-                    Text(
-                        text = "کالاهای انتخاب شده پاک شوند؟",
-                        modifier = Modifier.padding(bottom = 10.dp),
-                        fontSize = 22.sp
-                    )
-
-                    Row(horizontalArrangement = Arrangement.SpaceAround) {
-
-                        Button(onClick = {
-                            openClearDialog = false
-                            clear()
-
-                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
-                            Text(text = "بله")
-                        }
-                        Button(
-                            onClick = { openClearDialog = false },
-                            modifier = Modifier.padding(top = 10.dp)
-                        ) {
-                            Text(text = "خیر")
-                        }
-                    }
-                }
-            }
-        )
-    }
-
-    @Composable
-    fun ScanTypeDropDownList(modifier: Modifier) {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box(modifier = modifier) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { expanded = true }
-                    .testTag("scanTypeDropDownList")) {
-                Text(text = scanTypeValue)
-                Icon(
-                    painter = if (!expanded) {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_down_24)
-                    } else {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_up_24)
-                    }, ""
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                scanTypeValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        scanTypeValue = it
-                    }) {
-                        Text(text = it)
-                    }
-                }
             }
         }
     }

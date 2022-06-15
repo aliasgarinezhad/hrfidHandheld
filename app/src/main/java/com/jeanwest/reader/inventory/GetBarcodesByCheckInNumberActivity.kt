@@ -1,4 +1,4 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.inventory
 
 import android.content.Intent
 import androidx.activity.ComponentActivity
@@ -26,6 +26,7 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
@@ -38,11 +39,12 @@ import org.json.JSONArray
 
 class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
-    private var warehouseSection by mutableStateOf("انبار")
+    private var checkInNumber by mutableStateOf("")
     private var barcodeTable = mutableListOf<String>()
-    private var state = SnackbarHostState()
     private var uiList by mutableStateOf(mutableListOf<CheckInProperties>())
     private var uiListTemp by mutableStateOf(mutableListOf<CheckInProperties>())
+    private var state = SnackbarHostState()
+
 
     override fun onResume() {
         super.onResume()
@@ -58,11 +60,23 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
     private fun loadMemory() {
 
+        val type = object : TypeToken<List<CheckInProperties>>() {}.type
+
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         barcodeTable = Gson().fromJson(
-            memory.getString("inventoryInputBarcodeTable", ""),
+            memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
             barcodeTable.javaClass
+        ) ?: mutableListOf()
+
+        uiList = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
+        ) ?: mutableListOf()
+
+        uiListTemp = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
         ) ?: mutableListOf()
     }
 
@@ -87,13 +101,13 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
         saveMemory()
     }
 
-    private fun getWarehouseDetails(code: String) {
+    private fun getCheckInNumberDetails(checkInNumber: String) {
 
-        if (code.isEmpty()) {
+        if (checkInNumber.isEmpty()) {
 
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    "لطفا شماره انبار را وارد کنید",
+                    "لطفا شماره حواله را وارد کنید",
                     null,
                     SnackbarDuration.Long
                 )
@@ -101,13 +115,13 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             return
         }
 
-        val number = code.toLong()
+        val number = checkInNumber.toLong()
         uiListTemp.forEach {
             if (it.number == number) {
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        "انبار تکراری است",
+                        "حواله تکراری است",
                         null,
                         SnackbarDuration.Long
                     )
@@ -116,7 +130,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             }
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft-details/$code"
+        val url = "https://rfid-api.avakatan.ir/stock-draft-details/$checkInNumber"
         val request = object : JsonArrayRequest(url, fun(it) {
 
             val source = it.getJSONObject(0).getInt("FromWareHouse_ID")
@@ -342,9 +356,9 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
         val focusManager = LocalFocusManager.current
 
         OutlinedTextField(
-            value = warehouseSection,
+            value = checkInNumber,
             onValueChange = {
-                warehouseSection = it
+                checkInNumber = it
             },
             modifier = modifier.testTag("GetBarcodesByCheckInNumberTextField"),
             label = { Text(text = "شماره حواله را وارد کنید") },
@@ -354,7 +368,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
             ),
             keyboardActions = KeyboardActions(onDone = {
                 focusManager.clearFocus()
-                getWarehouseDetails(warehouseSection)
+                getCheckInNumberDetails(checkInNumber)
             }),
         )
     }
@@ -363,7 +377,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
     fun OpenCheckInButton() {
         ExtendedFloatingActionButton(
             onClick = {
-                Intent(this, CheckInActivity::class.java).also {
+                Intent(this, InventoryActivity::class.java).also {
                     it.putExtra("CheckInFileBarcodeTable", JSONArray(barcodeTable).toString())
                     startActivity(it)
                 }

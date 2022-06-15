@@ -1,6 +1,7 @@
 package com.jeanwest.reader.theme
 
 import androidx.compose.material.Typography
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -18,7 +19,8 @@ val Typography = Typography(
     body2 = TextStyle(
         fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
-        fontSize = 18.sp
+        fontSize = 14.sp,
+        color = Color(0xFF272727),
     ),
     h2 = TextStyle(
         fontFamily = FontFamily(Font(R.font.sans_regular)),
@@ -45,6 +47,13 @@ val Typography = Typography(
     h3 = TextStyle(
         fontFamily = FontFamily(Font(R.font.sans_regular)),
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
-    )
+        fontSize = 14.sp,
+        color = Jeanswest,
+    ),
+    h4 = TextStyle(
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        color = Color(0xFF707070),
+    ),
 )

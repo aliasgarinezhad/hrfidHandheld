@@ -7,21 +7,19 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -31,8 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
@@ -41,24 +37,22 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
+import com.jeanwest.reader.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
-@ExperimentalCoilApi
-class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarcodeResult {
+class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
-    private var uiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
-    private var filteredUiList by mutableStateOf(mutableListOf<ManualRefillProduct>())
-    private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
-    private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
+    private var uiList = mutableStateListOf<Product>()
+    private var filteredUiList = mutableStateListOf<Product>()
+    private var colorFilterValues = mutableStateListOf("همه رنگ ها")
+    private var sizeFilterValues = mutableStateListOf("همه سایز ها")
     private var barcode2D = Barcode2D(this)
-
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
@@ -72,11 +66,12 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         }
         open()
         loadMemory()
+        filterUiList()
     }
 
     private fun loadMemory() {
 
-        val type = object : TypeToken<List<ManualRefillProduct>>() {}.type
+        val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         storeFilterValue = memory.getInt("userLocationCode", 0)
@@ -90,22 +85,17 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         uiList = Gson().fromJson(
             memory.getString("uiListAddManualRefill", ""),
             type
-        ) ?: mutableListOf()
-
-        filteredUiList = Gson().fromJson(
-            memory.getString("filteredUiListAddManualRefill", ""),
-            type
-        ) ?: mutableListOf()
+        ) ?: mutableStateListOf()
 
         sizeFilterValues = Gson().fromJson(
             memory.getString("sizeFilterValuesAddManualRefill", ""),
             sizeFilterValues.javaClass
-        ) ?: mutableListOf("همه سایز ها")
+        ) ?: mutableStateListOf("همه سایز ها")
 
         colorFilterValues = Gson().fromJson(
             memory.getString("colorFilterValuesAddManualRefill", ""),
             colorFilterValues.javaClass
-        ) ?: mutableListOf("همه رنگ ها")
+        ) ?: mutableStateListOf("همه رنگ ها")
 
     }
 
@@ -117,16 +107,26 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         edit.putString("colorFilterValuesAddManualRefill", JSONArray(colorFilterValues).toString())
         edit.putString("sizeFilterValuesAddManualRefill", JSONArray(sizeFilterValues).toString())
         edit.putString("uiListAddManualRefill", Gson().toJson(uiList).toString())
-        edit.putString("filteredUiListAddManualRefill", Gson().toJson(filteredUiList).toString())
-
         edit.putString("productCodeAddManualRefill", productCode)
         edit.putString("colorFilterValueAddManualRefill", colorFilterValue)
         edit.putString("sizeFilterValueAddManualRefill", sizeFilterValue)
-
         edit.apply()
     }
 
-    private fun filterUiList(uiList: MutableList<ManualRefillProduct>): MutableList<ManualRefillProduct> {
+    private fun filterUiList() {
+
+        uiList.forEach {
+            var isRequested = false
+            products.forEach { it1 ->
+                if (it.KBarCode == it1.KBarCode) {
+                    it.requestedNum = it1.requestedNum
+                    isRequested = true
+                }
+            }
+            if (!isRequested) {
+                it.requestedNum = 0
+            }
+        }
 
         val wareHouseFilterOutput = uiList.filter {
             it.wareHouseNumber > 0
@@ -146,18 +146,18 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
             sizeFilterOutput.filter {
                 it.color == colorFilterValue
             }
-
         }
 
-        return colorFilterOutput.toMutableList()
+        filteredUiList.clear()
+        filteredUiList.addAll(colorFilterOutput)
     }
 
     private fun getSimilarProducts() {
 
-        uiList = mutableListOf()
-        filteredUiList = mutableListOf()
-        colorFilterValues = mutableListOf("همه رنگ ها")
-        sizeFilterValues = mutableListOf("همه سایز ها")
+        uiList.clear()
+        filteredUiList.clear()
+        colorFilterValues = mutableStateListOf("همه رنگ ها")
+        sizeFilterValues = mutableStateListOf("همه سایز ها")
 
         val url1 =
             "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
@@ -242,7 +242,7 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
             sizeFilterValues.add(json.getString("Size"))
 
             uiList.add(
-                ManualRefillProduct(
+                Product(
                     name = json.getString("productName"),
                     KBarCode = json.getString("KBarCode"),
                     imageUrl = json.getString("ImgUrl"),
@@ -266,9 +266,9 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         }
 
         productCode = uiList[0].productCode
-        colorFilterValues = colorFilterValues.distinct().toMutableList()
-        sizeFilterValues = sizeFilterValues.distinct().toMutableList()
-        filteredUiList = filterUiList(uiList)
+        colorFilterValues = colorFilterValues.distinct().toMutableStateList()
+        sizeFilterValues = sizeFilterValues.distinct().toMutableStateList()
+        filterUiList()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -302,10 +302,14 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         }
     }
 
-    private fun backToManualRefillActivity(product: ManualRefillProduct) {
+    private fun addToRefillList(KBarCode: String) {
 
-        ManualRefillActivity.manualRefillProducts.forEach {
-            if (product.KBarCode == it.KBarCode) {
+        val productIndexInUiList = filteredUiList.indexOfLast {
+            it.KBarCode == KBarCode
+        }
+
+        products.forEach {
+            if (filteredUiList[productIndexInUiList].KBarCode == it.KBarCode) {
                 if (it.requestedNum >= it.wareHouseNumber) {
                     CoroutineScope(Main).launch {
                         state.showSnackbar(
@@ -317,16 +321,19 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
                     return
                 } else {
                     it.requestedNum++
+                    filterUiList()
                     saveToMemory()
-                    finish()
                     return
                 }
             }
         }
+        products.add(filteredUiList[productIndexInUiList])
+        products[products.indexOfLast {
+            it.KBarCode == KBarCode
+        }].requestedNum++
+
+        filterUiList()
         saveToMemory()
-        product.requestedNum = 1
-        ManualRefillActivity.manualRefillProducts.add(product)
-        finish()
     }
 
     private fun back() {
@@ -335,7 +342,6 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         finish()
     }
 
-    @ExperimentalCoilApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -376,211 +382,108 @@ class AddProductToManualRefillListActivityActivity : ComponentActivity(), IBarco
         )
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
-    @ExperimentalCoilApi
     @Composable
     fun Content() {
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+        Column {
+
+            Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
+                    .padding(bottom = 0.dp)
+                    .shadow(elevation = 6.dp, shape = MaterialTheme.shapes.large)
                     .background(
                         color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.small
+                        shape = MaterialTheme.shapes.large
                     )
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                    .fillMaxWidth()
             ) {
-                Column {
-                    ProductCodeTextField()
-                    Row(
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProductCodeTextField(
                         modifier = Modifier
-                            .padding(bottom = 5.dp)
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
+                            .weight(1F)
                             .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        ColorFilterDropDownList()
-                        SizeFilterDropDownList()
-                    }
+                        hint = "کد محصول",
+                        onSearch = { getSimilarProducts() },
+                        onValueChange = { productCode = it },
+                        value = productCode
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 16.dp, bottom = 16.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_baseline_color_lens_24),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 4.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                style = MaterialTheme.typography.body2,
+                                text = colorFilterValue,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 4.dp)
+                            )
+                        },
+                        onClick = {
+                            colorFilterValue = it
+                            filterUiList()
+                        },
+                        values = colorFilterValues
+                    )
+
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 16.dp, bottom = 16.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.size),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = sizeFilterValue,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        onClick = {
+                            sizeFilterValue = it
+                            filterUiList()
+                        },
+                        values = sizeFilterValues
+                    )
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+            LazyColumn {
 
                 items(filteredUiList.size) { i ->
-                    LazyColumnItem(i)
-                }
-            }
-        }
-    }
-
-    @ExperimentalFoundationApi
-    @Composable
-    fun LazyColumnItem(i: Int) {
-
-        Row(
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = MaterialTheme.colors.onPrimary,
-                    shape = MaterialTheme.shapes.small
-                )
-                .fillMaxWidth()
-                .height(80.dp)
-                .clickable(
-                    onClick = {
-                        backToManualRefillActivity(filteredUiList[i])
-                    },
-                )
-                .testTag("SearchItems"),
-        ) {
-
-            Image(
-                painter = rememberImagePainter(
-                    filteredUiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(start = 8.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = filteredUiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = filteredUiList[i].size + "-" +  filteredUiList[i].color,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1.2F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    Text(
-                        text = "موجودی فروشگاه: " + filteredUiList[i].storeNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = "موجودی انبار: " + filteredUiList[i].wareHouseNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun ProductCodeTextField() {
-
-        val focusManager = LocalFocusManager.current
-
-
-        OutlinedTextField(
-            value = productCode, onValueChange = {
-                productCode = it
-            },
-            modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp, bottom = 10.dp)
-                .fillMaxWidth()
-                .testTag("SearchProductCodeTextField"),
-            label = { Text(text = "کد محصول") },
-            keyboardActions = KeyboardActions(onSearch = {
-                focusManager.clearFocus()
-                getSimilarProducts()
-            }),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
-        )
-    }
-
-    @Composable
-    fun SizeFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(
-                modifier = Modifier
-                    .clickable { expanded = true }
-                    .testTag("SearchSizeFilterDropDownList"),
-            ) {
-                Text(text = sizeFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                sizeFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        sizeFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun ColorFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier
-                .clickable { expanded = true }
-                .testTag("SearchColorFilterDropDownList")) {
-                Text(text = colorFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                colorFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        colorFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
+                    Item(i, filteredUiList, true,
+                        text1 = "فروشگاه: " + filteredUiList[i].storeNumber,
+                        text2 = "انبار: " + filteredUiList[i].wareHouseNumber) {
+                        addToRefillList(filteredUiList[i].KBarCode)
                     }
                 }
             }

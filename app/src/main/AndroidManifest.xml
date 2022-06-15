@@ -36,13 +36,14 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.jeanwest.reader.manualRefill.SendManualRefillToStoreActivity" />
-        <activity android:name="com.jeanwest.reader.manualRefill.AddProductToManualRefillListActivityActivity" />
+        <activity android:name="com.jeanwest.reader.inventory.InventoryActivity" />
+        <activity android:name="com.jeanwest.reader.manualRefill.SendToStoreActivity" />
+        <activity android:name="com.jeanwest.reader.manualRefill.AddProductToRefillListActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.SendToDestinationActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.ConfirmCheckInsActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.ManualRefillActivity" />
-        <activity android:name="com.jeanwest.reader.refill.SendRefillToStoreActivity" />
+        <activity android:name="com.jeanwest.reader.refill.SendToStoreActivity" />
         <activity android:name="com.jeanwest.reader.refill.RefillActivity" />
         <activity android:name="com.jeanwest.reader.logIn.OperatorLoginActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.CheckInActivity" />

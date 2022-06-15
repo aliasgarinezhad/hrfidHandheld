@@ -1,4 +1,4 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.inventory
 
 import android.content.Intent
 import android.media.AudioManager
@@ -54,7 +54,7 @@ import org.json.JSONObject
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
-class CheckInActivity : ComponentActivity(), IBarcodeResult {
+class InventoryActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
@@ -468,7 +468,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CheckInActivity)
+        val queue = Volley.newRequestQueue(this@InventoryActivity)
         queue.add(request)
     }
 
@@ -657,7 +657,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CheckInActivity)
+        val queue = Volley.newRequestQueue(this@InventoryActivity)
         queue.add(request)
     }
 

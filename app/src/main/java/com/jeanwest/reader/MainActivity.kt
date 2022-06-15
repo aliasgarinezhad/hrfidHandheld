@@ -1,6 +1,5 @@
 package com.jeanwest.reader
 
-import com.rscja.deviceapi.RFIDWithUHFUART
 import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
@@ -9,27 +8,29 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
+import com.android.volley.NoConnectionError
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.hardware.rfInit
+import com.jeanwest.reader.inventory.InventoryActivity
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
@@ -38,11 +39,15 @@ import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalFoundationApi::class)
 class MainActivity : ComponentActivity() {
 
     private var openAccountDialog by mutableStateOf(false)
@@ -147,6 +152,54 @@ class MainActivity : ComponentActivity() {
         fileOrDirectory.delete()
     }
 
+    private fun syncServerToLocalWarehouse() {
+
+        val url = "https://rfid-api.avakatan.ir/department-infos/sync"
+        val request = object : StringRequest(Method.GET, url,  {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "ارسال و دریافت با موفقیت انجام شد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+
+        }, {
+
+            if(it is NoConnectionError) {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                } else {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+        }) {
+
+            override fun getHeaders(): MutableMap<String, String> {
+                val header = mutableMapOf<String, String>()
+                header["accept"] = "application/json"
+                header["Content-Type"] = "application/json"
+                header["Authorization"] = "Bearer $token"
+                return header
+            }
+        }
+
+        val queue = Volley.newRequestQueue(this)
+        queue.add(request)
+    }
+
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == 4) {
             rf.free()
@@ -161,6 +214,7 @@ class MainActivity : ComponentActivity() {
         var token = ""
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainMenu() {
 
@@ -214,26 +268,55 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                RefillButton()
-                                CheckInButton()
-                                SearchButton()
+
+                                OpenActivityButton("خطی", R.drawable.refill) {
+                                    val intent = Intent(this@MainActivity, RefillActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton("تروفالس", R.drawable.inventory) {
+                                    val intent = Intent(this@MainActivity, GetBarcodesByCheckInNumberActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton("جستجو", R.drawable.search) {
+                                    val intent = Intent(this@MainActivity, SearchActivity::class.java)
+                                    startActivity(intent)
+                                }
                             }
 
                             Row(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                CountButton()
-                                WriteTagButton()
-                                ManualRefillWarehouseManagerButton()
+                                OpenActivityButton("شمارش", R.drawable.counter) {
+                                    val intent = Intent(this@MainActivity, CountActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton("رایت", R.drawable.write) {
+                                    val intent = Intent(this@MainActivity, WriteActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton("شارژ", R.drawable.check_in) {
+                                    val intent = Intent(this@MainActivity, ManualRefillActivity::class.java)
+                                    startActivity(intent)
+                                }
                             }
 
                             Row(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                checkOut()
-                                Box(modifier = Modifier.size(100.dp)) {}
+                                OpenActivityButton("ثبت حواله", R.drawable.check_in) {
+                                    val intent = Intent(this@MainActivity, CheckOutActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton(
+                                    text = "انبارگردانی",
+                                    iconId = R.drawable.inventory
+                                ) {
+                                    Intent(this@MainActivity, InventoryActivity::class.java).apply {
+                                        startActivity(this)
+                                    }
+                                }
                                 Box(modifier = Modifier.size(100.dp)) {}
                             }
                         }
@@ -245,24 +328,29 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun CountButton() {
+    fun OpenActivityButton(text : String, iconId : Int, onClick : () -> Unit) {
 
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .size(buttonSize)
+                .shadow(elevation = 5.dp, shape = MaterialTheme.shapes.small)
+                .border(
+                    BorderStroke(1.dp, borderColor),
+                    shape = MaterialTheme.shapes.small
+                )
                 .clickable {
-                    val intent = Intent(this, CountActivity::class.java)
-                    startActivity(intent)
+                    onClick()
                 }
                 .background(
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colors.onPrimary,
                 )
+
         ) {
 
             Icon(
-                painter = painterResource(R.drawable.counter),
+                painter = painterResource(iconId),
                 tint = MaterialTheme.colors.primary,
                 contentDescription = "",
                 modifier = Modifier
@@ -270,214 +358,7 @@ class MainActivity : ComponentActivity() {
                     .align(Alignment.CenterHorizontally)
             )
             Text(
-                "شمارش",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3
-            )
-        }
-    }
-
-    @Composable
-    fun CheckInButton() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(this, GetBarcodesByCheckInNumberActivity::class.java)
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.true_flase),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                stringResource(R.string.checkInText),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3,
-            )
-        }
-    }
-
-
-    @Composable
-    fun ManualRefillWarehouseManagerButton() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(this, ManualRefillActivity::class.java)
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.check_in),
-                contentDescription = "",
-                tint = MaterialTheme.colors.primary,
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                stringResource(id = R.string.manualRefill),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3,
-            )
-        }
-    }
-
-    @Composable
-    fun checkOut() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(this, CheckOutActivity::class.java)
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.check_in),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                stringResource(R.string.transferText),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3
-            )
-        }
-    }
-
-    @Composable
-    fun SearchButton() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(
-                        this@MainActivity,
-                        SearchActivity::class.java
-                    )
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.search),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                "جست و جو",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3,
-            )
-        }
-    }
-
-    @Composable
-    fun WriteTagButton() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(this, WriteActivity::class.java)
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.write),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                "رایت",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3
-            )
-        }
-    }
-
-    @Composable
-    fun RefillButton() {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .clickable {
-                    val intent = Intent(this, RefillActivity::class.java)
-                    startActivity(intent)
-                }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-        ) {
-
-            Icon(
-                painter = painterResource(R.drawable.refill),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                stringResource(id = R.string.refill),
+                text,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.h3
@@ -496,7 +377,7 @@ class MainActivity : ComponentActivity() {
 
                 Column(
                     modifier = Modifier
-                        .width(240.dp)
+                        .width(288.dp)
                         .height(120.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -529,9 +410,18 @@ class MainActivity : ComponentActivity() {
                                     Intent(this@MainActivity, UserLoginActivity::class.java)
                                 intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
-                            },
+                            }, modifier = Modifier.padding(end  = 8.dp)
                         ) {
                             Text(text = "خروج از حساب")
+                        }
+
+                        Button(
+                            onClick = {
+                                openAccountDialog = false
+                                syncServerToLocalWarehouse()
+                            },
+                        ) {
+                            Text(text = "ارسال و دریافت")
                         }
                     }
                 }

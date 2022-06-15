@@ -41,10 +41,7 @@ import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.MyApplicationTheme
-import com.jeanwest.reader.theme.doneColor
-import com.jeanwest.reader.theme.errorColor
+import com.jeanwest.reader.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
@@ -802,16 +799,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                             .padding(start = 16.dp, bottom = 8.dp, top = 8.dp),
                     )
                 }
-
-                if (barcodeIsScanning || rfIsScanning) {
-                    Row(
-                        modifier = Modifier
-                            .padding(32.dp)
-                            .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colors.primary)
-                    }
-                }
+                LoadingCircularProgressIndicator(barcodeIsScanning || rfIsScanning)
             }
 
             Column(
@@ -951,7 +939,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
                     Button(
                         onClick = { openHelpDialog = false },
-                        modifier = Modifier.padding(top = 10.dp).align(CenterHorizontally)
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .align(CenterHorizontally)
                     ) {
                         Text(text = "باشه")
                     }

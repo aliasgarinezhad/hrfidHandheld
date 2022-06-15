@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -36,32 +37,23 @@ import com.google.gson.Gson
 import com.jeanwest.reader.R
 //import com.jeanwest.reader.hardware.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
-@ExperimentalCoilApi
 class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
-    private var uiList by mutableStateOf(mutableListOf<SearchResultProducts>())
-    private var filteredUiList by mutableStateOf(mutableListOf<SearchResultProducts>())
-    private var colorFilterValues by mutableStateOf(mutableListOf("همه رنگ ها"))
-    private var sizeFilterValues by mutableStateOf(mutableListOf("همه سایز ها"))
-    private var wareHouseFilterValues by mutableStateOf(
-        mutableListOf(
-            "فروشگاه و انبار",
-            "فروشگاه",
-            "انبار"
-        )
-    )
+    private var uiList = mutableStateListOf<Product>()
+    private var filteredUiList = mutableStateListOf<Product>()
+    private var colorFilterValues = mutableStateListOf("همه رنگ ها")
+    private var sizeFilterValues = mutableStateListOf("همه سایز ها")
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0
-    private var wareHouseFilterValue by mutableStateOf("فروشگاه و انبار")
     private var state = SnackbarHostState()
 
     private var barcode2D = Barcode2D(this)
@@ -95,10 +87,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         if (barcode.isNotEmpty()) {
 
-            filteredUiList = mutableListOf()
-            uiList = mutableListOf()
-            colorFilterValues = mutableListOf("همه رنگ ها")
-            sizeFilterValues = mutableListOf("همه سایز ها")
+            filteredUiList.clear()
+            uiList.clear()
+            colorFilterValues = mutableStateListOf("همه رنگ ها")
+            sizeFilterValues = mutableStateListOf("همه سایز ها")
             productCode = ""
 
             val url =
@@ -160,28 +152,12 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         barcode2D.close(this)
     }
 
-    private fun filterUiList(uiList: MutableList<SearchResultProducts>): MutableList<SearchResultProducts> {
-
-        val wareHouseFilterOutput = when (wareHouseFilterValue) {
-            "فروشگاه" -> {
-                uiList.filter {
-                    it.shoppingNumber > 0
-                }
-            }
-            "انبار" -> {
-                uiList.filter {
-                    it.warehouseNumber > 0
-                }
-            }
-            else -> {
-                uiList
-            }
-        }
+    private fun filterUiList() {
 
         val sizeFilterOutput = if (sizeFilterValue == "همه سایز ها") {
-            wareHouseFilterOutput
+            uiList
         } else {
-            wareHouseFilterOutput.filter {
+            uiList.filter {
                 it.size == sizeFilterValue
             }
         }
@@ -195,15 +171,16 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         }
 
-        return colorFilterOutput.toMutableList()
+        filteredUiList.clear()
+        filteredUiList.addAll(colorFilterOutput)
     }
 
     private fun getSimilarProducts() {
 
-        uiList = mutableListOf()
-        filteredUiList = mutableListOf()
-        colorFilterValues = mutableListOf("همه رنگ ها")
-        sizeFilterValues = mutableListOf("همه سایز ها")
+        uiList.clear()
+        filteredUiList.clear()
+        colorFilterValues = mutableStateListOf("همه رنگ ها")
+        sizeFilterValues = mutableStateListOf("همه سایز ها")
 
         val url1 =
             "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
@@ -288,30 +265,31 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             sizeFilterValues.add(json.getString("Size"))
 
             uiList.add(
-                SearchResultProducts(
+                Product(
                     name = json.getString("productName"),
                     KBarCode = json.getString("KBarCode"),
                     imageUrl = json.getString("ImgUrl"),
-                    shoppingNumber = json.getInt("dbCountStore"),
-                    warehouseNumber = json.getInt("dbCountDepo"),
+                    storeNumber = json.getInt("dbCountStore"),
+                    wareHouseNumber = json.getInt("dbCountDepo"),
                     productCode = json.getString("K_Bar_Code"),
                     size = json.getString("Size"),
                     color = json.getString("Color"),
                     originalPrice = json.getString("OrigPrice"),
                     salePrice = json.getString("SalePrice"),
                     primaryKey = json.getLong("BarcodeMain_ID"),
-                    rfidKey = json.getLong("RFID")
+                    rfidKey = json.getLong("RFID"),
+                    kName = json.getString("K_Name"),
                 )
             )
         }
 
         productCode = uiList[0].productCode
-        colorFilterValues = colorFilterValues.distinct().toMutableList()
-        sizeFilterValues = sizeFilterValues.distinct().toMutableList()
-        filteredUiList = filterUiList(uiList)
+        colorFilterValues = colorFilterValues.distinct().toMutableStateList()
+        sizeFilterValues = sizeFilterValues.distinct().toMutableStateList()
+        filterUiList()
     }
 
-    private fun openSearchActivity(product: SearchResultProducts) {
+    private fun openSearchActivity(product: Product) {
 
         val intent = Intent(this, SearchSubActivity::class.java)
         intent.putExtra("product", Gson().toJson(product).toString())
@@ -364,41 +342,100 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
-    @ExperimentalCoilApi
     @Composable
     fun Content() {
 
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, bottom = 5.dp, top = 5.dp)
+                    .shadow(6.dp, Shapes.medium)
                     .background(
                         color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.small
+                        shape = MaterialTheme.shapes.large
                     )
                     .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column {
-                    ProductCodeTextField()
+                    ProductCodeTextField(modifier = Modifier
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
+                        .fillMaxWidth()
+                        .testTag("SearchProductCodeTextField"),
+                        hint = "کد محصول",
+                        onSearch = { getSimilarProducts() },
+                        onValueChange = { productCode = it },
+                        value = productCode
+                    )
                     Row(
-                        modifier = Modifier
-                            .padding(bottom = 5.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        WarehouseFilterDropDownList()
-                        ColorFilterDropDownList()
-                        SizeFilterDropDownList()
+                        FilterDropDownList(
+                            modifier = Modifier
+                                .padding(start = 16.dp, bottom = 16.dp),
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_baseline_color_lens_24),
+                                    contentDescription = "",
+                                    tint = iconColor,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 4.dp)
+                                )
+                            },
+                            text = {
+                                Text(
+                                    style = MaterialTheme.typography.body2,
+                                    text = colorFilterValue,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 4.dp)
+                                )
+                            },
+                            onClick = {
+                                colorFilterValue = it
+                                filterUiList()
+                            },
+                            values = colorFilterValues
+                        )
+                        FilterDropDownList(
+                            modifier = Modifier
+                                .padding(start = 16.dp, bottom = 16.dp),
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.size),
+                                    contentDescription = "",
+                                    tint = iconColor,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 6.dp)
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = sizeFilterValue,
+                                    style = MaterialTheme.typography.body2,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 6.dp)
+                                )
+                            },
+                            onClick = {
+                                sizeFilterValue = it
+                                filterUiList()
+                            },
+                            values = sizeFilterValues
+                        )
                     }
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
+            LazyColumn {
 
                 items(filteredUiList.size) { i ->
-                    LazyColumnItem(i)
+                    Item(i, filteredUiList, text1 = "رنگ: " + filteredUiList[i].color,
+                    text2 = "سایز: " + filteredUiList[i].size, clickable = true) {
+                        openSearchActivity(filteredUiList[i])
+                    }
                 }
             }
         }
@@ -477,132 +514,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         style = MaterialTheme.typography.body1,
                         textAlign = TextAlign.Right,
                     )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun ProductCodeTextField() {
-
-        val focusManager = LocalFocusManager.current
-
-        OutlinedTextField(
-            value = productCode, onValueChange = {
-                productCode = it
-            },
-            modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp, bottom = 10.dp)
-                .fillMaxWidth()
-                .testTag("SearchProductCodeTextField"),
-            label = { Text(text = "کد محصول") },
-            keyboardActions = KeyboardActions(onSearch = {
-                focusManager.clearFocus()
-                getSimilarProducts()
-            }),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
-        )
-    }
-
-    @Composable
-    fun SizeFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(
-                modifier = Modifier
-                    .clickable { expanded = true }
-                    .testTag("SearchSizeFilterDropDownList"),
-            ) {
-                Text(text = sizeFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                sizeFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        sizeFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun ColorFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier
-                .clickable { expanded = true }
-                .testTag("SearchColorFilterDropDownList")) {
-                Text(text = colorFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                colorFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        colorFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun WarehouseFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier
-                .clickable { expanded = true }
-                .testTag("SearchWarehouseFilterDropDownList")) {
-                Text(text = wareHouseFilterValue)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                wareHouseFilterValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        wareHouseFilterValue = it
-                        filteredUiList = filterUiList(uiList)
-                    }) {
-                        Text(text = it)
-                    }
                 }
             }
         }

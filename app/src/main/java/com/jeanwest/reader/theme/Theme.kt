@@ -26,10 +26,9 @@ private val LightColorPalette = lightColors(
     surface = JeanswestBackground,
     onPrimary = Color.White,
     secondaryVariant = Jeanswest,
-    onSecondary = JeanswestSelected,
     onBackground = Color.Black,
     onSurface = Color.Black,
-    secondary = JeanswestButtonDisabled,
+    secondary = BorderLight,
     error = errorColor,
 )
 

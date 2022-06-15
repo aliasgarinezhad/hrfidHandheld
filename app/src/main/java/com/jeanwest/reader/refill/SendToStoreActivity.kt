@@ -9,13 +9,13 @@ import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
@@ -38,8 +37,10 @@ import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.manualRefill.ManualRefillActivity
+import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.theme.ErrorSnackBar
+import com.jeanwest.reader.theme.Item
+import com.jeanwest.reader.theme.JeanswestBottomBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,16 +54,14 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+class SendToStoreActivity : ComponentActivity() {
 
-@OptIn(ExperimentalFoundationApi::class)
-class SendRefillToStoreActivity : ComponentActivity() {
-
-    private var uiList by mutableStateOf(mutableListOf<RefillProduct>())
+    private var uiList = mutableStateListOf<Product>()
     private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
     private var openFileDialog by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
     private var state = SnackbarHostState()
-    private val apiTimeout = 30000
+    private val apiTimeout = 120000
     private var isSubmitting by mutableStateOf(false)
     private lateinit var iotHubService: IotHub
     private var iotHubConnected = false
@@ -86,11 +85,11 @@ class SendRefillToStoreActivity : ComponentActivity() {
             Page()
         }
 
-        val type = object : TypeToken<List<RefillProduct>>() {}.type
+        val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
         uiList = Gson().fromJson(
             intent.getStringExtra("RefillProducts"), type
-        ) ?: mutableListOf()
+        ) ?: mutableStateListOf()
 
         numberOfScanned = intent.getIntExtra("validScannedProductsNumber", 0)
 
@@ -180,7 +179,7 @@ class SendRefillToStoreActivity : ComponentActivity() {
             isSubmitting = false
             RefillActivity.scannedBarcodeTable.clear()
             RefillActivity.scannedEpcTable.clear()
-            uiList = mutableListOf()
+            uiList.clear()
             numberOfScanned = 0
 
         }, {
@@ -242,7 +241,7 @@ class SendRefillToStoreActivity : ComponentActivity() {
 
         request.retryPolicy = DefaultRetryPolicy(
             apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            0,
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
@@ -250,7 +249,7 @@ class SendRefillToStoreActivity : ComponentActivity() {
         queue.add(request)
     }
 
-    fun sendLog(refillProducts: List<RefillProduct>) {
+    fun sendLog(products: List<Product>) {
 
         if (!iotHubConnected) {
             return
@@ -265,7 +264,7 @@ class SendRefillToStoreActivity : ComponentActivity() {
             SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
         val dir = File(getExternalFilesDir(null), "/")
         val outFile = File(dir, "refillLog" + sdf.format(Date()) + ".xlsx")
-        for ((_, KBarCode, _, _, _, _, _, _, _, _, _, _, _, scannedBarcodeNumber, scannedEPCNumber) in refillProducts) {
+        for ((_, KBarCode, _, _, _, _, _, _, _, _, _, _, _, scannedBarcodeNumber, scannedEPCNumber) in products) {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(KBarCode)
             row.createCell(1).setCellValue((scannedEPCNumber + scannedBarcodeNumber).toDouble())
@@ -277,8 +276,6 @@ class SendRefillToStoreActivity : ComponentActivity() {
         iotHubService.sendFile(outFile)
     }
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -295,7 +292,7 @@ class SendRefillToStoreActivity : ComponentActivity() {
 
     @Composable
     fun BottomAppBar() {
-        BottomAppBar(backgroundColor = colorResource(id = R.color.JeanswestBottomBar)) {
+        BottomAppBar(backgroundColor = JeanswestBottomBar) {
 
             Row(
                 modifier = Modifier
@@ -371,8 +368,6 @@ class SendRefillToStoreActivity : ComponentActivity() {
         )
     }
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
     @Composable
     fun Content() {
 
@@ -385,80 +380,10 @@ class SendRefillToStoreActivity : ComponentActivity() {
             LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
-                    LazyColumnItem(i)
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun LazyColumnItem(i: Int) {
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = MaterialTheme.colors.onPrimary,
-                    shape = MaterialTheme.shapes.small,
-                )
-                .fillMaxWidth()
-                .height(80.dp),
-        ) {
-
-            Image(
-                painter = rememberImagePainter(
-                    uiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .fillMaxHeight()
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .weight(1.5F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = uiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = uiList[i].KBarCode,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    Text(
-                        text = "موجودی انبار: " + uiList[i].wareHouseNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = "اسکن شده: " + (uiList[i].scannedEPCNumber + uiList[i].scannedBarcodeNumber).toString(),
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
+                    Item(
+                        i, uiList,
+                        text1 = "اسکن: " + uiList[i].scannedNumber,
+                        text2 = "انبار: " + uiList[i].wareHouseNumber.toString()
                     )
                 }
             }
