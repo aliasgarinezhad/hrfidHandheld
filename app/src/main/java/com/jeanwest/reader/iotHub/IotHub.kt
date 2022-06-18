@@ -8,6 +8,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.preference.PreferenceManager
 import com.azure.storage.blob.BlobClientBuilder
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.updateActivity.UpdateActivity
 import com.jeanwest.reader.write.WriteRecord
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification
@@ -147,7 +148,7 @@ class IotHub : Service() {
         return sendFile(outFile)
     }
 
-    fun sendFile(outFile: File): Boolean {
+    private fun sendFile(outFile: File): Boolean {
 
         sendLogFileSuccess = false
         val thread = Thread {
@@ -229,6 +230,18 @@ class IotHub : Service() {
         memoryEditor.apply()
     }
 
+    private fun sendExceptionLog() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        if(memory.getBoolean("isAppCrashed", false)) {
+            val logFileName = memory.getString("logFileName", "") ?: ""
+            val file = File(this.getExternalFilesDir(null), "/")
+            sendFile(File(file, logFileName))
+            val edit = memory.edit()
+            edit.putBoolean("isAppCrashed", false)
+            edit.apply()
+        }
+    }
+
     private fun initClient() {
 
         if (deviceId.isEmpty() || iotToken.isEmpty()) {
@@ -257,6 +270,7 @@ class IotHub : Service() {
             dataCollector.setReportedProp(Property("location", location))
             dataCollector.setReportedProp(Property("username", ""))
             client.sendReportedProperties(dataCollector.reportedProp)
+            sendExceptionLog()
         } catch (e: Exception) {
             Log.e(
                 "error in sending file",

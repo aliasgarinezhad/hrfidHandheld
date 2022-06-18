@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
@@ -34,6 +35,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
@@ -63,20 +65,6 @@ class SendToStoreActivity : ComponentActivity() {
     private var state = SnackbarHostState()
     private val apiTimeout = 120000
     private var isSubmitting by mutableStateOf(false)
-    private lateinit var iotHubService: IotHub
-    private var iotHubConnected = false
-    private val serviceConnection = object : ServiceConnection {
-
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as IotHub.LocalBinder
-            iotHubService = binder.service
-            iotHubConnected = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            iotHubConnected = false
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,8 +84,25 @@ class SendToStoreActivity : ComponentActivity() {
         val util = JalaliDate()
         fileName += util.currentShamsidate
 
-        val intent = Intent(this, IotHub::class.java)
-        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+    }
+
+    private fun errorOnApi(error : String) {
+        val sdf = SimpleDateFormat("MM.dd'T'HH:mm", Locale.ENGLISH)
+        val logFileName = "log" + sdf.format(Date()) + ".txt"
+
+        val dir = File(this.getExternalFilesDir(null), "/")
+        val outFile = File(dir, logFileName)
+        val outputStream = FileOutputStream(outFile.absolutePath)
+        outputStream.write(error.toByteArray())
+        outputStream.flush()
+        outputStream.close()
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val edit = memory.edit()
+        edit.putBoolean("isAppCrashed", true)
+        edit.putString("logFileName", logFileName)
+        edit.apply()
     }
 
     private fun exportFile() {
@@ -165,7 +170,7 @@ class SendToStoreActivity : ComponentActivity() {
 
         isSubmitting = true
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/refil"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -176,7 +181,6 @@ class SendToStoreActivity : ComponentActivity() {
                 )
             }
 
-            sendLog(uiList)
             isSubmitting = false
             ManualRefillActivity.products.removeAll {
                 it.scannedBarcodeNumber + it.scannedEPCNumber > 0
@@ -204,6 +208,7 @@ class SendToStoreActivity : ComponentActivity() {
                     )
                 }
             }
+            errorOnApi(it.stackTraceToString())
             isSubmitting = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -232,7 +237,7 @@ class SendToStoreActivity : ComponentActivity() {
                     }
                 }
 
-                body.put("desc", "برای تست")
+                body.put("desc", "شارژ هندهلد RFID")
                 body.put("createDate", sdf.format(Date()))
                 body.put("products", products)
 
@@ -248,32 +253,6 @@ class SendToStoreActivity : ComponentActivity() {
 
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
-    }
-
-    fun sendLog(products: SnapshotStateList<Product>) {
-
-        if (!iotHubConnected) {
-            return
-        }
-        val workbook = XSSFWorkbook()
-        val sheet: Sheet = workbook.createSheet("شارژ")
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("بارکد")
-        headerRow.createCell(1).setCellValue("تعداد")
-        @SuppressLint("SimpleDateFormat") val sdf =
-            SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
-        val dir = File(getExternalFilesDir(null), "/")
-        val outFile = File(dir, "manualRefillLog" + sdf.format(Date()) + ".xlsx")
-        for ((_, KBarCode, _, _, scannedNumber) in products) {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(KBarCode)
-            row.createCell(1).setCellValue(scannedNumber.toDouble())
-            val outputStream = FileOutputStream(outFile.absolutePath)
-            workbook.write(outputStream)
-            outputStream.flush()
-            outputStream.close()
-        }
-        iotHubService.sendFile(outFile)
     }
 
     @ExperimentalCoilApi

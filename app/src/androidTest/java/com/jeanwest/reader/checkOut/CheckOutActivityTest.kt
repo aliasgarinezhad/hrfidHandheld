@@ -5,8 +5,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -23,7 +23,7 @@ class CheckOutActivityTest {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
-        clearUserData()
+        //clearUserData()
 
         checkOutActivity.onNodeWithTag("scanTypeDropDownList").performClick()
         checkOutActivity.waitForIdle()
@@ -130,7 +130,7 @@ class CheckOutActivityTest {
 
     }
 
-    private fun clearUserData() {
+    /*private fun clearUserData() {
 
         checkOutActivity.activity.scannedProducts.forEach {
             checkOutActivity.activity.signedProductCodes.add(it.KBarCode)
@@ -143,7 +143,7 @@ class CheckOutActivityTest {
         checkOutActivity.waitForIdle()
         Thread.sleep(1000)
         checkOutActivity.waitForIdle()
-    }
+    }*/
 
     private val barcodes = mutableListOf(
         "11581831J-2520-36",

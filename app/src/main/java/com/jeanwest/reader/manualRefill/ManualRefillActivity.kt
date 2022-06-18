@@ -34,15 +34,16 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -65,8 +66,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private var numberOfScanned by mutableStateOf(0)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    var signedProductCodes = mutableListOf<String>()
-    private val scanTypeValues = mutableListOf("RFID", "بارکد")
     private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
@@ -74,7 +73,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     companion object {
         var scannedEpcTable = mutableListOf<String>()
         var scannedBarcodeTable = mutableListOf<String>()
-        var products = ArrayList<Product>()
+        var products = mutableListOf<Product>()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,6 +103,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         if (numberOfScanned != 0) {
             syncScannedItemsToServer()
         }
+
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onResume() {
@@ -875,6 +876,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .size(30.dp)
                     .align(Alignment.TopEnd)
+                    .testTag("clear")
                     .clickable {
                         clear(uiList[i])
                     }

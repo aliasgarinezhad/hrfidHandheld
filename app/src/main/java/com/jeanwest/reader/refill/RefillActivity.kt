@@ -31,16 +31,17 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -54,7 +55,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var rfPower = 5
     private val barcode2D = Barcode2D(this)
     val inputBarcodes = ArrayList<String>()
-    private var refillProducts = mutableListOf<Product>()
     private var scanningJob: Job? = null
 
     //ui parameters
@@ -70,6 +70,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var isDataLoading by mutableStateOf(false)
 
     companion object {
+        var refillProducts = mutableListOf<Product>()
         var scannedEpcTable = mutableListOf<String>()
         var scannedBarcodeTable = mutableListOf<String>()
     }
@@ -90,6 +91,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
         loadMemory()
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onResume() {
@@ -798,6 +800,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .size(30.dp)
                     .align(Alignment.TopEnd)
+                    .testTag("clear")
                     .clickable {
                         clear(uiList[i])
                     }
@@ -810,46 +813,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         .align(Alignment.Center)
                         .size(20.dp)
                 )
-            }
-        }
-    }
-
-    @Composable
-    fun ScanTypeDropDownList(modifier: Modifier) {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box(modifier = modifier) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { expanded = true }) {
-                Text(text = scanTypeValue)
-                Icon(
-                    painter = if (!expanded) {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_down_24)
-                    } else {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_up_24)
-                    }, ""
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                scanTypeValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        scanTypeValue = it
-                    }) {
-                        Text(text = it)
-                    }
-                }
             }
         }
     }

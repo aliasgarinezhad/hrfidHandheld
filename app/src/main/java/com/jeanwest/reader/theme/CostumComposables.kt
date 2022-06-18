@@ -263,7 +263,7 @@ fun FilterDropDownList(
 }
 
 @Composable
-fun ProductCodeTextField(
+fun CustomTextField(
     modifier: Modifier, onSearch : () -> Unit, hint : String, onValueChange : (it : String) -> Unit, value : String
 ) {
 
@@ -283,7 +283,7 @@ fun ProductCodeTextField(
             onValueChange(it)
         },
         modifier = modifier
-            .testTag("SearchProductCodeTextField")
+            .testTag("CustomTextField")
             .background(
                 color = MaterialTheme.colors.secondary,
                 shape = MaterialTheme.shapes.small

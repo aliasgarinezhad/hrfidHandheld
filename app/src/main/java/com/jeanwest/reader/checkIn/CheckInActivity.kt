@@ -7,9 +7,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -35,16 +33,17 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -107,6 +106,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
         loadMemory()
         syncInputItemsToServer()
+
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -866,7 +867,11 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .background(
                         MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
@@ -909,7 +914,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 LoadingCircularProgressIndicator(isScanning, isDataLoading)
             }
 
-            LazyColumn(modifier = Modifier.padding(top = 2.dp, bottom = 56.dp)) {
+            LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
                     Item(

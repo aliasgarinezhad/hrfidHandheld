@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.hardware.Barcode2D
+//import com.jeanwest.reader.testClasses.Barcode2D
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -10,21 +10,14 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -34,8 +27,9 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
 import com.jeanwest.reader.theme.*
@@ -67,6 +61,8 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
         open()
         loadMemory()
         filterUiList()
+
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     private fun loadMemory() {
@@ -156,8 +152,10 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
 
         uiList.clear()
         filteredUiList.clear()
-        colorFilterValues = mutableStateListOf("همه رنگ ها")
-        sizeFilterValues = mutableStateListOf("همه سایز ها")
+        colorFilterValues.clear()
+        colorFilterValues.add("همه رنگ ها")
+        sizeFilterValues.clear()
+        sizeFilterValues.add("همه سایز ها")
 
         val url1 =
             "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
@@ -400,7 +398,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                 Row(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProductCodeTextField(
+                    CustomTextField(
                         modifier = Modifier
                             .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
                             .weight(1F)

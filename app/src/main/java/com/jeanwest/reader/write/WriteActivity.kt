@@ -1,17 +1,20 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.hardware.Barcode2D
-//import com.rscja.deviceapi.RFIDWithUHFUART
+//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.os.Bundle
 import android.os.IBinder
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -20,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -33,16 +37,17 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.checkOut.CheckOutActivity
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -71,7 +76,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var result by mutableStateOf("")
     private var openClearDialog by mutableStateOf(false)
     private var openRewriteDialog by mutableStateOf(false)
-    private var openHelpDialog by mutableStateOf(true)
+    private var openHelpDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(Color.White)
@@ -107,6 +112,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         override fun onServiceDisconnected(name: ComponentName?) {
             iotHubConnected = false
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onResume() {
@@ -761,7 +771,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 16.dp)
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .background(
                         MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small
@@ -804,7 +818,11 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .background(
                         color = resultColor,
                         shape = MaterialTheme.shapes.small
@@ -817,7 +835,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     textAlign = TextAlign.Right,
                     modifier = Modifier
                         .padding(horizontal = 8.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.body2
+                    style = MaterialTheme.typography.h5
                 )
             }
         }

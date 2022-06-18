@@ -1,6 +1,6 @@
 package com.jeanwest.reader.search
 
-import com.jeanwest.reader.hardware.Barcode2D
+import com.jeanwest.reader.testClasses.Barcode2D
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -9,33 +9,26 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.hardware.Barcode2D
+//import com.jeanwest.reader.testClasses.Barcode2D
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.manualRefill.Product
 import com.jeanwest.reader.theme.*
@@ -64,6 +57,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
         loadMemory()
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onResume() {
@@ -179,8 +173,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         uiList.clear()
         filteredUiList.clear()
-        colorFilterValues = mutableStateListOf("همه رنگ ها")
-        sizeFilterValues = mutableStateListOf("همه سایز ها")
+        colorFilterValues.clear()
+        colorFilterValues.add("همه رنگ ها")
+        sizeFilterValues.clear()
+        sizeFilterValues.add("همه سایز ها")
 
         val url1 =
             "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
@@ -356,10 +352,9 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth(),
             ) {
                 Column {
-                    ProductCodeTextField(modifier = Modifier
+                    CustomTextField(modifier = Modifier
                         .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
-                        .fillMaxWidth()
-                        .testTag("SearchProductCodeTextField"),
+                        .fillMaxWidth(),
                         hint = "کد محصول",
                         onSearch = { getSimilarProducts() },
                         onValueChange = { productCode = it },
@@ -436,84 +431,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     text2 = "سایز: " + filteredUiList[i].size, clickable = true) {
                         openSearchActivity(filteredUiList[i])
                     }
-                }
-            }
-        }
-    }
-
-    @ExperimentalFoundationApi
-    @Composable
-    fun LazyColumnItem(i: Int) {
-
-        Row(
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = MaterialTheme.colors.onPrimary,
-                    shape = MaterialTheme.shapes.small
-                )
-                .fillMaxWidth()
-                .height(80.dp)
-                .clickable(
-                    onClick = {
-                        openSearchActivity(filteredUiList[i])
-                    },
-                )
-                .testTag("SearchItems"),
-        ) {
-
-            Image(
-                painter = rememberImagePainter(
-                    filteredUiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(start = 8.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .weight(1.5F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = filteredUiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = filteredUiList[i].KBarCode,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    Text(
-                        text = "رنگ: " + filteredUiList[i].color,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                    Text(
-                        text = "سایز: " + filteredUiList[i].size,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
                 }
             }
         }

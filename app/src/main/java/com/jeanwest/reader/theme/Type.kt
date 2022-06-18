@@ -56,4 +56,9 @@ val Typography = Typography(
         fontSize = 14.sp,
         color = Color(0xFF707070),
     ),
+    h5 = TextStyle(
+        fontFamily = FontFamily(Font(R.font.sans_regular)),
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
+    ),
 )

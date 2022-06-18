@@ -1,23 +1,21 @@
 package com.jeanwest.reader.checkIn
 
 import android.content.Intent
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -26,11 +24,15 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.CustomTextField
+import com.jeanwest.reader.theme.borderColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,11 +40,15 @@ import org.json.JSONArray
 
 class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
-    private var warehouseSection by mutableStateOf("انبار")
+    private var warehouseNumber by mutableStateOf("")
     private var barcodeTable = mutableListOf<String>()
     private var state = SnackbarHostState()
-    private var uiList by mutableStateOf(mutableListOf<CheckInProperties>())
-    private var uiListTemp by mutableStateOf(mutableListOf<CheckInProperties>())
+    private var uiList = mutableStateListOf<CheckInProperties>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+    }
 
     override fun onResume() {
         super.onResume()
@@ -58,12 +64,19 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
     private fun loadMemory() {
 
+        val type = object : TypeToken<SnapshotStateList<CheckInProperties>>() {}.type
+
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         barcodeTable = Gson().fromJson(
-            memory.getString("inventoryInputBarcodeTable", ""),
+            memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
             barcodeTable.javaClass
         ) ?: mutableListOf()
+
+        uiList = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
+        ) ?: mutableStateListOf()
     }
 
     private fun saveMemory() {
@@ -81,8 +94,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
     }
 
     private fun clear() {
-        uiList = mutableListOf()
-        uiListTemp = mutableListOf()
+        uiList.clear()
         barcodeTable = mutableListOf()
         saveMemory()
     }
@@ -93,7 +105,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    "لطفا شماره انبار را وارد کنید",
+                    "لطفا شماره حواله را وارد کنید",
                     null,
                     SnackbarDuration.Long
                 )
@@ -102,12 +114,12 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
         }
 
         val number = code.toLong()
-        uiListTemp.forEach {
+        uiList.forEach {
             if (it.number == number) {
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        "انبار تکراری است",
+                        "حواله تکراری است",
                         null,
                         SnackbarDuration.Long
                     )
@@ -146,11 +158,7 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 destination = destination,
                 numberOfItems = numberOfItems
             )
-
-            uiListTemp.add(checkInProperties)
-            uiList = mutableListOf()
-            uiList = uiListTemp
-
+            uiList.add(checkInProperties)
             saveMemory()
 
         }, {
@@ -241,21 +249,18 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
 
         Column(modifier = Modifier.fillMaxSize()) {
 
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.small
-                    )
-            ) {
-                CheckInNumberTextField(
-                    modifier = Modifier
-                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                        .fillMaxWidth()
+            CustomTextField(modifier = Modifier
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
+                .border(
+                    BorderStroke(1.dp, borderColor),
+                    shape = MaterialTheme.shapes.small
                 )
-            }
+                .fillMaxWidth(),
+                hint = "شماره حواله را وارد کنید",
+                onSearch = { getWarehouseDetails(warehouseNumber) },
+                onValueChange = { warehouseNumber = it },
+                value = warehouseNumber
+            )
 
             LazyColumn(modifier = Modifier.padding(top = 2.dp)) {
 
@@ -263,6 +268,10 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                     Row(
                         modifier = Modifier
                             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                            .border(
+                                BorderStroke(1.dp, borderColor),
+                                shape = MaterialTheme.shapes.small
+                            )
                             .background(
                                 color = MaterialTheme.colors.onPrimary,
                                 shape = MaterialTheme.shapes.small
@@ -334,29 +343,6 @@ class GetBarcodesByCheckInNumberActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    @Composable
-    fun CheckInNumberTextField(modifier: Modifier) {
-
-        val focusManager = LocalFocusManager.current
-
-        OutlinedTextField(
-            value = warehouseSection,
-            onValueChange = {
-                warehouseSection = it
-            },
-            modifier = modifier.testTag("GetBarcodesByCheckInNumberTextField"),
-            label = { Text(text = "شماره حواله را وارد کنید") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(onDone = {
-                focusManager.clearFocus()
-                getWarehouseDetails(warehouseSection)
-            }),
-        )
     }
 
     @Composable

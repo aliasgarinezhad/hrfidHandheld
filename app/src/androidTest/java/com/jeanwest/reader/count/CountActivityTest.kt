@@ -7,7 +7,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -51,7 +51,7 @@ class CountActivityTest {
         countActivity.onNodeWithText(filters[0]).performClick()
         countActivity.waitForIdle()
         countActivity.onNodeWithText("91273501-8420-S-1").assertExists()
-        countActivity.onAllNodesWithTag("CountActivityLazyColumnItem").assertCountEquals(1)
+        countActivity.onAllNodesWithTag("items").assertCountEquals(1)
 
 
         countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
@@ -60,7 +60,7 @@ class CountActivityTest {
         countActivity.waitForIdle()
         countActivity.onNodeWithText("11852002J-2430-F").assertExists()
         countActivity.onNodeWithText("64822109J-8010-F").assertExists()
-        countActivity.onAllNodesWithTag("CountActivityLazyColumnItem").assertCountEquals(2)
+        countActivity.onAllNodesWithTag("items").assertCountEquals(2)
 
         countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
         countActivity.waitForIdle()
@@ -69,7 +69,7 @@ class CountActivityTest {
         countActivity.onNodeWithText("11852002J-2430-F").assertDoesNotExist()
         countActivity.onNodeWithText("64822109J-8010-F").assertDoesNotExist()
         countActivity.onNodeWithText("91273501-8420-S-1").assertDoesNotExist()
-        countActivity.onAllNodesWithTag("CountActivityLazyColumnItem")[0].assertExists()
+        countActivity.onAllNodesWithTag("items")[0].assertExists()
     }
 
     private fun importTestFile() {

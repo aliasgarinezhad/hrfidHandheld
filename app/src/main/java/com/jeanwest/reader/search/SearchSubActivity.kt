@@ -6,9 +6,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -25,14 +23,16 @@ import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.R
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.manualRefill.Product
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.LoadingCircularProgressIndicator
 import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.theme.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -101,6 +101,7 @@ class SearchSubActivity : ComponentActivity() {
         }
         setRFEpcMode(rf, state)
 
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -309,27 +310,6 @@ class SearchSubActivity : ComponentActivity() {
         }
     }
 
-    /*private fun convertPersianNumbersToEnglish(input: String): String {
-
-        var inputCopy = input
-        inputCopy = inputCopy.replace("۰", "0")
-        inputCopy = inputCopy.replace("۱", "1")
-        inputCopy = inputCopy.replace("۲", "2")
-        inputCopy = inputCopy.replace("۳", "3")
-        inputCopy = inputCopy.replace("۴", "4")
-        inputCopy = inputCopy.replace("۵", "5")
-        inputCopy = inputCopy.replace("۶", "6")
-        inputCopy = inputCopy.replace("۷", "7")
-        inputCopy = inputCopy.replace("۸", "8")
-        inputCopy = inputCopy.replace("۹", "9")
-        inputCopy = inputCopy.replace("٫", ".")
-        inputCopy = inputCopy.replace("-", "-")
-        Log.e(
-            "convert", inputCopy
-        )
-        return inputCopy
-    }*/
-
     private fun back() {
         stopFinding()
         finish()
@@ -391,7 +371,11 @@ class SearchSubActivity : ComponentActivity() {
 
             Column(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp, top = 5.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .fillMaxWidth()
                     .background(
                         color = MaterialTheme.colors.onPrimary,
@@ -423,8 +407,12 @@ class SearchSubActivity : ComponentActivity() {
 
             Column(
                 Modifier
-                    .padding(start = 5.dp, end = 5.dp, top = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                     .fillMaxWidth()
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .background(
                         color = MaterialTheme.colors.onPrimary,
                         shape = MaterialTheme.shapes.small

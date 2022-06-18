@@ -21,33 +21,27 @@ class SearchActivityTest {
         val productCode = "11531052"
         val color = "همه رنگ ها"
         val size = "همه سایز ها"
-        val warehouse = "انبار"
 
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextClearance()
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextInput(productCode)
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performImeAction()
+        searchActivity.onNodeWithTag("CustomTextField").performTextClearance()
+        searchActivity.onNodeWithTag("CustomTextField").performTextInput(productCode)
+        searchActivity.onNodeWithTag("CustomTextField").performImeAction()
         searchActivity.waitForIdle()
 
         Thread.sleep(2000)
         searchActivity.waitForIdle()
         Thread.sleep(2000)
 
-        searchActivity.onNodeWithTag("SearchColorFilterDropDownList").performClick()
+        searchActivity.onNodeWithText("همه رنگ ها").performClick()
         searchActivity.waitForIdle()
         searchActivity.onAllNodesWithText(color)[1].performClick()
         searchActivity.waitForIdle()
 
-        searchActivity.onNodeWithTag("SearchSizeFilterDropDownList").performClick()
+        searchActivity.onNodeWithText("همه سایز ها").performClick()
         searchActivity.waitForIdle()
         searchActivity.onAllNodesWithText(size)[1].performClick()
         searchActivity.waitForIdle()
 
-        searchActivity.onNodeWithTag("SearchWarehouseFilterDropDownList").performClick()
-        searchActivity.waitForIdle()
-        searchActivity.onNodeWithText(warehouse).performClick()
-        searchActivity.waitForIdle()
-
-        searchActivity.onAllNodesWithTag("SearchItems")[0].assertExists()
+        searchActivity.onAllNodesWithTag("items")[0].assertExists()
         searchActivity.waitForIdle()
     }
 
@@ -55,9 +49,9 @@ class SearchActivityTest {
     fun searchActivityTest2() {
         val productCode = "11531052J-2010-L"
 
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextClearance()
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performTextInput(productCode)
-        searchActivity.onNodeWithTag("SearchProductCodeTextField").performImeAction()
+        searchActivity.onNodeWithTag("CustomTextField").performTextClearance()
+        searchActivity.onNodeWithTag("CustomTextField").performTextInput(productCode)
+        searchActivity.onNodeWithTag("CustomTextField").performImeAction()
         searchActivity.waitForIdle()
 
         Thread.sleep(2000)
@@ -65,7 +59,7 @@ class SearchActivityTest {
         Thread.sleep(2000)
 
         searchActivity.onNodeWithText("11531052").assertExists()
-        searchActivity.onAllNodesWithTag("SearchItems")[0].assertExists()
+        searchActivity.onAllNodesWithTag("items")[0].assertExists()
         searchActivity.waitForIdle()
     }
 
@@ -82,7 +76,7 @@ class SearchActivityTest {
         Thread.sleep(2000)
 
         searchActivity.onNodeWithText("64822109").assertExists()
-        searchActivity.onAllNodesWithTag("SearchItems")[0].assertExists()
+        searchActivity.onAllNodesWithTag("items")[0].assertExists()
         searchActivity.waitForIdle()
     }
 }

@@ -33,6 +33,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
@@ -63,20 +64,6 @@ class SendToStoreActivity : ComponentActivity() {
     private var state = SnackbarHostState()
     private val apiTimeout = 120000
     private var isSubmitting by mutableStateOf(false)
-    private lateinit var iotHubService: IotHub
-    private var iotHubConnected = false
-    private val serviceConnection = object : ServiceConnection {
-
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as IotHub.LocalBinder
-            iotHubService = binder.service
-            iotHubConnected = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            iotHubConnected = false
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,9 +82,7 @@ class SendToStoreActivity : ComponentActivity() {
 
         val util = JalaliDate()
         fileName += util.currentShamsidate
-
-        val intent = Intent(this, IotHub::class.java)
-        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
     private fun exportFile() {
@@ -175,7 +160,6 @@ class SendToStoreActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
-            sendLog(uiList)
             isSubmitting = false
             RefillActivity.scannedBarcodeTable.clear()
             RefillActivity.scannedEpcTable.clear()
@@ -229,7 +213,7 @@ class SendToStoreActivity : ComponentActivity() {
                     }
                 }
 
-                body.put("desc", "برای تست")
+                body.put("desc", "خطی هندهلد RFID")
                 body.put("createDate", sdf.format(Date()))
                 body.put("products", products)
 
@@ -247,33 +231,6 @@ class SendToStoreActivity : ComponentActivity() {
 
         val queue = Volley.newRequestQueue(this)
         queue.add(request)
-    }
-
-    fun sendLog(products: List<Product>) {
-
-        if (!iotHubConnected) {
-            return
-        }
-
-        val workbook = XSSFWorkbook()
-        val sheet: Sheet = workbook.createSheet("خطی")
-        val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
-        headerRow.createCell(0).setCellValue("بارکد")
-        headerRow.createCell(1).setCellValue("تعداد")
-        @SuppressLint("SimpleDateFormat") val sdf =
-            SimpleDateFormat("yyyy.MM.dd'T'HH:mm:ssZ", Locale.ENGLISH)
-        val dir = File(getExternalFilesDir(null), "/")
-        val outFile = File(dir, "refillLog" + sdf.format(Date()) + ".xlsx")
-        for ((_, KBarCode, _, _, _, _, _, _, _, _, _, _, _, scannedBarcodeNumber, scannedEPCNumber) in products) {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(KBarCode)
-            row.createCell(1).setCellValue((scannedEPCNumber + scannedBarcodeNumber).toDouble())
-            val outputStream = FileOutputStream(outFile.absolutePath)
-            workbook.write(outputStream)
-            outputStream.flush()
-            outputStream.close()
-        }
-        iotHubService.sendFile(outFile)
     }
 
     @Composable

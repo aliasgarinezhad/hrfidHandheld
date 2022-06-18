@@ -1,7 +1,6 @@
 package com.jeanwest.reader.theme
 
 import androidx.compose.ui.graphics.Color
-import okhttp3.internal.wait
 
 val Jeanswest = Color(0xFF003974)
 val JeanswestStatusBar = Color(0xFF003974)

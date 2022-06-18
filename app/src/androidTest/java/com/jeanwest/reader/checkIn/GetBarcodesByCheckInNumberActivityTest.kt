@@ -24,11 +24,11 @@ class GetBarcodesByCheckInNumberActivityTest {
 
         getBarcodesByCheckInNumberActivityTest.waitForIdle()
 
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performTextClearance()
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performTextInput(productCode0)
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performImeAction()
         getBarcodesByCheckInNumberActivityTest.waitForIdle()
 
@@ -36,11 +36,11 @@ class GetBarcodesByCheckInNumberActivityTest {
         getBarcodesByCheckInNumberActivityTest.waitForIdle()
         Thread.sleep(2000)
 
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performTextClearance()
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performTextInput(productCode1)
-        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("GetBarcodesByCheckInNumberTextField")
+        getBarcodesByCheckInNumberActivityTest.onNodeWithTag("CustomTextField")
             .performImeAction()
         getBarcodesByCheckInNumberActivityTest.waitForIdle()
 

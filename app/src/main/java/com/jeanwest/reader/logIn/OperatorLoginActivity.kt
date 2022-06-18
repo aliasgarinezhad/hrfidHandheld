@@ -33,7 +33,6 @@ class OperatorLoginActivity : ComponentActivity() {
     private var advanceSettingToken = ""
     private var state = SnackbarHostState()
 
-
     override fun onResume() {
         super.onResume()
         setContent { Page() }

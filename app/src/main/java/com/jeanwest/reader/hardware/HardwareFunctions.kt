@@ -1,6 +1,6 @@
 package com.jeanwest.reader.hardware
 
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.Context
 import android.os.Build
 import androidx.compose.material.SnackbarDuration

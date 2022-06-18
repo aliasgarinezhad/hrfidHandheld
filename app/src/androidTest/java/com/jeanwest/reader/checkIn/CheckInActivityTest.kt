@@ -5,7 +5,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.json.JSONArray
 import org.junit.Rule
@@ -36,21 +36,21 @@ class CheckInActivityTest {
         checkInActivity.onNodeWithText("کسری: $fileNumber").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
         checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
-        checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem")[0].assertExists()
+        checkInActivity.onAllNodesWithTag("items")[0].assertExists()
 
         epcScan()
 
         checkInActivity.onNodeWithText("کسری: $shortagesNumber").assertExists()
         checkInActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
         checkInActivity.onNodeWithText("اسکن شده: $scannedNumber").assertExists()
-        checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem")[0].assertExists()
+        checkInActivity.onAllNodesWithTag("items")[0].assertExists()
 
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText(filters[0]).performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("91273501-8420-S-1").assertExists()
-        checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem").assertCountEquals(1)
+        checkInActivity.onAllNodesWithTag("items").assertCountEquals(1)
 
 
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
@@ -59,7 +59,7 @@ class CheckInActivityTest {
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("11852002J-2430-F").assertExists()
         checkInActivity.onNodeWithText("64822109J-8010-F").assertExists()
-        checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem").assertCountEquals(2)
+        checkInActivity.onAllNodesWithTag("items").assertCountEquals(2)
 
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
         checkInActivity.waitForIdle()
@@ -68,7 +68,7 @@ class CheckInActivityTest {
         checkInActivity.onNodeWithText("11852002J-2430-F").assertDoesNotExist()
         checkInActivity.onNodeWithText("64822109J-8010-F").assertDoesNotExist()
         checkInActivity.onNodeWithText("91273501-8420-S-1").assertDoesNotExist()
-        checkInActivity.onAllNodesWithTag("CheckInActivityLazyColumnItem")[0].assertExists()
+        checkInActivity.onAllNodesWithTag("items")[0].assertExists()
     }
 
     private fun importTestFile() {

@@ -8,8 +8,9 @@ import androidx.test.runner.intent.IntentCallback
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
-import com.rscja.deviceapi.RFIDWithUHFUART.uhfTagInfo
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART.uhfTagInfo
+import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import kotlinx.coroutines.processNextEventInCurrentThread
 import org.junit.Rule
@@ -37,9 +38,9 @@ class SearchSubActivityTest {
         searchSubActivity.onNodeWithText(product.KBarCode).assertExists()
         searchSubActivity.onNodeWithText("قیمت: " + product.originalPrice).assertExists()
         searchSubActivity.onNodeWithText("فروش: " + product.salePrice).assertExists()
-        searchSubActivity.onNodeWithText("موجودی فروشگاه: " + product.shoppingNumber.toString())
+        searchSubActivity.onNodeWithText("موجودی فروشگاه: " + product.storeNumber.toString())
             .assertExists()
-        searchSubActivity.onNodeWithText("موجودی انبار: " + product.warehouseNumber.toString())
+        searchSubActivity.onNodeWithText("موجودی انبار: " + product.wareHouseNumber.toString())
             .assertExists()
         searchSubActivity.onNodeWithText("پیدا شده: 0").assertExists()
 
@@ -119,12 +120,12 @@ class SearchSubActivityTest {
 
     }
 
-    private val product = SearchResultProducts(
+    private val product = Product(
         name = "ساپورت",
         KBarCode = "64822109J-8010-F",
         imageUrl = "https://www.banimode.com/jeanswest/image.php?token=tmv43w4as&code=64822109J-8010-F",
-        shoppingNumber = 1,
-        warehouseNumber = 0,
+        storeNumber = 1,
+        wareHouseNumber = 0,
         productCode = "64822109",
         size = "F",
         color = "8010",
