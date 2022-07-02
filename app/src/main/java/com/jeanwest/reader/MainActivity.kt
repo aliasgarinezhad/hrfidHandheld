@@ -26,11 +26,12 @@ import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity
+import com.jeanwest.reader.checkIn.GetCheckInPropertiesActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
-import com.jeanwest.reader.hardware.rfInit
 import com.jeanwest.reader.inventory.InventoryActivity
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.rfInit
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
@@ -41,7 +42,7 @@ import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
 import com.jeanwest.reader.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -276,7 +277,7 @@ class MainActivity : ComponentActivity() {
                                     startActivity(intent)
                                 }
                                 OpenActivityButton("تروفالس", R.drawable.inventory) {
-                                    val intent = Intent(this@MainActivity, GetBarcodesByCheckInNumberActivity::class.java)
+                                    val intent = Intent(this@MainActivity, GetCheckInPropertiesActivity::class.java)
                                     startActivity(intent)
                                 }
                                 OpenActivityButton("جستجو", R.drawable.search) {

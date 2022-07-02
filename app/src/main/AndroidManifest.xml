@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.jeanwest.reader">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -37,6 +36,7 @@
         </activity>
 
         <activity android:name="com.jeanwest.reader.inventory.InventoryActivity" />
+        <activity android:name="com.jeanwest.reader.inventory.SearchSpecialProductActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.SendToStoreActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.AddProductToRefillListActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
@@ -47,7 +47,7 @@
         <activity android:name="com.jeanwest.reader.refill.RefillActivity" />
         <activity android:name="com.jeanwest.reader.logIn.OperatorLoginActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.CheckInActivity" />
-        <activity android:name="com.jeanwest.reader.checkIn.GetBarcodesByCheckInNumberActivity" />
+        <activity android:name="com.jeanwest.reader.checkIn.GetCheckInPropertiesActivity" />
         <activity android:name="com.jeanwest.reader.logIn.UserLoginActivity" />
         <activity android:name="com.jeanwest.reader.search.SearchSubActivity" />
         <activity android:name="com.jeanwest.reader.search.SearchActivity" />

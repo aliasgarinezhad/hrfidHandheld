@@ -8,7 +8,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.preference.PreferenceManager
 import com.azure.storage.blob.BlobClientBuilder
-import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.updateActivity.UpdateActivity
 import com.jeanwest.reader.write.WriteRecord
 import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadCompletionNotification

@@ -2,11 +2,10 @@ package com.jeanwest.reader.checkIn
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -23,17 +22,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.Item
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -58,6 +57,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
     private var numberOfScanned by mutableStateOf(0)
     private var checkInProperties = mutableListOf<CheckInProperties>()
     private var state = SnackbarHostState()
+    private lateinit var queue : RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +65,8 @@ class ConfirmCheckInsActivity : ComponentActivity() {
         setContent {
             Page()
         }
+
+        queue = Volley.newRequestQueue(this)
 
         val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
@@ -248,9 +250,19 @@ class ConfirmCheckInsActivity : ComponentActivity() {
                 return body.toString().toByteArray()
             }
         }
-
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == 4) {
+            back()
+        }
+        return true
+    }
+
+    private fun back() {
+        queue.stop()
+        finish()
     }
 
     @ExperimentalCoilApi

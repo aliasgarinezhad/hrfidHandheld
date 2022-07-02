@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.theme.MyApplicationTheme
 import java.io.File
 

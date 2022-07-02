@@ -1,18 +1,14 @@
 package com.jeanwest.reader.search
 
-import android.content.Intent
 import android.view.KeyEvent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.test.runner.intent.IntentCallback
 import coil.annotation.ExperimentalCoilApi
-import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.manualRefill.Product
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART.uhfTagInfo
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.Product
+import com.rscja.deviceapi.RFIDWithUHFUART.uhfTagInfo
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
-import kotlinx.coroutines.processNextEventInCurrentThread
 import org.junit.Rule
 import org.junit.Test
 

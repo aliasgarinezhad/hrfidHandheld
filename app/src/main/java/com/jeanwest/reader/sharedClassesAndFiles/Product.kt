@@ -1,9 +1,9 @@
-package com.jeanwest.reader.manualRefill
+package com.jeanwest.reader.sharedClassesAndFiles
 
 data class Product(
-    var name: String,
     var KBarCode: String,
-    var imageUrl: String,
+    var name: String = "",
+    var imageUrl: String = "",
     var kName: String = "",
     var primaryKey: Long = 0,
     var productCode: String = "",
@@ -23,7 +23,8 @@ data class Product(
     var result: String = "",
     var scan: String = "",
     var fileNumber: Int = 0,
-    var category: String = ""
+    var category: String = "",
+    var checkInNumber: Long = 0L
 ) {
     var scannedNumber: Int
         get() = scannedEPCNumber + scannedBarcodeNumber

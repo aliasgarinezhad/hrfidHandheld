@@ -1,16 +1,11 @@
 package com.jeanwest.reader.refill
 
-import android.annotation.SuppressLint
-import android.content.ComponentName
 import android.content.Intent
-import android.content.ServiceConnection
 import android.os.Bundle
-import android.os.IBinder
 import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -19,26 +14,24 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.iotHub.IotHub
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.Item
 import com.jeanwest.reader.theme.JeanswestBottomBar
@@ -46,7 +39,6 @@ import com.jeanwest.reader.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
 import org.json.JSONObject
@@ -64,6 +56,7 @@ class SendToStoreActivity : ComponentActivity() {
     private var state = SnackbarHostState()
     private val apiTimeout = 120000
     private var isSubmitting by mutableStateOf(false)
+    private lateinit var queue : RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +64,8 @@ class SendToStoreActivity : ComponentActivity() {
         setContent {
             Page()
         }
+
+        queue = Volley.newRequestQueue(this)
 
         val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
@@ -229,8 +224,19 @@ class SendToStoreActivity : ComponentActivity() {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == 4) {
+            back()
+        }
+        return true
+    }
+
+    private fun back() {
+        queue.stop()
+        finish()
     }
 
     @Composable
@@ -294,7 +300,7 @@ class SendToStoreActivity : ComponentActivity() {
 
             navigationIcon = {
                 IconButton(onClick = {
-                    finish()
+                    back()
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
@@ -340,7 +346,8 @@ class SendToStoreActivity : ComponentActivity() {
                     Item(
                         i, uiList,
                         text1 = "اسکن: " + uiList[i].scannedNumber,
-                        text2 = "انبار: " + uiList[i].wareHouseNumber.toString()
+                        text2 = "انبار: " + uiList[i].wareHouseNumber.toString(),
+                        enableWarehouseNumberCheck = true,
                     )
                 }
             }

@@ -32,16 +32,17 @@ import androidx.preference.PreferenceManager
 import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.hardware.*
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -99,6 +100,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
 
     private val apiTimeout = 30000
+    private lateinit var queue : RequestQueue
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,6 +110,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         setContent {
             Page()
         }
+        queue = Volley.newRequestQueue(this)
         loadMemory()
 
         try {
@@ -668,7 +671,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -824,7 +826,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -856,10 +857,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         scannedBarcodeMapWithProperties.forEach { it1 ->
 
             if (it1.value.KBarCode in scannedProducts.keys) {
-                scannedProducts[it1.value.KBarCode]!!.scannedNumber += scannedBarcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
-                }
-            } else {
                 scannedProducts[it1.value.KBarCode] = ScannedProduct(
                     name = it1.value.name,
                     KBarCode = it1.value.KBarCode,
@@ -965,7 +962,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@CountActivity)
         queue.add(request)
     }
 
@@ -1213,6 +1209,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
         stopRFScan()
         stopBarcodeScan()
+        queue.stop()
+        beep.release()
         finish()
     }
 

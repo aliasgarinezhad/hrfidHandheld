@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +28,7 @@ class WriteActivityTest {
         val company = 101
         val partition = 0
         val filter = 0
-        val serialNumberRange = 1000000L..1000050L
+        val serialNumberRange = writeActivity.activity.counterValue..writeActivity.activity.counterValue + 50
 
         val uhfTagInfo = UHFTAGInfo()
         uhfTagInfo.epc = "E28011702000015F195D0A17"

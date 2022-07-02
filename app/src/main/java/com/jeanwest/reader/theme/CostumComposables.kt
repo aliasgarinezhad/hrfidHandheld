@@ -22,9 +22,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 
 @Composable
 fun ErrorSnackBar(state: SnackbarHostState) {
@@ -67,12 +68,13 @@ fun Item(
     i: Int,
     uiList: MutableList<Product>,
     clickable: Boolean = false,
-    text1 : String,
-    text2 : String,
-    colorFull : Boolean = false,
+    text1: String,
+    text2: String,
+    colorFull: Boolean = false,
+    enableWarehouseNumberCheck: Boolean = false,
     onLongClick: () -> Unit = {},
     onClick: () -> Unit = {},
-    ) {
+) {
 
     val topPadding = if (i == 0) 16.dp else 12.dp
     val bottomPadding = if (i == uiList.size - 1) 12.dp else 0.dp
@@ -83,13 +85,22 @@ fun Item(
             .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding, top = topPadding)
             .shadow(elevation = 5.dp, shape = MaterialTheme.shapes.small)
             .background(
-                color = if(colorFull) JeanswestSelected else MaterialTheme.colors.onPrimary,
+                color = if (uiList[i].scannedNumber > uiList[i].wareHouseNumber && enableWarehouseNumberCheck) {
+                    errorColor
+                } else if (colorFull) {
+                    JeanswestSelected
+                } else {
+                    MaterialTheme.colors.onPrimary
+                },
                 shape = MaterialTheme.shapes.small
             )
             .fillMaxWidth()
             .height(100.dp)
             .testTag("items")
-            .combinedClickable(enabled = clickable, onLongClick = { onLongClick() }, onClick = { onClick() })
+            .combinedClickable(
+                enabled = clickable,
+                onLongClick = { onLongClick() },
+                onClick = { onClick() })
     ) {
 
         Box {
@@ -149,6 +160,7 @@ fun Item(
                     text = uiList[i].KBarCode,
                     style = MaterialTheme.typography.body2,
                     textAlign = TextAlign.Right,
+                    fontSize = 12.sp
                 )
                 Text(
                     text = uiList[i].name,
@@ -247,7 +259,8 @@ fun FilterDropDownList(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.wrapContentWidth()
+            modifier = Modifier
+                .wrapContentWidth()
                 .background(color = BottomBar, shape = Shapes.small)
         ) {
             values.forEach {
@@ -264,7 +277,11 @@ fun FilterDropDownList(
 
 @Composable
 fun CustomTextField(
-    modifier: Modifier, onSearch : () -> Unit, hint : String, onValueChange : (it : String) -> Unit, value : String
+    modifier: Modifier,
+    onSearch: () -> Unit,
+    hint: String,
+    onValueChange: (it: String) -> Unit,
+    value: String
 ) {
 
     val focusManager = LocalFocusManager.current
@@ -301,7 +318,7 @@ fun CustomTextField(
 }
 
 @Composable
-fun LoadingCircularProgressIndicator(isScanning : Boolean = false, isDataLoading : Boolean = false) {
+fun LoadingCircularProgressIndicator(isScanning: Boolean = false, isDataLoading: Boolean = false) {
 
     if (isScanning || isDataLoading) {
         Row(
@@ -318,8 +335,7 @@ fun LoadingCircularProgressIndicator(isScanning : Boolean = false, isDataLoading
                         .padding(start = 16.dp)
                         .align(Alignment.CenterVertically)
                 )
-            }
-            if (isDataLoading) {
+            } else if (isDataLoading) {
                 Text(
                     text = "در حال بارگذاری",
                     modifier = Modifier
@@ -332,7 +348,7 @@ fun LoadingCircularProgressIndicator(isScanning : Boolean = false, isDataLoading
 }
 
 @Composable
-fun PowerSlider(enable : Boolean, rfPower : Int, onClick: (it : Int) -> Unit) {
+fun PowerSlider(enable: Boolean, rfPower: Int, onClick: (it: Int) -> Unit) {
 
     var slideValue by rememberSaveable { mutableStateOf(rfPower.toFloat()) }
 

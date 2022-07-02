@@ -2,7 +2,7 @@ package com.jeanwest.reader.testClasses;
 
 import android.content.Context;
 
-import com.jeanwest.reader.hardware.IBarcodeResult;
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult;
 
 /**
  * Created by Administrator on 2018-6-28.

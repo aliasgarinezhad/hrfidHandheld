@@ -4,8 +4,10 @@ import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
+import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.Product
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.json.JSONArray
 import org.junit.Rule
@@ -72,9 +74,29 @@ class CheckInActivityTest {
     }
 
     private fun importTestFile() {
+
+        val productTable = mutableListOf<Product>()
+
+        barcodes.forEach {
+
+            var isInProductTableList = false
+            productTable.forEach { it1 ->
+                if (it == it1.KBarCode) {
+                    it1.fileNumber ++
+                    isInProductTableList = true
+                }
+            }
+            if(!isInProductTableList) {
+                productTable.add(Product(
+                    KBarCode = it,
+                    fileNumber = 1,
+                ))
+            }
+        }
+
         checkInActivity.activity.intent.putExtra(
             "CheckInFileBarcodeTable",
-            JSONArray(barcodes).toString()
+            Gson().toJson(productTable).toString()
         )
     }
 

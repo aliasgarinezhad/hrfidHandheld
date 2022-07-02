@@ -13,7 +13,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 32
         versionCode 1
-        versionName '2.9.2'
+        versionName '2.9.5'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
             useSupportLibrary true
@@ -50,6 +50,7 @@ android {
             excludes += ['/META-INF/{AL2.0,LGPL2.1}', 'META-INF/DEPENDENCIES', 'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/MSFTSIG.SF', 'META-INF/MSFTSIG.RSA', 'META-INF/DEPENDENCIES', 'META-INF/NOTICE.md', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE.txt', 'thirdpartynotice.txt', 'META-INF/INDEX.LIST', 'META-INF/LICENSE.md', 'META-INF/io.netty.versions.properties']
         }
     }
+    namespace 'com.jeanwest.reader'
 }
 
 dependencies {

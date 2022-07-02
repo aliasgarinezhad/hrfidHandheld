@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -29,21 +28,19 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.hardware.setRFEpcMode
-import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.theme.*
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -69,6 +66,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
+    private lateinit var queue : RequestQueue
 
     companion object {
         var scannedEpcTable = mutableListOf<String>()
@@ -80,6 +78,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
+        queue = Volley.newRequestQueue(this)
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -92,12 +91,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
 
-        /*userDefinedProducts.clear()
-        scannedProducts.clear()
-        scannedEpcTable.clear()
-        scannedBarcodeTable.clear()
-        saveToMemory()
-*/
         loadMemory()
 
         if (numberOfScanned != 0) {
@@ -221,7 +214,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -356,7 +348,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -602,7 +593,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this@ManualRefillActivity)
         queue.add(request)
     }
 
@@ -707,6 +697,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
         stopRFScan()
         stopBarcodeScan()
+        beep.release()
+        queue.stop()
         finish()
     }
 
@@ -862,8 +854,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 i, uiList, true,
                 text1 = "اسکن: " + uiList[i].scannedNumber,
                 text2 = "انبار: " + uiList[i].wareHouseNumber,
-                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNum
-            ) {
+                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNum,
+                enableWarehouseNumberCheck = true,
+                ) {
                 openSearchActivity(uiList[i])
             }
 

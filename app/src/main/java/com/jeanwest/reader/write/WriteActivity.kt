@@ -1,7 +1,5 @@
 package com.jeanwest.reader.write
 
-//import com.jeanwest.reader.testClasses.Barcode2D
-//import com.jeanwest.reader.testClasses.RFIDWithUHFUART
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -23,7 +21,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -34,20 +31,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.checkOut.CheckOutActivity
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.hardware.setRFEpcAndTidMode
-import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcAndTidMode
+import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.theme.*
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -88,13 +86,14 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
 
     private var write = false
+    private lateinit var queue : RequestQueue
 
     private var writeTagNoQRCodeRfPower = 5
 
     private var counterMaxValue = 0L
     private var counterMinValue = 0L
     private var tagPassword = "00000000"
-    private var counterValue = 0L
+    var counterValue = 0L
     private var filterNumber = 0 // 3bit
     private var partitionNumber = 0 // 3bit
     private var headerNumber = 48 // 8bit
@@ -116,6 +115,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        queue = Volley.newRequestQueue(this)
         Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
 
@@ -197,6 +197,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             barcodeIsScanning = false
             rf.stopInventory()
         }
+        queue.stop()
+        beep.release()
         finishAndRemoveTask()
     }
 
@@ -535,7 +537,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 return json.toString().toByteArray()
             }
         }
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -630,7 +631,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 

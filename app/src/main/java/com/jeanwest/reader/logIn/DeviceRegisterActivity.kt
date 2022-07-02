@@ -54,7 +54,7 @@ class DeviceRegisterActivity : ComponentActivity() {
     }
 
     private fun registerDeviceToIotHub() {
-        val url = "https://rfid-api.avakatan.ir/devices/handheld"
+        val url = "https://rfid-api.avakatan.ir/devices/vs"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
             deviceId = it.getString("deviceId")
             iotToken = it.getJSONObject("authentication").getJSONObject("symmetricKey")

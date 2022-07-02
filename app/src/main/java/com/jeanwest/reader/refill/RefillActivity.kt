@@ -8,13 +8,13 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -27,21 +27,22 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.hardware.setRFEpcMode
-import com.jeanwest.reader.hardware.setRFPower
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcMode
+import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -64,10 +65,10 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private var uiList = mutableStateListOf<Product>()
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private val scanTypeValues = mutableListOf("RFID", "بارکد")
     private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
     private var isDataLoading by mutableStateOf(false)
+    private lateinit var queue : RequestQueue
 
     companion object {
         var refillProducts = mutableListOf<Product>()
@@ -79,6 +80,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
+        queue = Volley.newRequestQueue(this)
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -91,7 +93,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
         loadMemory()
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onResume() {
@@ -254,7 +261,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -626,6 +632,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
         stopRFScan()
         stopBarcodeScan()
+        queue.stop()
+        beep.release()
         finish()
     }
 
@@ -787,32 +795,35 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 text1 = "اسکن: " + uiList[i].scannedNumber,
                 text2 = "انبار: " + uiList[i].wareHouseNumber.toString(),
                 colorFull = uiList[i].scannedNumber > 0,
+                enableWarehouseNumberCheck = true,
             ) {
                 openSearchActivity(uiList[i])
             }
 
-            Box(
-                modifier = Modifier
-                    .padding(top = topPaddingClearButton, end = 8.dp)
-                    .background(
-                        shape = RoundedCornerShape(36.dp),
-                        color = deleteCircleColor
-                    )
-                    .size(30.dp)
-                    .align(Alignment.TopEnd)
-                    .testTag("clear")
-                    .clickable {
-                        clear(uiList[i])
-                    }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_clear_24),
-                    contentDescription = "",
-                    tint = deleteColor,
+            if(uiList[i].scannedNumber > 0) {
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(20.dp)
-                )
+                        .padding(top = topPaddingClearButton, end = 8.dp)
+                        .background(
+                            shape = RoundedCornerShape(36.dp),
+                            color = deleteCircleColor
+                        )
+                        .size(30.dp)
+                        .align(Alignment.TopEnd)
+                        .testTag("clear")
+                        .clickable {
+                            clear(uiList[i])
+                        }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_clear_24),
+                        contentDescription = "",
+                        tint = deleteColor,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(20.dp)
+                    )
+                }
             }
         }
     }

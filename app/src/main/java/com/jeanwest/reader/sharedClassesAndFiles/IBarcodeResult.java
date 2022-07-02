@@ -1,4 +1,4 @@
-package com.jeanwest.reader.hardware;
+package com.jeanwest.reader.sharedClassesAndFiles;
 
 /**
  * Created by Administrator on 2018-6-28.

@@ -5,9 +5,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.manualRefill.ManualRefillActivity
-import com.jeanwest.reader.manualRefill.Product
-import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
@@ -44,6 +43,8 @@ class RefillActivityTest {
         refillActivity.onNodeWithText("خطی: " + refillActivity.activity.inputBarcodes.size)
             .assertExists()
     }
+
+    //test output apk file
 
     private fun restart() {
         refillActivity.activity.runOnUiThread {

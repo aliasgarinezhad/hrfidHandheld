@@ -13,35 +13,32 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.hardware.setRFEpcMode
-import com.jeanwest.reader.hardware.setRFPower
-import com.jeanwest.reader.manualRefill.Product
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcMode
+import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.theme.*
-import com.jeanwest.reader.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -60,12 +57,12 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private val barcode2D = Barcode2D(this)
     val scannedProducts = mutableListOf<Product>()
     private var scanningJob: Job? = null
+    private lateinit var queue : RequestQueue
 
     //ui parameters
     private var isScanning by mutableStateOf(false)
     private var isDataLoading by mutableStateOf(false)
     private var numberOfScanned by mutableStateOf(0)
-    private var openClearDialog by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     var scanTypeValue by mutableStateOf("بارکد")
@@ -76,6 +73,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
+
+        queue = Volley.newRequestQueue(this)
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -365,7 +364,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request)
     }
 
@@ -455,6 +453,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         saveToMemory()
         stopRFScan()
         stopBarcodeScan()
+        queue.stop()
+        beep.release()
         finish()
     }
 

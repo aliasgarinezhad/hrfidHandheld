@@ -17,6 +17,7 @@ import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.theme.ErrorSnackBar
 import com.jeanwest.reader.theme.MyApplicationTheme
@@ -54,7 +55,19 @@ class UserLoginActivity : ComponentActivity() {
                 "userWarehouseCode",
                 response.getJSONObject("location").getInt("warehouseCode")
             )
+            editor.putInt(
+                "userWarehouseCode",
+                response.getJSONObject("location").getInt("warehouseCode")
+            )
 
+            val warehouses = mutableMapOf<String, String>()
+            val warehousesJsonArray = response.getJSONArray("warehouses")
+            for (i in 0 until warehousesJsonArray.length()) {
+                warehouses[warehousesJsonArray.getJSONObject(i).getString("WareHouse_ID")] =
+                    warehousesJsonArray.getJSONObject(i).getString("WareHouseTitle")
+            }
+
+            editor.putString("userWarehouses", Gson().toJson(warehouses).toString())
             editor.apply()
 
             val intent =

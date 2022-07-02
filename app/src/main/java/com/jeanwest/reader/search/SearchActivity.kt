@@ -1,7 +1,9 @@
 package com.jeanwest.reader.search
 
-import com.jeanwest.reader.testClasses.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import android.content.Intent
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -15,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -23,14 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.R
-//import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.manualRefill.Product
+//import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,12 +52,15 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
 
     private var barcode2D = Barcode2D(this)
+    private lateinit var queue : RequestQueue
+    val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Page()
         }
+        queue = Volley.newRequestQueue(this)
         loadMemory()
         Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
     }
@@ -81,6 +86,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         if (barcode.isNotEmpty()) {
 
+            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             filteredUiList.clear()
             uiList.clear()
             colorFilterValues = mutableStateListOf("همه رنگ ها")
@@ -118,7 +124,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             })
-            val queue = Volley.newRequestQueue(this)
             queue.add(request)
         }
     }
@@ -221,8 +226,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         }
                     }
                 })
-                val queue2 = Volley.newRequestQueue(this)
-                queue2.add(request2)
+                queue.add(request2)
             }
         }, {
             when (it) {
@@ -247,7 +251,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             }
         })
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request1)
     }
 
@@ -294,6 +297,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private fun back() {
         close()
+        queue.stop()
+        beep.release()
         finish()
     }
 

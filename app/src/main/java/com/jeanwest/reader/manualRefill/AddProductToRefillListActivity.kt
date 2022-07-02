@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.testClasses.Barcode2D
+//import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -23,14 +23,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.ExceptionHandler
+import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.R
-import com.jeanwest.reader.testClasses.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
+import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
 import com.jeanwest.reader.theme.*
 import kotlinx.coroutines.CoroutineScope
@@ -52,12 +54,14 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
     private var storeFilterValue = 0
     private var state = SnackbarHostState()
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+    private lateinit var queue : RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Page()
         }
+        queue = Volley.newRequestQueue(this)
         open()
         loadMemory()
         filterUiList()
@@ -200,8 +204,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                         }
                     }
                 })
-                val queue2 = Volley.newRequestQueue(this)
-                queue2.add(request2)
+                queue.add(request2)
             }
         }, {
             when (it) {
@@ -226,7 +229,6 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
             }
         })
 
-        val queue = Volley.newRequestQueue(this)
         queue.add(request1)
     }
 
@@ -337,6 +339,8 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
     private fun back() {
         saveToMemory()
         close()
+        beep.release()
+        queue.stop()
         finish()
     }
 

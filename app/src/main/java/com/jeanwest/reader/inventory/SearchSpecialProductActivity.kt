@@ -1,4 +1,4 @@
-package com.jeanwest.reader.search
+package com.jeanwest.reader.inventory
 
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -20,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
-import com.android.volley.RequestQueue
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
@@ -38,7 +37,7 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 
-class SearchSubActivity : ComponentActivity() {
+class SearchSpecialProductActivity : ComponentActivity() {
 
     var distance by mutableStateOf(1f)
     private var scannedNumber by mutableStateOf(0)
@@ -50,7 +49,6 @@ class SearchSubActivity : ComponentActivity() {
     private var matchedEpcTable = mutableListOf<String>()
     private lateinit var rf: RFIDWithUHFUART
     private var state = SnackbarHostState()
-    val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -126,6 +124,7 @@ class SearchSubActivity : ComponentActivity() {
 
     private suspend fun beep() {
 
+        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
         while (isScanning) {
             when (distance) {
 
@@ -155,6 +154,7 @@ class SearchSubActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     private suspend fun startFinding() {
 
         isScanning = true
@@ -181,11 +181,14 @@ class SearchSubActivity : ComponentActivity() {
                 if (uhfTagInfo != null) {
                     if (uhfTagInfo.epc.startsWith("30")) {
                         epcTable.add(uhfTagInfo.epc)
+                        InventoryActivity.scannedEpcTable.add(uhfTagInfo.epc)
                     }
                 } else {
                     break
                 }
             }
+
+            InventoryActivity.scannedEpcTable = InventoryActivity.scannedEpcTable.distinct().toMutableList()
 
             epcTable.forEach {
 
@@ -312,7 +315,6 @@ class SearchSubActivity : ComponentActivity() {
 
     private fun back() {
         stopFinding()
-        beep.release()
         finish()
     }
 
@@ -438,7 +440,7 @@ class SearchSubActivity : ComponentActivity() {
                     shape = MaterialTheme.shapes.small
                 )
                 .fillMaxWidth()
-                .wrapContentHeight()
+                .height(200.dp)
                 .padding(5.dp),
             //horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -447,7 +449,8 @@ class SearchSubActivity : ComponentActivity() {
                 painter = rememberImagePainter(data = product.imageUrl),
                 contentDescription = "",
                 modifier = Modifier
-                    .height(200.dp)
+                    .fillMaxHeight()
+                    .width(180.dp)
                     .padding(vertical = 4.dp, horizontal = 8.dp)
             )
 

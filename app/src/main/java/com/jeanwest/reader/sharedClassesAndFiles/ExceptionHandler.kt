@@ -1,10 +1,7 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.sharedClassesAndFiles
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import com.jeanwest.reader.refill.RefillActivity
-import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
