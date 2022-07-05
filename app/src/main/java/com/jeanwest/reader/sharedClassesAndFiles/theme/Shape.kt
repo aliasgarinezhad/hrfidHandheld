@@ -1,4 +1,4 @@
-package com.jeanwest.reader.theme
+package com.jeanwest.reader.sharedClassesAndFiles.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Shapes

@@ -28,13 +28,10 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
-import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
-import com.jeanwest.reader.theme.*
+import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main

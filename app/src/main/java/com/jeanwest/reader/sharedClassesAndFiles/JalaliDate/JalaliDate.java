@@ -1,4 +1,4 @@
-package com.jeanwest.reader.JalaliDate;
+package com.jeanwest.reader.sharedClassesAndFiles.JalaliDate;
 
 import java.util.Calendar;
 import java.util.Date;

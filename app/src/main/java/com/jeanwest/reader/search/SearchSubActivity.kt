@@ -20,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
-import com.android.volley.RequestQueue
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
@@ -29,10 +28,10 @@ import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcMode
 import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.rscja.deviceapi.RFIDWithUHFUART
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.LoadingCircularProgressIndicator
-import com.jeanwest.reader.theme.MyApplicationTheme
-import com.jeanwest.reader.theme.borderColor
+import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
+import com.jeanwest.reader.sharedClassesAndFiles.LoadingCircularProgressIndicator
+import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
+import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*

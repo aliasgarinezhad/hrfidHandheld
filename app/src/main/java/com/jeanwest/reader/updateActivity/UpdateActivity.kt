@@ -32,7 +32,7 @@ import androidx.core.content.FileProvider
 import com.jeanwest.reader.R
 import com.jeanwest.reader.iotHub.IotHub
 import com.rscja.deviceapi.RFIDWithUHFUART
-import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import java.io.File
 
 

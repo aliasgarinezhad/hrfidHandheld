@@ -1,4 +1,4 @@
-package com.jeanwest.reader.theme
+package com.jeanwest.reader.sharedClassesAndFiles.theme
 
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors

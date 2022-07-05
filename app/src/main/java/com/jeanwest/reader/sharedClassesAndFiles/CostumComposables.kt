@@ -1,4 +1,4 @@
-package com.jeanwest.reader.theme
+package com.jeanwest.reader.sharedClassesAndFiles
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.Product
+import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 
 @Composable
 fun ErrorSnackBar(state: SnackbarHostState) {

@@ -9,7 +9,6 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
-import org.json.JSONArray
 import org.junit.Rule
 import org.junit.Test
 
@@ -82,14 +81,14 @@ class CheckInActivityTest {
             var isInProductTableList = false
             productTable.forEach { it1 ->
                 if (it == it1.KBarCode) {
-                    it1.fileNumber ++
+                    it1.desiredNumber ++
                     isInProductTableList = true
                 }
             }
             if(!isInProductTableList) {
                 productTable.add(Product(
                     KBarCode = it,
-                    fileNumber = 1,
+                    desiredNumber = 1,
                 ))
             }
         }

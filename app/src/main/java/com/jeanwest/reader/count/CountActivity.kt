@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
-import coil.compose.rememberImagePainter
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
@@ -41,7 +40,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.theme.*
+import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -72,8 +71,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private val scannedProducts = mutableMapOf<String, ScannedProduct>()
     private var scanningJob: Job? = null
     private var barcodeToCategoryMap = mutableMapOf<String, String>()
-    private var scannedEpcMapWithProperties = mutableMapOf<String, ScannedProductsOneByOne>()
-    private var scannedBarcodeMapWithProperties = mutableMapOf<String, ScannedProductsOneByOne>()
+    private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
+    private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
 
     //ui parameters
@@ -178,7 +177,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     category = fileProduct.category,
                     matchedNumber = abs(scannedProducts[fileProduct.KBarCode]!!.scannedNumber - fileProduct.number),
                     scannedEPCNumber = scannedProducts[fileProduct.KBarCode]!!.scannedNumber,
-                    fileNumber = fileProduct.number,
+                    desiredNumber = fileProduct.number,
                     result =
                     when {
                         scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.number -> {
@@ -229,7 +228,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = fileProduct.salePrice,
                     rfidKey = fileProduct.rfidKey,
                     primaryKey = fileProduct.primaryKey,
-                    fileNumber = fileProduct.number
+                    desiredNumber = fileProduct.number
                 )
                 result[fileProduct.KBarCode] = (resultData)
             }
@@ -253,7 +252,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = it.value.salePrice,
                     rfidKey = it.value.rfidKey,
                     primaryKey = it.value.primaryKey,
-                    fileNumber = 0
+                    desiredNumber = 0
                 )
                 result[it.key] = (resultData)
             }
@@ -682,15 +681,15 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         syncScannedProductsRunning = true
 
-        val epcArray = JSONArray()
-        val barcodeArray = JSONArray()
+        val epcTableForV4 = mutableListOf<String>()
+        val barcodeTableForV4 = mutableListOf<String>()
         scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
             scannedEpcTable.forEach {
                 if (it !in scannedEpcMapWithProperties.keys) {
-                    if (epcArray.length() < 1000) {
-                        epcArray.put(it)
+                    if (epcTableForV4.size < 1000) {
+                        epcTableForV4.add(it)
                     } else {
                         scannedProductsBiggerThan1000 = true
                         return@breakForEach
@@ -701,8 +700,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         run breakForEach@{
             scannedBarcodeTable.forEach {
                 if (it !in scannedBarcodeMapWithProperties.keys) {
-                    if (barcodeArray.length() < 1000) {
-                        barcodeArray.put(it)
+                    if (barcodeTableForV4.size < 1000) {
+                        barcodeTableForV4.add(it)
                     } else {
                         scannedProductsBiggerThan1000 = true
                         return@breakForEach
@@ -711,7 +710,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        if (epcArray.length() == 0 && barcodeArray.length() == 0) {
+        if (epcTableForV4.size == 0 && barcodeTableForV4.size == 0) {
 
             makeScannedProductMap()
             getConflicts()
@@ -721,52 +720,14 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "https://rfid-api.avakatan.ir/products/v4"
+        getProductsV4(queue, state, epcTableForV4, barcodeTableForV4, { epcs, barcodes ->
 
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val epcs = it.getJSONArray("epcs")
-            val barcodes = it.getJSONArray("KBarCodes")
-
-            for (i in 0 until epcs.length()) {
-
-                val scannedEpcWithProperties = ScannedProductsOneByOne(
-                    name = epcs.getJSONObject(i).getString("productName"),
-                    KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
-                    size = epcs.getJSONObject(i).getString("Size"),
-                    color = epcs.getJSONObject(i).getString("Color"),
-                    originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = epcs.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = epcs.getJSONObject(i).getLong("RFID"),
-                    warehouseNumber = epcs.getJSONObject(i).getInt("depoCount"),
-                    storeNumber = epcs.getJSONObject(i).getInt("storeCount"),
-                )
-                scannedEpcMapWithProperties[epcs.getJSONObject(i).getString("epc")] =
-                    scannedEpcWithProperties
+            epcs.forEach { product ->
+                scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
             }
 
-            for (i in 0 until barcodes.length()) {
-
-                val scannedBarcodeWithProperties = ScannedProductsOneByOne(
-                    name = barcodes.getJSONObject(i).getString("productName"),
-                    KBarCode = barcodes.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = barcodes.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = barcodes.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = barcodes.getJSONObject(i).getString("K_Bar_Code"),
-                    size = barcodes.getJSONObject(i).getString("Size"),
-                    color = barcodes.getJSONObject(i).getString("Color"),
-                    originalPrice = barcodes.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = barcodes.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = barcodes.getJSONObject(i).getLong("RFID"),
-                    warehouseNumber = barcodes.getJSONObject(i).getInt("depoCount"),
-                    storeNumber = barcodes.getJSONObject(i).getInt("storeCount"),
-                )
-
-                scannedBarcodeMapWithProperties[barcodes.getJSONObject(i).getString("kbarcode")] =
-                    scannedBarcodeWithProperties
+            barcodes.forEach { product ->
+                scannedBarcodeMapWithProperties[product.scannedBarcode] = product
             }
 
             makeScannedProductMap()
@@ -780,53 +741,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
         }, {
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             getConflicts()
             filterUiList()
             syncScannedProductsRunning = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                json.put("epcs", epcArray)
-                json.put("KBarCodes", barcodeArray)
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     private fun makeScannedProductMap() {
@@ -1429,7 +1347,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         i,
                         filteredUiList,
                         true,
-                        "موجودی: " + filteredUiList[i].fileNumber,
+                        "موجودی: " + filteredUiList[i].desiredNumber,
                         filteredUiList[i].result + ":" + " " + filteredUiList[i].matchedNumber,
                         filteredUiList[i].KBarCode in signedProductCodes,
                         onLongClick = {
@@ -1443,96 +1361,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                             openSearchActivity(filteredUiList[i])
 
                         }
-                    )
-                }
-            }
-        }
-    }
-
-    @ExperimentalFoundationApi
-    @Composable
-    fun LazyColumnItem(i: Int) {
-
-        Row(
-            modifier = Modifier
-                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                .background(
-                    color = if (filteredUiList[i].KBarCode !in signedProductCodes) {
-                        MaterialTheme.colors.onPrimary
-                    } else {
-                        MaterialTheme.colors.onSecondary
-                    },
-                    shape = MaterialTheme.shapes.small
-                )
-                .fillMaxWidth()
-                .height(80.dp)
-                .combinedClickable(
-                    onClick = {
-                        openSearchActivity(filteredUiList[i])
-                    },
-                    onLongClick = {
-                        if (filteredUiList[i].KBarCode !in signedProductCodes) {
-                            signedProductCodes.add(filteredUiList[i].KBarCode)
-                        } else {
-                            signedProductCodes.remove(filteredUiList[i].KBarCode)
-                        }
-                        filterUiList()
-                    },
-                )
-                .testTag("CountActivityLazyColumnItem"),
-        ) {
-
-            Image(
-                painter = rememberImagePainter(
-                    filteredUiList[i].imageUrl,
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(start = 8.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .weight(1.5F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = filteredUiList[i].name,
-                        style = MaterialTheme.typography.h1,
-                        textAlign = TextAlign.Right,
-                    )
-
-                    Text(
-                        text = filteredUiList[i].KBarCode,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    Text(
-                        text = "موجودی: " + filteredUiList[i].fileNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
-                    )
-                    Text(
-                        text = filteredUiList[i].result + ":" + " " + filteredUiList[i].matchedNumber,
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Right,
                     )
                 }
             }

@@ -29,13 +29,13 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
-import com.jeanwest.reader.JalaliDate.JalaliDate
+import com.jeanwest.reader.sharedClassesAndFiles.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.Item
-import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
+import com.jeanwest.reader.sharedClassesAndFiles.Item
+import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -376,7 +376,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
                         Item(
                             i,
                             uiList,
-                            text1 = "موجودی: " + uiList[i].fileNumber,
+                            text1 = "موجودی: " + uiList[i].desiredNumber,
                             text2 = uiList[i].result
                         )
                 }

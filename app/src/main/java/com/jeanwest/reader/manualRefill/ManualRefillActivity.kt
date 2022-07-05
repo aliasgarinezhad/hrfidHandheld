@@ -39,7 +39,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.theme.*
+import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException

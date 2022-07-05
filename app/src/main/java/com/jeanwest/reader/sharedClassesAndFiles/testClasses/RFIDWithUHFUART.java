@@ -1,4 +1,4 @@
-package com.jeanwest.reader.testClasses;
+package com.jeanwest.reader.sharedClassesAndFiles.testClasses;
 
 import android.content.Context;
 

@@ -13,7 +13,10 @@ data class Product(
     var salePrice: String = "",
     var rfidKey: Long = 0,
     var wareHouseNumber: Int = 0,
+    var rfidWareHouseNumber: Int = 0,
     var storeNumber: Int = 0,
+    var rfidStoreNumber: Int = 0,
+    var brandName : String = "",
     var scannedEPCs: MutableList<String> = mutableListOf(),
     var scannedBarcode: String = "",
     var scannedBarcodeNumber: Int = 0,
@@ -22,7 +25,7 @@ data class Product(
     var matchedNumber: Int = 0,
     var result: String = "",
     var scan: String = "",
-    var fileNumber: Int = 0,
+    var desiredNumber: Int = 0,
     var category: String = "",
     var checkInNumber: Long = 0L
 ) {

@@ -34,14 +34,11 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.JalaliDate.JalaliDateConverter
+import com.jeanwest.reader.sharedClassesAndFiles.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
-import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
-import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.theme.*
+import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -198,7 +195,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
                 barcodeTable.add(
                     Product(
                         KBarCode = it.getJSONObject(i).getString("kbarcode"),
-                        fileNumber = it.getJSONObject(i).getInt("Qty"),
+                        desiredNumber = it.getJSONObject(i).getInt("Qty"),
                         checkInNumber = code.toLong(),
                     )
                 )

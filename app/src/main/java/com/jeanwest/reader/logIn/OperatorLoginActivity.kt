@@ -19,8 +19,8 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
-import com.jeanwest.reader.theme.ErrorSnackBar
-import com.jeanwest.reader.theme.MyApplicationTheme
+import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
+import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

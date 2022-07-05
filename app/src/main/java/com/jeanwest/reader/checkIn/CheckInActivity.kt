@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -35,17 +35,14 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.inventory.ScannedProductsOneByOne
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult
-import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcMode
-import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
-import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.theme.*
+import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
+import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
+import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -90,7 +87,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var openClearDialog by mutableStateOf(false)
     var scanTypeValue by mutableStateOf("RFID")
     private var state = SnackbarHostState()
-    private lateinit var queue : RequestQueue
+    private lateinit var queue: RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,7 +115,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         loadMemory()
         syncInputItemsToServer()
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -240,7 +242,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         imageUrl = fileProduct.imageUrl,
                         matchedNumber = abs(scannedProduct.scannedNumber - fileProduct.number),
                         scannedEPCNumber = scannedProduct.scannedNumber,
-                        fileNumber = fileProduct.number,
+                        desiredNumber = fileProduct.number,
                         result =
                         when {
                             scannedProduct.scannedNumber > fileProduct.number -> {
@@ -292,7 +294,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = scannedProduct.salePrice,
                     rfidKey = scannedProduct.rfidKey,
                     primaryKey = scannedProduct.primaryKey,
-                    fileNumber = 0,
+                    desiredNumber = 0,
                 )
                 result.add(resultData)
             }
@@ -315,7 +317,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = fileProduct.salePrice,
                     rfidKey = fileProduct.rfidKey,
                     primaryKey = fileProduct.primaryKey,
-                    fileNumber = fileProduct.number,
+                    desiredNumber = fileProduct.number,
                 )
                 result.add(resultData)
             }
@@ -466,7 +468,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 val barcodeArray = JSONArray()
 
                 inputBarcodes.forEach {
-                    repeat(it.fileNumber) { _->
+                    repeat(it.desiredNumber) { _ ->
                         barcodeArray.put(it.KBarCode)
                     }
                 }
@@ -708,9 +710,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     scannedEPCNumber = 0
                 )
             } else {
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = barcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
-                }
+                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber =
+                    barcodeTable.count { innerIt2 ->
+                        innerIt2 == it1.key
+                    }
                 scannedProducts[it1.value.KBarCode]?.scannedBarcode = it1.key
             }
         }
@@ -801,7 +804,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
 
         val searchResultProduct = Product(
-            name = if(checkInNumber != 0L) product.name + " از حواله شماره " + checkInNumber else product.name,
+            name = if (checkInNumber != 0L) product.name + " از حواله شماره " + checkInNumber else product.name,
             KBarCode = product.KBarCode,
             imageUrl = product.imageUrl,
             color = product.color,
@@ -820,10 +823,29 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openConfirmCheckInsActivity() {
 
+        val shortageAndAdditional = mutableListOf<Product>()
+
+        run breakForEach@ {
+
+            conflictResultProducts.forEach {
+
+                if (it.scan == "کسری" || it.scan == "اضافی" || it.scan == "اضافی فایل") {
+
+                    if (shortageAndAdditional.size > 100) {
+                        return@breakForEach
+                    } else {
+                        shortageAndAdditional.add(it)
+                    }
+                }
+            }
+        }
+
+        Log.e("error", shortageAndAdditional.size.toString())
+
         Intent(this, ConfirmCheckInsActivity::class.java).also {
             it.putExtra(
                 "additionalAndShortageProducts",
-                Gson().toJson(conflictResultProducts).toString()
+                Gson().toJson(shortageAndAdditional).toString()
             )
             it.putExtra("numberOfScanned", numberOfScanned)
             it.putExtra("shortagesNumber", shortagesNumber)
@@ -984,7 +1006,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         i,
                         uiList,
                         true,
-                        text1 = "موجودی: " + uiList[i].fileNumber,
+                        text1 = "موجودی: " + uiList[i].desiredNumber,
                         text2 = uiList[i].result
                     ) {
                         openSearchActivity(uiList[i])
