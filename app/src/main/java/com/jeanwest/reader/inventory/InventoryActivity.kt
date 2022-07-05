@@ -59,6 +59,9 @@ import kotlin.math.abs
 @ExperimentalFoundationApi
 class InventoryActivity : ComponentActivity() {
 
+    private var resultsBiggerThan500 = false
+    private var resultIndexForApi2 = 0
+    private var saveToServerId = ""
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
     private var epcTablePreviousSize = 0
@@ -563,31 +566,8 @@ class InventoryActivity : ComponentActivity() {
             }
 
         }, {
-
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             syncScannedItemsToServer()
             syncInputProductsRunning = false
-
         })
     }
 
@@ -730,10 +710,149 @@ class InventoryActivity : ComponentActivity() {
     }
 
     private fun saveResultsToServer() {
+        saveToServerInProgress = true
 
+        val url = "http://rfid-api.avakatan.ir/mojodi-review/header"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            saveToServerId = it.getString("MojodiReviewInfo_ID")
+            saveApi2()
+            saveToServerInProgress = false
+
+        }, {
+            if (it is NoConnectionError) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        it.toString(),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+
+            saveToServerInProgress = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = mutableMapOf<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+
+                val body = JSONObject()
+                body.put("desc", "انبارگردانی با RFID")
+                body.put("createDate", sdf.format(Date()))
+                body.put("Warehouse_ID", warehouseCode.toInt())
+
+                return body.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
+    }
+
+    private fun saveApi2() {
         saveToServerInProgress = true
 
         val url = "http://rfid-api.avakatan.ir/mojodi-review"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            if(resultsBiggerThan500) {
+                saveApi2()
+            } else {
+                resultIndexForApi2 = 0
+                saveApi3()
+            }
+            saveToServerInProgress = false
+        }, {
+            if (it is NoConnectionError) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        it.toString(),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+
+            saveToServerInProgress = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = mutableMapOf<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                val body = JSONObject()
+                val products = JSONArray()
+
+                resultsBiggerThan500 = false
+
+                for(i in resultIndexForApi2 until inventoryResult.values.toMutableList().size) {
+                    val it = inventoryResult.values.toMutableList()[i]
+                    val productJson = JSONObject()
+                    productJson.put("BarcodeMain_ID", it.primaryKey)
+                    productJson.put("kbarcode", it.KBarCode)
+                    productJson.put("K_Name", it.kName)
+                    productJson.put("diffCount", if (it.result == "کسری") (it.matchedNumber * -1) else it.matchedNumber)
+                    products.put(productJson)
+
+                    if (products.length() > 500) {
+                        resultsBiggerThan500 = true
+                        resultIndexForApi2 = i
+                        break
+                    }
+                }
+
+                body.put("products", products)
+
+                return body.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
+    }
+
+    private fun saveApi3() {
+        saveToServerInProgress = true
+
+        val url = "http://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/submit"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -770,39 +889,11 @@ class InventoryActivity : ComponentActivity() {
             saveToServerInProgress = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
-                val params = java.util.HashMap<String, String>()
+                val params = mutableMapOf<String, String>()
                 params["Content-Type"] = "application/json;charset=UTF-8"
                 params["Authorization"] =
                     "Bearer " + MainActivity.token
                 return params
-            }
-
-            override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val products = JSONArray()
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                Log.e("time", sdf.format(Date()))
-
-                inventoryResult.forEach {
-
-                    val productJson = JSONObject()
-                    productJson.put("BarcodeMain_ID", it.value.primaryKey)
-                    productJson.put("kbarcode", it.value.KBarCode)
-                    productJson.put("K_Name", it.value.kName)
-                    productJson.put("diffCount", if(it.value.result == "کسری") (it.value.matchedNumber * -1) else it.value.matchedNumber)
-                    products.put(productJson)
-                }
-
-                body.put("desc", "انبارگردانی با RFID")
-                body.put("createDate", sdf.format(Date()))
-                body.put("Warehouse_ID", warehouseCode.toInt())
-                body.put("products", products)
-
-                Log.e("error", body.toString())
-
-                return body.toString().toByteArray()
             }
         }
 
