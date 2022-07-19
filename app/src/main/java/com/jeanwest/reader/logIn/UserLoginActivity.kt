@@ -98,9 +98,12 @@ class UserLoginActivity : ComponentActivity() {
                     }
                 }
                 else -> {
+
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )

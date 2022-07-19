@@ -42,6 +42,7 @@ import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 
@@ -98,18 +99,23 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
         val type = object : TypeToken<SnapshotStateList<CheckInProperties>>() {}.type
         val type1 = object : TypeToken<MutableList<Product>>() {}.type
 
-
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        barcodeTable = Gson().fromJson(
-            memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
-            type1
-        ) ?: mutableListOf()
+        try {
 
-        uiList = Gson().fromJson(
-            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
-            type
-        ) ?: mutableStateListOf()
+            barcodeTable = Gson().fromJson(
+                memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
+                type1
+            ) ?: mutableListOf()
+
+            uiList = Gson().fromJson(
+                memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+                type
+            ) ?: mutableStateListOf()
+
+        } catch (e : Exception) {
+            uiList = mutableStateListOf()
+        }
     }
 
     private fun saveMemory() {
@@ -223,9 +229,12 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
+
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )

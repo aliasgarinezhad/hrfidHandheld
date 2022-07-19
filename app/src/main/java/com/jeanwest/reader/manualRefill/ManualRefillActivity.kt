@@ -189,9 +189,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )
@@ -221,45 +222,27 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         isDataLoading = true
 
-        val url = "https://rfid-api.avakatan.ir/products/v4"
+        getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes ->
 
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val refillItemsJsonArray = it.getJSONArray("KBarCodes")
-
-            for (i in 0 until refillItemsJsonArray.length()) {
-
-                val fileProduct = Product(
-                    name = refillItemsJsonArray.getJSONObject(i).getString("productName"),
-                    KBarCode = refillItemsJsonArray.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = refillItemsJsonArray.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = refillItemsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = refillItemsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
-                    size = refillItemsJsonArray.getJSONObject(i).getString("Size"),
-                    color = refillItemsJsonArray.getJSONObject(i).getString("Color"),
-                    originalPrice = refillItemsJsonArray.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = refillItemsJsonArray.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = refillItemsJsonArray.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = refillItemsJsonArray.getJSONObject(i).getInt("depoCount"),
-                    scannedBarcode = "",
-                    scannedEPCs = mutableListOf(),
-                    scannedBarcodeNumber = 0,
-                    scannedEPCNumber = 0,
-                    kName = refillItemsJsonArray.getJSONObject(i).getString("K_Name"),
-                    requestedNum = 1,
-                    storeNumber = 0,
-                )
+            barcodes.forEach {
 
                 var isInRefillProductList = false
-                products.forEach { it1 ->
-                    if (it1.KBarCode == fileProduct.KBarCode) {
-                        it1.requestedNum += 1
-                        isInRefillProductList = true
-                        return@forEach
+
+                run forEach1@ {
+                    products.forEach { it1 ->
+                        if (it1.KBarCode == it.KBarCode) {
+                            it1.requestedNum += 1
+                            isInRefillProductList = true
+                            return@forEach1
+                        }
                     }
                 }
                 if (!isInRefillProductList) {
-                    products.add(fileProduct)
+                    it.scannedBarcodeNumber = 0
+                    it.scannedEPCNumber = 0
+                    it.scannedBarcode = ""
+                    it.scannedEPCs.clear()
+                    products.add(it)
                 }
             }
 
@@ -276,79 +259,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
 
         }, {
-
-            if (inputBarcodes.isEmpty()) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "شارژ صفر است!",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-
-            } else {
-                when (it) {
-                    is NoConnectionError -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                it.toString(),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                }
-            }
-
             isDataLoading = false
 
             if (numberOfScanned != 0) {
                 syncScannedItemsToServer()
             }
-
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                val epcArray = JSONArray()
-
-                json.put("epcs", epcArray)
-
-                val barcodeArray = JSONArray()
-
-                inputBarcodes.forEach {
-                    barcodeArray.put(it)
-                }
-
-                json.put("KBarCodes", barcodeArray)
-
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     private suspend fun startRFScan() {
@@ -410,11 +326,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        val epcArray = JSONArray()
-        val barcodeArray = JSONArray()
-
+        val epcArray = mutableListOf<String>()
+        val barcodeArray = mutableListOf<String>()
         val alreadySyncedEpcs = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
+
         products.forEach {
             if (it.scannedEPCNumber > 0) {
                 alreadySyncedEpcs.addAll(it.scannedEPCs)
@@ -426,13 +342,13 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         scannedEpcTable.forEach {
             if (it !in alreadySyncedEpcs) {
-                epcArray.put(it)
+                epcArray.add(it)
             }
         }
 
         scannedBarcodeTable.forEach {
             if (it !in alreadySyncedBarcodes) {
-                barcodeArray.put(it)
+                barcodeArray.add(it)
             } else {
                 val productIndex = products.indexOf(products.last { it1 ->
                     it1.scannedBarcode == it
@@ -444,7 +360,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        if (epcArray.length() == 0 && barcodeArray.length() == 0) {
+        if (epcArray.size == 0 && barcodeArray.size == 0) {
             uiList.clear()
             uiList.addAll(products)
             uiList.sortBy { it1 ->
@@ -456,82 +372,40 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         isDataLoading = true
 
-        val url = "https://rfid-api.avakatan.ir/products/v4"
+        getProductsV4(queue, state, epcArray, barcodeArray, { epcs, barcodes ->
 
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val epcs = it.getJSONArray("epcs")
-            val barcodes = it.getJSONArray("KBarCodes")
-
-            for (i in 0 until epcs.length()) {
-                val refillProduct = Product(
-                    name = epcs.getJSONObject(i).getString("productName"),
-                    KBarCode = epcs.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = epcs.getJSONObject(i).getString("ImgUrl"),
-
-                    primaryKey = epcs.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedEPCNumber = 1,
-                    productCode = epcs.getJSONObject(i).getString("K_Bar_Code"),
-                    size = epcs.getJSONObject(i).getString("Size"),
-                    color = epcs.getJSONObject(i).getString("Color"),
-                    originalPrice = epcs.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = epcs.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = epcs.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = epcs.getJSONObject(i).getInt("depoCount"),
-                    kName = epcs.getJSONObject(i).getString("K_Name"),
-                    scannedBarcode = "",
-                    scannedEPCs = mutableListOf(epcs.getJSONObject(i).getString("epc")),
-                    scannedBarcodeNumber = 0,
-                    requestedNum = 0,
-                    storeNumber = 0,
-                )
-
+            epcs.forEach {
                 var isInRefillProductList = false
-                products.forEach { it1 ->
-                    if (it1.KBarCode == refillProduct.KBarCode) {
-                        it1.scannedEPCs.add(refillProduct.scannedEPCs[0])
-                        it1.scannedEPCNumber += 1
-                        isInRefillProductList = true
-                        return@forEach
+                run forEach1@ {
+                    products.forEach { it1 ->
+                        if (it1.KBarCode == it.KBarCode) {
+                            it1.scannedEPCs.add(it.scannedEPCs[0])
+                            it1.scannedEPCNumber += 1
+                            isInRefillProductList = true
+                            return@forEach1
+                        }
                     }
                 }
                 if (!isInRefillProductList) {
-                    products.add(refillProduct)
+                    products.add(it)
                 }
             }
 
-            for (i in 0 until barcodes.length()) {
-                val refillProduct = Product(
-                    name = barcodes.getJSONObject(i).getString("productName"),
-                    KBarCode = barcodes.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = barcodes.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = barcodes.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedBarcodeNumber = 1,
-                    productCode = barcodes.getJSONObject(i).getString("K_Bar_Code"),
-                    size = barcodes.getJSONObject(i).getString("Size"),
-                    color = barcodes.getJSONObject(i).getString("Color"),
-                    originalPrice = barcodes.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = barcodes.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = barcodes.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = barcodes.getJSONObject(i).getInt("depoCount"),
-                    scannedBarcode = barcodes.getJSONObject(i).getString("kbarcode"),
-                    scannedEPCs = mutableListOf(),
-                    kName = barcodes.getJSONObject(i).getString("K_Name"),
-                    scannedEPCNumber = 0,
-                    requestedNum = 0,
-                    storeNumber = 0,
-                )
+            barcodes.forEach {
                 var isInRefillProductList = false
-                products.forEach { it1 ->
-                    if (it1.KBarCode == refillProduct.KBarCode) {
-                        it1.scannedBarcode = refillProduct.scannedBarcode
-                        it1.scannedBarcodeNumber += 1
-                        isInRefillProductList = true
-                        return@forEach
+
+                run forEach1@{
+                    products.forEach { it1 ->
+                        if (it1.KBarCode == it.KBarCode) {
+                            it1.scannedBarcode = it.scannedBarcode
+                            it1.scannedBarcodeNumber += 1
+                            isInRefillProductList = true
+                            return@forEach1
+                        }
                     }
                 }
                 if (!isInRefillProductList) {
-                    products.add(refillProduct)
+                    products.add(it)
                 }
             }
 
@@ -571,29 +445,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
             isDataLoading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                json.put("epcs", epcArray)
-                json.put("KBarCodes", barcodeArray)
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     override fun getBarcode(barcode: String?) {
@@ -715,21 +567,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSearchActivity(product: Product) {
 
-        val searchResultProduct = Product(
-            name = product.name,
-            KBarCode = product.KBarCode,
-            imageUrl = product.imageUrl,
-            color = product.color,
-            size = product.size,
-            productCode = product.productCode,
-            rfidKey = product.rfidKey,
-            primaryKey = product.primaryKey,
-            originalPrice = product.originalPrice,
-            salePrice = product.salePrice,
-        )
-
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
+        intent.putExtra("product", Gson().toJson(product).toString())
         startActivity(intent)
     }
 

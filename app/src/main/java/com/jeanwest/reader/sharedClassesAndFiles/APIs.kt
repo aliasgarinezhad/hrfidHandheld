@@ -50,6 +50,7 @@ fun getProductsV4(
                 originalPrice = epcsJsonArray.getJSONObject(i).getString("OrgPrice"),
                 salePrice = epcsJsonArray.getJSONObject(i).getString("SalePrice"),
                 rfidKey = epcsJsonArray.getJSONObject(i).getLong("RFID"),
+                storeNumber = epcsJsonArray.getJSONObject(i).getInt("storeCount"),
                 wareHouseNumber = epcsJsonArray.getJSONObject(i).getInt("depoCount"),
                 scannedBarcode = "",
                 scannedEPCs = mutableListOf(epcsJsonArray.getJSONObject(i).getString("epc")),
@@ -75,6 +76,7 @@ fun getProductsV4(
                 salePrice = barcodesJsonArray.getJSONObject(i).getString("SalePrice"),
                 rfidKey = barcodesJsonArray.getJSONObject(i).getLong("RFID"),
                 wareHouseNumber = barcodesJsonArray.getJSONObject(i).getInt("depoCount"),
+                storeNumber = barcodesJsonArray.getJSONObject(i).getInt("storeCount"),
                 scannedBarcode = barcodesJsonArray.getJSONObject(i).getString("kbarcode"),
                 scannedEPCs = mutableListOf(),
                 kName = barcodesJsonArray.getJSONObject(i).getString("K_Name"),
@@ -101,9 +103,12 @@ fun getProductsV4(
                 }
             }
             else -> {
+
+                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        it.toString(),
+                        error.getString("message"),
                         null,
                         SnackbarDuration.Long
                     )

@@ -54,7 +54,7 @@ class DeviceRegisterActivity : ComponentActivity() {
     }
 
     private fun registerDeviceToIotHub() {
-        val url = "https://rfid-api.avakatan.ir/devices/vs"
+        val url = "https://rfid-api.avakatan.ir/devices/handheld"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
             deviceId = it.getString("deviceId")
             iotToken = it.getJSONObject("authentication").getJSONObject("symmetricKey")
@@ -75,9 +75,11 @@ class DeviceRegisterActivity : ComponentActivity() {
             startActivity(nextActivityIntent)
         }, {
 
+            val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    "خطا در رجیستر کردن دستگاه",
+                    error.getString("message"),
                     null,
                     SnackbarDuration.Long
                 )
@@ -119,9 +121,11 @@ class DeviceRegisterActivity : ComponentActivity() {
             }
         }, {
 
+            val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    it.toString(),
+                    error.getString("message"),
                     null,
                     SnackbarDuration.Long
                 )

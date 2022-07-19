@@ -35,6 +35,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.json.JSONObject
 
 class SearchActivity : ComponentActivity(), IBarcodeResult {
 
@@ -111,9 +112,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         }
                     }
                     else -> {
+                        val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                         CoroutineScope(Dispatchers.Default).launch {
                             state.showSnackbar(
-                                it.toString(),
+                                error.getString("message"),
                                 null,
                                 SnackbarDuration.Long
                             )
@@ -213,9 +215,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                             }
                         }
                         else -> {
+                            val error = JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject("error")
                             CoroutineScope(Dispatchers.Default).launch {
                                 state.showSnackbar(
-                                    it2.toString(),
+                                    error.getString("message"),
                                     null,
                                     SnackbarDuration.Long
                                 )
@@ -237,9 +240,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )

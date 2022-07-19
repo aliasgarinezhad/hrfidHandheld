@@ -35,6 +35,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -42,6 +43,7 @@ import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
+import org.json.JSONObject
 
 class RefillActivity : ComponentActivity(), IBarcodeResult {
 
@@ -241,9 +243,10 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )
@@ -277,6 +280,10 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             refillProducts.clear()
             barcodes.forEach {
+                it.scannedBarcodeNumber = 0
+                it.scannedEPCNumber = 0
+                it.scannedBarcode = ""
+                it.scannedEPCs.clear()
                 refillProducts.add(it)
             }
 
@@ -509,21 +516,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun openSearchActivity(product: Product) {
 
-        val searchResultProduct = Product(
-            name = product.name,
-            KBarCode = product.KBarCode,
-            imageUrl = product.imageUrl,
-            color = product.color,
-            size = product.size,
-            productCode = product.productCode,
-            rfidKey = product.rfidKey,
-            primaryKey = product.primaryKey,
-            originalPrice = product.originalPrice,
-            salePrice = product.salePrice,
-        )
-
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
+        intent.putExtra("product", Gson().toJson(product).toString())
         startActivity(intent)
     }
 

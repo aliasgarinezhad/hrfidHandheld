@@ -67,8 +67,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var scannedBarcodeTable = mutableListOf<String>()
     var excelBarcodes = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val fileProducts = mutableListOf<FileProduct>()
-    private val scannedProducts = mutableMapOf<String, ScannedProduct>()
+    private val fileProducts = mutableListOf<Product>()
+    private val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
     private var barcodeToCategoryMap = mutableMapOf<String, String>()
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
@@ -175,15 +175,17 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     KBarCode = fileProduct.KBarCode,
                     imageUrl = fileProduct.imageUrl,
                     category = fileProduct.category,
-                    matchedNumber = abs(scannedProducts[fileProduct.KBarCode]!!.scannedNumber - fileProduct.number),
+                    storeNumber = fileProduct.storeNumber,
+                    wareHouseNumber = fileProduct.wareHouseNumber,
+                    matchedNumber = abs(scannedProducts[fileProduct.KBarCode]!!.scannedNumber - fileProduct.scannedNumber),
                     scannedEPCNumber = scannedProducts[fileProduct.KBarCode]!!.scannedNumber,
-                    desiredNumber = fileProduct.number,
+                    desiredNumber = fileProduct.scannedNumber,
                     result =
                     when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.number -> {
+                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.scannedNumber -> {
                             "اضافی"
                         }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.number -> {
+                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.scannedNumber -> {
                             "کسری"
                         }
                         else -> {
@@ -191,10 +193,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         }
                     },
                     scan = when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.number -> {
+                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.scannedNumber -> {
                             "اضافی فایل"
                         }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.number -> {
+                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.scannedNumber -> {
                             "کسری"
                         }
                         else -> {
@@ -217,7 +219,9 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     KBarCode = fileProduct.KBarCode,
                     imageUrl = fileProduct.imageUrl,
                     category = fileProduct.category,
-                    matchedNumber = fileProduct.number,
+                    storeNumber = fileProduct.storeNumber,
+                    wareHouseNumber = fileProduct.wareHouseNumber,
+                    matchedNumber = fileProduct.scannedNumber,
                     scannedEPCNumber = 0,
                     result = "کسری",
                     scan = "کسری",
@@ -228,7 +232,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = fileProduct.salePrice,
                     rfidKey = fileProduct.rfidKey,
                     primaryKey = fileProduct.primaryKey,
-                    desiredNumber = fileProduct.number
+                    desiredNumber = fileProduct.scannedNumber
                 )
                 result[fileProduct.KBarCode] = (resultData)
             }
@@ -241,6 +245,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     KBarCode = it.value.KBarCode,
                     imageUrl = it.value.imageUrl,
                     category = "نامعلوم",
+                    storeNumber = it.value.storeNumber,
+                    wareHouseNumber = it.value.wareHouseNumber,
                     matchedNumber = it.value.scannedNumber,
                     scannedEPCNumber = it.value.scannedNumber,
                     result = "اضافی",
@@ -581,12 +587,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             for (i in 0 until fileJsonArray.length()) {
 
-                val fileProduct = FileProduct(
+                val fileProduct = Product(
                     name = fileJsonArray.getJSONObject(i).getString("productName"),
                     KBarCode = fileJsonArray.getJSONObject(i).getString("KBarCode"),
                     imageUrl = fileJsonArray.getJSONObject(i).getString("ImgUrl"),
                     primaryKey = fileJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    number = fileJsonArray.getJSONObject(i).getInt("handheldCount"),
+                    scannedBarcodeNumber = fileJsonArray.getJSONObject(i).getInt("handheldCount"),
                     category = barcodeToCategoryMap[fileJsonArray.getJSONObject(i)
                         .getString("KBarCode")] ?: "نامعلوم",
                     productCode = fileJsonArray.getJSONObject(i).getString("K_Bar_Code"),
@@ -756,40 +762,17 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             if (it1.value.KBarCode in scannedProducts.keys) {
                 scannedProducts[it1.value.KBarCode]!!.scannedNumber += 1
             } else {
-                scannedProducts[it1.value.KBarCode] = ScannedProduct(
-                    name = it1.value.name,
-                    KBarCode = it1.value.KBarCode,
-                    imageUrl = it1.value.imageUrl,
-                    primaryKey = it1.value.primaryKey,
-                    productCode = it1.value.productCode,
-                    size = it1.value.size,
-                    color = it1.value.color,
-                    originalPrice = it1.value.originalPrice,
-                    salePrice = it1.value.salePrice,
-                    rfidKey = it1.value.rfidKey,
-                    scannedNumber = 1
-                )
+                scannedProducts[it1.value.KBarCode] = it1.value
             }
         }
 
         scannedBarcodeMapWithProperties.forEach { it1 ->
 
             if (it1.value.KBarCode in scannedProducts.keys) {
-                scannedProducts[it1.value.KBarCode] = ScannedProduct(
-                    name = it1.value.name,
-                    KBarCode = it1.value.KBarCode,
-                    imageUrl = it1.value.imageUrl,
-                    primaryKey = it1.value.primaryKey,
-                    productCode = it1.value.productCode,
-                    size = it1.value.size,
-                    color = it1.value.color,
-                    originalPrice = it1.value.originalPrice,
-                    salePrice = it1.value.salePrice,
-                    rfidKey = it1.value.rfidKey,
-                    scannedNumber = scannedBarcodeTable.count { innerIt2 ->
-                        innerIt2 == it1.key
-                    }
-                )
+                scannedProducts[it1.value.KBarCode] = it1.value
+                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
+                    innerIt2 == it1.key
+                }
             }
         }
     }

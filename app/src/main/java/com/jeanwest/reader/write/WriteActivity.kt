@@ -40,6 +40,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -450,7 +451,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "https://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
 
         val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
@@ -500,9 +501,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            it.toString(),
+                            error.getString("message"),
                             null,
                             SnackbarDuration.Long
                         )
@@ -553,7 +555,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "https://rfid-api.avakatan.ir/products/v3"
+        val url = "https://rfid-api.avakatan.ir/products/v4"
         val request = object : JsonObjectRequest1(Method.POST, url, null, fun(it) {
 
             val decodedTagEpc = epcDecoder(epc)
@@ -598,7 +600,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
                 }
                 else -> {
-                    it.toString()
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    error.getString("message")
                 }
             }
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)

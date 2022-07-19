@@ -56,7 +56,7 @@ class WriteActivityTest {
 
             writeActivity.waitForIdle()
             writeActivity.waitForIdle()
-            Thread.sleep(500)
+            Thread.sleep(1000)
 
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)

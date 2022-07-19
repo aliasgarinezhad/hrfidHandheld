@@ -184,6 +184,7 @@ class SendToStoreActivity : ComponentActivity() {
             }
             ManualRefillActivity.scannedBarcodeTable.clear()
             ManualRefillActivity.scannedEpcTable.clear()
+            saveToMemory()
             uiList.clear()
             numberOfScanned = 0
 
@@ -197,9 +198,10 @@ class SendToStoreActivity : ComponentActivity() {
                     )
                 }
             } else {
+                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        it.toString(),
+                        error.getString("message"),
                         null,
                         SnackbarDuration.Long
                     )
@@ -249,6 +251,28 @@ class SendToStoreActivity : ComponentActivity() {
         )
 
         queue.add(request)
+    }
+
+    private fun saveToMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val edit = memory.edit()
+
+        edit.putString(
+            "ManualRefillWarehouseManagerEPCTable",
+            JSONArray(ManualRefillActivity.scannedEpcTable).toString()
+        )
+        edit.putString(
+            "ManualRefillWarehouseManagerBarcodeTable",
+            JSONArray(ManualRefillActivity.scannedBarcodeTable).toString()
+        )
+
+        edit.putString(
+            "ManualRefillProducts",
+            Gson().toJson(ManualRefillActivity.products).toString()
+        )
+
+        edit.apply()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
