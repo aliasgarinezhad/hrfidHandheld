@@ -67,13 +67,15 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var scannedBarcodeTable = mutableListOf<String>()
     var excelBarcodes = mutableListOf<String>()
     private val barcode2D = Barcode2D(this)
-    private val fileProducts = mutableListOf<Product>()
+    private val fileProducts = mutableMapOf<String, Product>()
     private val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
     private var barcodeToCategoryMap = mutableMapOf<String, String>()
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
+    private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
+    private var inputProductsBiggerThan1000 = false
 
     //ui parameters
     private var uiList = mutableStateMapOf<String, Product>()
@@ -168,24 +170,24 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         fileProducts.forEach { fileProduct ->
 
-            if (fileProduct.KBarCode in scannedProducts) {
+            if (fileProduct.value.KBarCode in scannedProducts) {
 
                 val resultData = Product(
-                    name = fileProduct.name,
-                    KBarCode = fileProduct.KBarCode,
-                    imageUrl = fileProduct.imageUrl,
-                    category = fileProduct.category,
-                    storeNumber = fileProduct.storeNumber,
-                    wareHouseNumber = fileProduct.wareHouseNumber,
-                    matchedNumber = abs(scannedProducts[fileProduct.KBarCode]!!.scannedNumber - fileProduct.scannedNumber),
-                    scannedEPCNumber = scannedProducts[fileProduct.KBarCode]!!.scannedNumber,
-                    desiredNumber = fileProduct.scannedNumber,
+                    name = fileProduct.value.name,
+                    KBarCode = fileProduct.value.KBarCode,
+                    imageUrl = fileProduct.value.imageUrl,
+                    category = fileProduct.value.category,
+                    storeNumber = fileProduct.value.storeNumber,
+                    wareHouseNumber = fileProduct.value.wareHouseNumber,
+                    matchedNumber = abs(scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber - fileProduct.value.scannedNumber),
+                    scannedEPCNumber = scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber,
+                    desiredNumber = fileProduct.value.scannedNumber,
                     result =
                     when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.scannedNumber -> {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber > fileProduct.value.scannedNumber -> {
                             "اضافی"
                         }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.scannedNumber -> {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber < fileProduct.value.scannedNumber -> {
                             "کسری"
                         }
                         else -> {
@@ -193,48 +195,48 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         }
                     },
                     scan = when {
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber > fileProduct.scannedNumber -> {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber > fileProduct.value.scannedNumber -> {
                             "اضافی فایل"
                         }
-                        scannedProducts[fileProduct.KBarCode]!!.scannedNumber < fileProduct.scannedNumber -> {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber < fileProduct.value.scannedNumber -> {
                             "کسری"
                         }
                         else -> {
                             "تایید شده"
                         }
                     },
-                    productCode = fileProduct.productCode,
-                    size = fileProduct.size,
-                    color = fileProduct.color,
-                    originalPrice = fileProduct.originalPrice,
-                    salePrice = fileProduct.salePrice,
-                    rfidKey = fileProduct.rfidKey,
-                    primaryKey = fileProduct.primaryKey
+                    productCode = fileProduct.value.productCode,
+                    size = fileProduct.value.size,
+                    color = fileProduct.value.color,
+                    originalPrice = fileProduct.value.originalPrice,
+                    salePrice = fileProduct.value.salePrice,
+                    rfidKey = fileProduct.value.rfidKey,
+                    primaryKey = fileProduct.value.primaryKey
                 )
-                result[fileProduct.KBarCode] = resultData
+                result[fileProduct.value.KBarCode] = resultData
 
             } else {
                 val resultData = Product(
-                    name = fileProduct.name,
-                    KBarCode = fileProduct.KBarCode,
-                    imageUrl = fileProduct.imageUrl,
-                    category = fileProduct.category,
-                    storeNumber = fileProduct.storeNumber,
-                    wareHouseNumber = fileProduct.wareHouseNumber,
-                    matchedNumber = fileProduct.scannedNumber,
+                    name = fileProduct.value.name,
+                    KBarCode = fileProduct.value.KBarCode,
+                    imageUrl = fileProduct.value.imageUrl,
+                    category = fileProduct.value.category,
+                    storeNumber = fileProduct.value.storeNumber,
+                    wareHouseNumber = fileProduct.value.wareHouseNumber,
+                    matchedNumber = fileProduct.value.scannedNumber,
                     scannedEPCNumber = 0,
                     result = "کسری",
                     scan = "کسری",
-                    productCode = fileProduct.productCode,
-                    size = fileProduct.size,
-                    color = fileProduct.color,
-                    originalPrice = fileProduct.originalPrice,
-                    salePrice = fileProduct.salePrice,
-                    rfidKey = fileProduct.rfidKey,
-                    primaryKey = fileProduct.primaryKey,
-                    desiredNumber = fileProduct.scannedNumber
+                    productCode = fileProduct.value.productCode,
+                    size = fileProduct.value.size,
+                    color = fileProduct.value.color,
+                    originalPrice = fileProduct.value.originalPrice,
+                    salePrice = fileProduct.value.salePrice,
+                    rfidKey = fileProduct.value.rfidKey,
+                    primaryKey = fileProduct.value.primaryKey,
+                    desiredNumber = fileProduct.value.scannedNumber
                 )
-                result[fileProduct.KBarCode] = (resultData)
+                result[fileProduct.value.KBarCode] = (resultData)
             }
         }
 
@@ -571,112 +573,66 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncFileItemsToServer() {
 
-        if (excelBarcodes.isEmpty()) {
+        val barcodeTableForV4 = mutableListOf<String>()
+
+        syncFileProductsRunning = true
+        inputProductsBiggerThan1000 = false
+
+        run breakForEach@ {
+            excelBarcodes.forEach {
+                if (it !in inputBarcodeMapWithProperties.keys) {
+                    if (barcodeTableForV4.size < 1000) {
+                        barcodeTableForV4.add(it)
+                    } else {
+                        inputProductsBiggerThan1000 = true
+                        return@breakForEach
+                    }
+                }
+            }
+        }
+
+        if (barcodeTableForV4.size == 0) {
             syncScannedItemsToServer()
+            syncFileProductsRunning = false
             return
         }
 
         syncFileProductsRunning = true
 
-        val url = "https://rfid-api.avakatan.ir/products/v3"
+        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes ->
 
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val fileJsonArray = it.getJSONArray("KBarCodes")
-            fileProducts.clear()
-
-            for (i in 0 until fileJsonArray.length()) {
-
-                val fileProduct = Product(
-                    name = fileJsonArray.getJSONObject(i).getString("productName"),
-                    KBarCode = fileJsonArray.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = fileJsonArray.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = fileJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    scannedBarcodeNumber = fileJsonArray.getJSONObject(i).getInt("handheldCount"),
-                    category = barcodeToCategoryMap[fileJsonArray.getJSONObject(i)
-                        .getString("KBarCode")] ?: "نامعلوم",
-                    productCode = fileJsonArray.getJSONObject(i).getString("K_Bar_Code"),
-                    size = fileJsonArray.getJSONObject(i).getString("Size"),
-                    color = fileJsonArray.getJSONObject(i).getString("Color"),
-                    originalPrice = fileJsonArray.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = fileJsonArray.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = fileJsonArray.getJSONObject(i).getLong("RFID"),
-                )
-                fileProducts.add(fileProduct)
+            barcodes.forEach { product ->
+                inputBarcodeMapWithProperties[product.scannedBarcode] = product
             }
 
-            categoryValues.clear()
-            categoryValues.add("همه دسته ها")
-            categoryValues.add("نامعلوم")
-            barcodeToCategoryMap.values.forEach { category ->
-                if (category !in categoryValues) {
-                    categoryValues.add(category)
-                }
-            }
+            makeInputProductMap()
             getConflicts()
-            filterUiList()
-            syncScannedItemsToServer()
-            syncFileProductsRunning = false
+
+            if (inputProductsBiggerThan1000) {
+                syncFileItemsToServer()
+            } else {
+                syncFileProductsRunning = false
+                syncScannedItemsToServer()
+            }
 
         }, {
-
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             syncScannedItemsToServer()
             syncFileProductsRunning = false
+        })
+    }
 
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
+    private fun makeInputProductMap() {
 
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                val epcArray = JSONArray()
+        inputBarcodeMapWithProperties.forEach { it1 ->
 
-                json.put("epcs", epcArray)
-
-                val barcodeArray = JSONArray()
-
-                excelBarcodes.forEach {
-                    barcodeArray.put(it)
-                }
-
-                json.put("KBarCodes", barcodeArray)
-
-                return json.toString().toByteArray()
+            if (it1.value.KBarCode !in fileProducts.keys) {
+                fileProducts[it1.value.KBarCode] = it1.value
+                fileProducts[it1.value.KBarCode]!!.scannedNumber =
+                    excelBarcodes.count { innerIt2 ->
+                        innerIt2 == it1.key
+                    }
             }
         }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
     }
 
     private fun syncScannedItemsToServer() {
@@ -698,6 +654,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         epcTableForV4.add(it)
                     } else {
                         scannedProductsBiggerThan1000 = true
+
                         return@breakForEach
                     }
                 }

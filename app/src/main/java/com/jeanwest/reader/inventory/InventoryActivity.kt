@@ -32,7 +32,6 @@ import coil.annotation.ExperimentalCoilApi
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -66,13 +65,11 @@ class InventoryActivity : ComponentActivity() {
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
     private var epcTablePreviousSize = 0
-    private var scannedBarcodeTable = mutableListOf<String>()
     private var inputBarcodesTable = mutableListOf<String>()
     private val inputProducts = mutableMapOf<String, Product>()
     private val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
-    private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
     private var inputProductsBiggerThan1000 = false
     private var warehouseCode by mutableStateOf("")
@@ -80,6 +77,7 @@ class InventoryActivity : ComponentActivity() {
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var currentScannedProductKBarCodes = mutableListOf<String>()
     private var currentScannedEpcTable = mutableListOf<String>()
+    private var isInProgress = false
 
     //ui parameters
     private var openFinishDialog by mutableStateOf(false)
@@ -93,6 +91,7 @@ class InventoryActivity : ComponentActivity() {
     private var fileName by mutableStateOf("خروجی")
     private var openDialog by mutableStateOf(false)
     private var openClearDialog by mutableStateOf(false)
+    private var openStartOrContinueDialog by mutableStateOf(false)
     private var state = SnackbarHostState()
     private var inventoryProgress by mutableStateOf(0F)
     private var inventoryStarted by mutableStateOf(false)
@@ -132,8 +131,10 @@ class InventoryActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        number = scannedEpcTable.size + scannedBarcodeTable.size
-        syncScannedItemsToServer()
+        if(!syncInputProductsRunning) {
+            number = scannedEpcTable.size
+            syncScannedItemsToServer()
+        }
     }
 
     private fun getWarehouseBarcodes() {
@@ -142,17 +143,19 @@ class InventoryActivity : ComponentActivity() {
 
         val url = "http://rfid-api.avakatan.ir/products/$warehouseCode"
 
-        val request = object : JsonArrayRequest(url, {
+        val request = object : JsonObjectRequest(url, {
+
+            val products = it.getJSONArray("products")
+            val mojodiReviewPackage = it.getJSONObject("mojodiReviewPackage")
+
+            isInProgress = mojodiReviewPackage.getBoolean("IsInProgress")
 
             inputBarcodesTable.clear()
             inputBarcodeMapWithProperties.clear()
             inputProducts.clear()
-            for (i in 0 until it.length()) {
-                repeat(it.getJSONObject(i).getInt("mojodi")) { _ ->
-                    inputBarcodesTable.add(it.getJSONObject(i).getString("KBarCode"))
-                }
+            for (i in 0 until products.length()) {
+                inputBarcodesTable.add(products.getJSONObject(i).getString("KBarCode"))
             }
-            saveToMemory()
             syncInputProductsRunning = false
             syncInputItemsToServer()
         }, {
@@ -201,6 +204,10 @@ class InventoryActivity : ComponentActivity() {
 
     private fun getConflicts() {
 
+        Log.e("error", "getConflicts")
+
+        syncScannedProductsRunning = true
+
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
         val result = mutableStateMapOf<String, Product>()
@@ -248,8 +255,11 @@ class InventoryActivity : ComponentActivity() {
                                 if(scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
                                     "اضافی"
                                 }
-                                else {
+                                else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
                                     "کسری"
+                                }
+                                else {
+                                    "تایید شده"
                                 }
                             }
                             diff > 0 -> {
@@ -272,8 +282,11 @@ class InventoryActivity : ComponentActivity() {
                                 if(scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
                                     "اضافی فایل"
                                 }
-                                else {
+                                else if(scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
                                     "کسری"
+                                }
+                                else {
+                                    "تایید شده"
                                 }
                             }
                             diff > 0 -> {
@@ -405,14 +418,18 @@ class InventoryActivity : ComponentActivity() {
         }
 
         val shortageAndAdditional = inventoryResult.filter { it1 ->
-            it1.value.scan == "کسری" || it1.value.scan == "اضافی" || it1.value.scan == "اضافی فایل"
+            it1.value.result == "کسری" || it1.value.result == "اضافی"
         }.toMutableMap()
 
-        uiList.clear()
-        uiList.addAll(shortageAndAdditional.values.toMutableStateList())
-        uiList.sortBy {
+        val uiListTemp = mutableListOf<Product>()
+        uiListTemp.addAll(shortageAndAdditional.values.toMutableStateList())
+        uiListTemp.sortBy {
             it.KBarCode !in currentScannedProductKBarCodes
         }
+        uiList.clear()
+        uiList.addAll(uiListTemp)
+
+        syncScannedProductsRunning = false
     }
 
     private fun exportFile() {
@@ -579,7 +596,7 @@ class InventoryActivity : ComponentActivity() {
 
             scannedEpcTable = scannedEpcTable.distinct().toMutableList()
 
-            number = scannedEpcTable.size + scannedBarcodeTable.size
+            number = scannedEpcTable.size
 
             val speed = scannedEpcTable.size - epcTablePreviousSize
             when {
@@ -604,7 +621,7 @@ class InventoryActivity : ComponentActivity() {
         }
 
         rf.stopInventory()
-        number = scannedEpcTable.size + scannedBarcodeTable.size
+        number = scannedEpcTable.size
         saveToMemory()
     }
 
@@ -642,46 +659,60 @@ class InventoryActivity : ComponentActivity() {
                 inputBarcodeMapWithProperties[product.scannedBarcode] = product
             }
 
+            syncInputProductsRunning = false
             makeInputProductMap()
-            getConflicts()
 
             if (inputProductsBiggerThan1000) {
                 syncInputItemsToServer()
             } else {
-                syncInputProductsRunning = false
                 syncScannedItemsToServer()
             }
 
         }, {
-            syncScannedItemsToServer()
             syncInputProductsRunning = false
         })
     }
 
     private fun makeInputProductMap() {
 
+        Log.e("error", "makeInputProductMap")
+
+        syncInputProductsRunning = true
+
+        val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
+
         inputBarcodeMapWithProperties.forEach { it1 ->
 
             if (it1.value.KBarCode !in inputProducts.keys) {
                 inputProducts[it1.value.KBarCode] = it1.value
-                inputProducts[it1.value.KBarCode]!!.desiredNumber =
-                    inputBarcodesTable.count { innerIt2 ->
-                        innerIt2 == it1.key
+                inputProducts[it1.value.KBarCode]!!.desiredNumber = if(isInDepo) {
+                    inputProducts[it1.value.KBarCode]!!.wareHouseNumber
+                } else {
+                    inputProducts[it1.value.KBarCode]!!.storeNumber
+                }
+                if(!isInProgress) {
+                    if(isInDepo) {
+                        inputProducts[it1.value.KBarCode]!!.rfidWareHouseNumber = -1 * inputProducts[it1.value.KBarCode]!!.wareHouseNumber
+                    } else {
+                        inputProducts[it1.value.KBarCode]!!.rfidStoreNumber = -1 * inputProducts[it1.value.KBarCode]!!.storeNumber
                     }
+                }
             }
         }
+
+        syncInputProductsRunning = false
     }
 
     private fun syncScannedItemsToServer() {
 
         if (number == 0) {
+            getConflicts()
             return
         }
 
         syncScannedProductsRunning = true
 
         val epcTableForV4 = mutableListOf<String>()
-        val barcodeTableForV4 = mutableListOf<String>()
         scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
@@ -697,45 +728,26 @@ class InventoryActivity : ComponentActivity() {
             }
         }
 
-        run breakForEach@{
-            scannedBarcodeTable.forEach {
-                if (it !in scannedBarcodeMapWithProperties.keys) {
-                    if (barcodeTableForV4.size < 1000) {
-                        barcodeTableForV4.add(it)
-                    } else {
-                        scannedProductsBiggerThan1000 = true
-                        return@breakForEach
-                    }
-                }
-            }
-        }
-
-        if (epcTableForV4.size == 0 && barcodeTableForV4.size == 0) {
-
-            makeScannedProductMap()
-            getConflicts()
+        if (epcTableForV4.size == 0) {
 
             syncScannedProductsRunning = false
+            getConflicts()
             return
         }
 
-        getProductsV4(queue, state, epcTableForV4, barcodeTableForV4, { epcs, barcodes ->
+        getProductsV4(queue, state, epcTableForV4, mutableListOf(), { epcs, _ ->
 
             epcs.forEach { product ->
                 scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
             }
 
-            barcodes.forEach { product ->
-                scannedBarcodeMapWithProperties[product.scannedEPCs[0]] = product
-            }
-
+            syncScannedProductsRunning = false
             makeScannedProductMap()
-            getConflicts()
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
             } else {
-                syncScannedProductsRunning = false
+                getConflicts()
             }
 
         }, {
@@ -746,34 +758,40 @@ class InventoryActivity : ComponentActivity() {
 
     private fun makeScannedProductMap() {
 
+        Log.e("error", "makeScannedProductMap")
+
+        val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
+
+        syncScannedProductsRunning = true
+
         scannedProducts.clear()
         currentScannedProductKBarCodes.clear()
 
         scannedEpcMapWithProperties.forEach { it1 ->
 
             currentScannedEpcTable.forEach {
-                if (it in it1.value.scannedEPCs) {
+                if (it == it1.key) {
                     currentScannedProductKBarCodes.add(it1.value.KBarCode)
                 }
             }
 
             if (it1.value.KBarCode in scannedProducts.keys) {
-                scannedProducts[it1.value.KBarCode]!!.scannedEPCNumber += 1
+                if(it1.value.scannedEPCs[0] !in scannedProducts[it1.value.KBarCode]!!.scannedEPCs) {
+                    scannedProducts[it1.value.KBarCode]!!.scannedEPCNumber += 1
+                    scannedProducts[it1.value.KBarCode]!!.scannedEPCs.add(it1.value.scannedEPCs[0])
+                }
             } else {
                 scannedProducts[it1.value.KBarCode] = it1.value
-            }
-        }
-
-        scannedBarcodeMapWithProperties.forEach { it1 ->
-
-            if (it1.value.KBarCode !in scannedProducts.keys) {
-
-                scannedProducts[it1.value.KBarCode] = it1.value
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
+                if(!isInProgress) {
+                    if(isInDepo) {
+                        scannedProducts[it1.value.KBarCode]!!.rfidWareHouseNumber = -1 * scannedProducts[it1.value.KBarCode]!!.wareHouseNumber
+                    } else {
+                        scannedProducts[it1.value.KBarCode]!!.rfidStoreNumber = -1 * scannedProducts[it1.value.KBarCode]!!.storeNumber
+                    }
                 }
             }
         }
+        syncScannedProductsRunning = false
     }
 
     private fun saveResultsToServer() {
@@ -1000,7 +1018,6 @@ class InventoryActivity : ComponentActivity() {
         val edit = memory.edit()
 
         edit.putString("InventoryEPCTable", JSONArray(scannedEpcTable).toString())
-        edit.putString("InventoryBarcodeTable", JSONArray(scannedBarcodeTable).toString())
         edit.putString("warehouseCodeForInventory", warehouseCode)
         edit.putBoolean("inventoryStarted", inventoryStarted)
         edit.apply()
@@ -1038,22 +1055,81 @@ class InventoryActivity : ComponentActivity() {
 
         epcTablePreviousSize = scannedEpcTable.size
 
-        scannedBarcodeTable = Gson().fromJson(
-            memory.getString("InventoryBarcodeTable", ""),
-            scannedBarcodeTable.javaClass
-        ) ?: mutableListOf()
+        number = scannedEpcTable.size
+    }
 
-        number = scannedEpcTable.size + scannedBarcodeTable.size
+    private fun finishPackage() {
+
+        saveToServerInProgress = true
+
+        val url = "http://rfid-api.avakatan.ir/mojodi-review/package/submit"
+        val request = object : StringRequest(Method.POST, url, {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "انبارگردانی دوره ای با موفقیت به پایان رسید",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            saveToServerInProgress = false
+            Log.e("error", "4 passed")
+
+        }, {
+            if (it is NoConnectionError) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        error.getString("message"),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+            saveToServerInProgress = false
+
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = mutableMapOf<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + MainActivity.token
+                return params
+            }
+            override fun getBody(): ByteArray {
+
+                val body = JSONObject()
+
+                body.put("Warehouse_ID", warehouseCode.toInt())
+
+                return body.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            5000,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
     }
 
     private fun clear() {
 
-        scannedBarcodeTable.clear()
         scannedEpcTable.clear()
         epcTablePreviousSize = 0
         number = 0
         scannedProducts.clear()
-        scannedBarcodeMapWithProperties.clear()
         scannedEpcMapWithProperties.clear()
         inventoryResult.clear()
         getConflicts()
@@ -1067,6 +1143,14 @@ class InventoryActivity : ComponentActivity() {
         stopRFScan()
         queue.stop()
         beep.release()
+        syncInputProductsRunning = false
+        syncScannedProductsRunning = false
+        isInProgress = false
+        isScanning = false
+        scannedProductsBiggerThan1000 = false
+        inputProductsBiggerThan1000 = false
+        resultsBiggerThan500 = false
+        saveToServerInProgress = false
         finish()
     }
 
@@ -1191,12 +1275,14 @@ class InventoryActivity : ComponentActivity() {
             if (openDialog) {
                 FileAlertDialog()
             }
-
             if (openClearDialog) {
                 ClearAlertDialog()
             }
             if (openFinishDialog) {
                 FinishAlertDialog()
+            }
+            if (openStartOrContinueDialog) {
+                StartOrContinueAlertDialog()
             }
 
             Column(
@@ -1268,9 +1354,7 @@ class InventoryActivity : ComponentActivity() {
                     .height(48.dp),
                     onClick = {
                         if (!inventoryStarted) {
-                            inventoryStarted = true
-                            clear()
-                            getWarehouseBarcodes()
+                            openStartOrContinueDialog = true
                         } else {
                             openFinishDialog = true
                         }
@@ -1500,7 +1584,7 @@ class InventoryActivity : ComponentActivity() {
                 ) {
 
                     Text(
-                        text = "نتایج در ای ار پی ثبت شوند؟",
+                        text = "کالاهای اسکن شده ثبت شوند؟",
                         modifier = Modifier.padding(bottom = 10.dp),
                         fontSize = 22.sp
                     )
@@ -1530,6 +1614,50 @@ class InventoryActivity : ComponentActivity() {
                         ) {
                             Text(text = "خیر، نتایج پاک شوند")
                         }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun StartOrContinueAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openStartOrContinueDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Button(onClick = {
+                        openStartOrContinueDialog = false
+                        inventoryStarted = true
+                        clear()
+                        getWarehouseBarcodes()
+
+                    }, modifier = Modifier.padding(top = 10.dp)) {
+                        Text(text = "ادامه انبارگردانی قبلی")
+                    }
+                    Button(
+                        onClick = {
+                            openStartOrContinueDialog = false
+                            finishPackage()
+                            inventoryStarted = true
+                            clear()
+                            getWarehouseBarcodes()
+                        },
+                        modifier = Modifier.padding(top = 10.dp)
+                    ) {
+                        Text(text = "شروع انبارگردانی جدید")
                     }
                 }
             }
