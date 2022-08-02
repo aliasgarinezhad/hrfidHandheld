@@ -75,7 +75,7 @@ class InventoryActivity : ComponentActivity() {
     private var warehouseCode by mutableStateOf("")
     private var locations = mutableMapOf<String, String>()
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    private var currentScannedProductKBarCodes = mutableListOf<String>()
+    private var currentScannedProductProductCodes = mutableListOf<String>()
     private var currentScannedEpcTable = mutableListOf<String>()
     private var isInProgress = false
 
@@ -100,6 +100,7 @@ class InventoryActivity : ComponentActivity() {
     private var numberOfScanned by mutableStateOf(0)
     private var isInShortageAdditionalPage by mutableStateOf(false)
     private lateinit var queue: RequestQueue
+    private var signedKBarCode = mutableStateListOf<String>()
 
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -424,7 +425,7 @@ class InventoryActivity : ComponentActivity() {
         val uiListTemp = mutableListOf<Product>()
         uiListTemp.addAll(shortageAndAdditional.values.toMutableStateList())
         uiListTemp.sortBy {
-            it.KBarCode !in currentScannedProductKBarCodes
+            it.productCode !in currentScannedProductProductCodes
         }
         uiList.clear()
         uiList.addAll(uiListTemp)
@@ -765,13 +766,13 @@ class InventoryActivity : ComponentActivity() {
         syncScannedProductsRunning = true
 
         scannedProducts.clear()
-        currentScannedProductKBarCodes.clear()
+        currentScannedProductProductCodes.clear()
 
         scannedEpcMapWithProperties.forEach { it1 ->
 
             currentScannedEpcTable.forEach {
                 if (it == it1.key) {
-                    currentScannedProductKBarCodes.add(it1.value.KBarCode)
+                    currentScannedProductProductCodes.add(it1.value.productCode)
                 }
             }
 
@@ -987,9 +988,10 @@ class InventoryActivity : ComponentActivity() {
                 }
                 saveToServerInProgress = false
                 inventoryStarted = false
-
+                inputBarcodesTable.clear()
+                inputProducts.clear()
+                inputBarcodeMapWithProperties.clear()
                 clear()
-                saveToMemory()
                 Log.e("error", "3 passed")
             }
 
@@ -1473,6 +1475,14 @@ class InventoryActivity : ComponentActivity() {
                                     Gson().toJson(uiList[i]).toString()
                                 )
                                 startActivity(this)
+                            }
+                        },
+                        colorFull = uiList[i].KBarCode in signedKBarCode,
+                        onLongClick = {
+                            if (uiList[i].KBarCode !in signedKBarCode) {
+                                signedKBarCode.add(uiList[i].KBarCode)
+                            } else {
+                                signedKBarCode.remove(uiList[i].KBarCode)
                             }
                         }
                     )

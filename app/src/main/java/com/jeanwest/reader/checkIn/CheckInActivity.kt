@@ -438,7 +438,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 inputProducts[it1.value.KBarCode] = it1.value
                 inputProducts[it1.value.KBarCode]!!.scannedNumber =
                     inputBarcodes[inputBarcodes.indexOfLast {
-                        it.KBarCode == it1.value.KBarCode
+                        it.KBarCode == it1.value.scannedBarcode
                     }].desiredNumber
             }
         }
