@@ -240,6 +240,8 @@ class InventoryActivity : ComponentActivity() {
                             else -> {
                                 if(scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
                                     0
+                                } else if ((scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber) > diff){
+                                    scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber
                                 } else {
                                     diff
                                 }
@@ -910,18 +912,23 @@ class InventoryActivity : ComponentActivity() {
 
                 val body = JSONObject()
                 val products = JSONArray()
+                val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
                 resultsBiggerThan500 = false
 
                 for (i in resultIndexForApi2 until inventoryResult.values.toMutableList().size) {
                     val it = inventoryResult.values.toMutableList()[i]
                     val productJson = JSONObject()
+
+                    val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
+                    val newDiff = it.matchedNumber * -1
+
                     productJson.put("BarcodeMain_ID", it.primaryKey)
                     productJson.put("kbarcode", it.KBarCode)
                     productJson.put("K_Name", it.kName)
                     productJson.put(
                         "diffCount",
-                        if (it.result == "کسری") (it.matchedNumber * -1) else it.matchedNumber
+                        if(diff > newDiff) diff else newDiff
                     )
                     products.put(productJson)
 

@@ -212,7 +212,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             epcTablePreviousSize = epcTable.size
 
             saveToMemory()
-
             delay(1000)
         }
 
@@ -239,26 +238,26 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         imageUrl = fileProduct.value.imageUrl,
                         storeNumber = fileProduct.value.storeNumber,
                         wareHouseNumber = fileProduct.value.wareHouseNumber,
-                        matchedNumber = abs(scannedProduct.value.scannedNumber - fileProduct.value.scannedNumber),
+                        matchedNumber = abs(scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber),
                         scannedEPCNumber = scannedProduct.value.scannedNumber,
-                        desiredNumber = fileProduct.value.scannedNumber,
+                        desiredNumber = fileProduct.value.desiredNumber,
                         result =
                         when {
-                            scannedProduct.value.scannedNumber > fileProduct.value.scannedNumber -> {
-                                "اضافی: " + (scannedProduct.value.scannedNumber - fileProduct.value.scannedNumber)
+                            scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
+                                "اضافی: " + (scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber)
                             }
-                            scannedProduct.value.scannedNumber < fileProduct.value.scannedNumber -> {
-                                "کسری: " + (fileProduct.value.scannedNumber - scannedProduct.value.scannedNumber)
+                            scannedProduct.value.scannedNumber < fileProduct.value.desiredNumber -> {
+                                "کسری: " + (fileProduct.value.desiredNumber - scannedProduct.value.scannedNumber)
                             }
                             else -> {
-                                "تایید شده: " + fileProduct.value.scannedNumber
+                                "تایید شده: " + fileProduct.value.desiredNumber
                             }
                         },
                         scan = when {
-                            scannedProduct.value.scannedNumber > fileProduct.value.scannedNumber -> {
+                            scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
                                 "اضافی"
                             }
-                            scannedProduct.value.scannedNumber < fileProduct.value.scannedNumber -> {
+                            scannedProduct.value.scannedNumber < fileProduct.value.desiredNumber -> {
                                 "کسری"
                             }
                             else -> {
@@ -309,9 +308,9 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     imageUrl = fileProduct.value.imageUrl,
                     storeNumber = fileProduct.value.storeNumber,
                     wareHouseNumber = fileProduct.value.wareHouseNumber,
-                    matchedNumber = fileProduct.value.scannedNumber,
+                    matchedNumber = fileProduct.value.desiredNumber,
                     scannedEPCNumber = 0,
-                    result = "کسری: " + fileProduct.value.scannedNumber,
+                    result = "کسری: " + fileProduct.value.desiredNumber,
                     scan = "کسری",
                     productCode = fileProduct.value.productCode,
                     size = fileProduct.value.size,
@@ -320,7 +319,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = fileProduct.value.salePrice,
                     rfidKey = fileProduct.value.rfidKey,
                     primaryKey = fileProduct.value.primaryKey,
-                    desiredNumber = fileProduct.value.scannedNumber,
+                    desiredNumber = fileProduct.value.desiredNumber,
                 )
                 result.add(resultData)
             }
@@ -436,7 +435,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             if (it1.value.KBarCode !in inputProducts.keys) {
                 inputProducts[it1.value.KBarCode] = it1.value
-                inputProducts[it1.value.KBarCode]!!.scannedNumber =
+                inputProducts[it1.value.KBarCode]!!.desiredNumber =
                     inputBarcodes[inputBarcodes.indexOfLast {
                         it.KBarCode == it1.value.scannedBarcode
                     }].desiredNumber
