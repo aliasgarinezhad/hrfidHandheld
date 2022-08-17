@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -104,6 +105,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         super.onResume()
         uiList.clear()
         uiList.addAll(products)
+        uiList.sortBy {
+            it.productCode
+        }
+        uiList.sortBy {
+            it.name
+        }
         uiList.sortBy { it1 ->
             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
         }
@@ -178,8 +185,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             isDataLoading = false
             getRefillItems()
         }, {
-            when (it) {
-                is NoConnectionError -> {
+            when {
+                it is NoConnectionError -> {
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
@@ -187,6 +194,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                             SnackbarDuration.Long
                         )
                     }
+                }
+                it.networkResponse.statusCode == 422 -> {
+                    Log.e("error", "charge database is empty")
                 }
                 else -> {
                     val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
@@ -253,6 +263,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             } else {
                 uiList.clear()
                 uiList.addAll(products)
+                uiList.sortBy {
+                    it.productCode
+                }
+                uiList.sortBy {
+                    it.name
+                }
                 uiList.sortBy { it1 ->
                     it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                 }
@@ -363,6 +379,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         if (epcArray.size == 0 && barcodeArray.size == 0) {
             uiList.clear()
             uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -411,6 +433,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
             uiList.clear()
             uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -441,6 +469,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
             uiList.clear()
             uiList.addAll(products)
+            uiList.sortBy { it1 ->
+                it1.productCode
+            }
+            uiList.sortBy { it1 ->
+                it1.name
+            }
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
@@ -525,6 +559,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList.clear()
         uiList.addAll(products)
+        uiList.sortBy { it1 ->
+            it1.productCode
+        }
+        uiList.sortBy { it1 ->
+            it1.name
+        }
         uiList.sortBy { it1 ->
             it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
         }

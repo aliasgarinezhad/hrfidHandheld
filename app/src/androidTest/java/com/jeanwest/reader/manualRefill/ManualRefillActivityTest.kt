@@ -38,14 +38,8 @@ class ManualRefillActivityTest {
         manualRefillActivity.waitForIdle()
         epcScan()
 
-        manualRefillActivity.onNodeWithText(ManualRefillActivity.products[0].KBarCode)
-            .assertExists()
-        manualRefillActivity.onNodeWithText(ManualRefillActivity.products[1].KBarCode)
-            .assertExists()
-        manualRefillActivity.onNodeWithText(ManualRefillActivity.products[2].KBarCode)
-            .assertExists()
-        manualRefillActivity.onNodeWithText(ManualRefillActivity.products[3].KBarCode)
-            .assertExists()
+        manualRefillActivity.onNodeWithText("01631542-8511-140-1").assertExists()
+        manualRefillActivity.onNodeWithText("11852002J-2430-F").assertExists()
 
         ManualRefillActivity.products.forEach {
             if (it.KBarCode == "11852002J-2430-F") {
@@ -54,7 +48,6 @@ class ManualRefillActivityTest {
                 }
             }
         }
-
         manualRefillActivity.onNodeWithTag("scanTypeDropDownList").performClick()
         manualRefillActivity.waitForIdle()
         manualRefillActivity.onNodeWithText("بارکد").performClick()
@@ -83,18 +76,16 @@ class ManualRefillActivityTest {
             }
         }
 
-        val removeItem1 = ManualRefillActivity.products[0].KBarCode
-        val removeItem2 = ManualRefillActivity.products[1].KBarCode
         manualRefillActivity.onAllNodesWithTag("clear")[0].performClick()
         manualRefillActivity.waitForIdle()
-        manualRefillActivity.onAllNodesWithTag("clear")[0].performClick()
+        manualRefillActivity.onAllNodesWithTag("clear")[1].performClick()
         manualRefillActivity.waitForIdle()
 
         Thread.sleep(5000)
         manualRefillActivity.waitForIdle()
 
-        manualRefillActivity.onNodeWithText(removeItem1).assertDoesNotExist()
-        manualRefillActivity.onNodeWithText(removeItem2).assertDoesNotExist()
+        manualRefillActivity.onNodeWithText("01631542-8511-140-1").assertDoesNotExist()
+        manualRefillActivity.onNodeWithText("11852002J-2430-F").assertDoesNotExist()
     }
 
     //adding new user defined product, scan that product manual test

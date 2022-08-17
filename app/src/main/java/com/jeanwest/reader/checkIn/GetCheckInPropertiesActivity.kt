@@ -37,12 +37,12 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.sharedClassesAndFiles.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import com.jeanwest.reader.sharedClassesAndFiles.*
 
 class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 

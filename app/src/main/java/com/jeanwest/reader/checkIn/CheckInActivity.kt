@@ -38,7 +38,6 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
@@ -46,6 +45,7 @@ import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
+import com.jeanwest.reader.sharedClassesAndFiles.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import org.json.JSONObject
@@ -435,10 +435,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             if (it1.value.KBarCode !in inputProducts.keys) {
                 inputProducts[it1.value.KBarCode] = it1.value
-                inputProducts[it1.value.KBarCode]!!.desiredNumber =
-                    inputBarcodes[inputBarcodes.indexOfLast {
+                inputProducts[it1.value.KBarCode]!!.desiredNumber = 0
+                    inputBarcodes.filter {
                         it.KBarCode == it1.value.scannedBarcode
-                    }].desiredNumber
+                    }.forEach { it2->
+                        inputProducts[it1.value.KBarCode]!!.desiredNumber += it2.desiredNumber
+                    }
             }
         }
     }

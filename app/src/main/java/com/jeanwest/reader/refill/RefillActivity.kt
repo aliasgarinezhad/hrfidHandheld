@@ -293,6 +293,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 syncScannedItemsToServer()
             } else {
 
+                refillProducts.sortBy {
+                    it.productCode
+                }
+                refillProducts.sortBy {
+                    it.name
+                }
                 refillProducts.sortBy { refillProduct ->
                     refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
                 }
@@ -348,6 +354,13 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         }
 
         if (epcTableForV4.size == 0 && barcodeTableForV4.size == 0) {
+
+            refillProducts.sortBy {
+                it.productCode
+            }
+            refillProducts.sortBy {
+                it.name
+            }
             refillProducts.sortBy { refillProduct ->
                 refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
             }
@@ -403,8 +416,14 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
             scannedBarcodeTable.removeAll(junkBarcodes)
 
+            refillProducts.sortBy {
+               it.productCode
+            }
+            refillProducts.sortBy {
+               it.name
+            }
             refillProducts.sortBy { refillProduct ->
-                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
+               refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
             }
             uiList.clear()
             uiList.addAll(refillProducts)

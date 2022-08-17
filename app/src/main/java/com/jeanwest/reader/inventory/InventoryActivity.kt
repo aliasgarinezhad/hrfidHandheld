@@ -10,10 +10,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -101,6 +105,7 @@ class InventoryActivity : ComponentActivity() {
     private var isInShortageAdditionalPage by mutableStateOf(false)
     private lateinit var queue: RequestQueue
     private var signedKBarCode = mutableStateListOf<String>()
+    private var scanFilter by mutableStateOf("کسری")
 
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -132,7 +137,7 @@ class InventoryActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if(!syncInputProductsRunning) {
+        if (!syncInputProductsRunning) {
             number = scannedEpcTable.size
             syncScannedItemsToServer()
         }
@@ -173,7 +178,8 @@ class InventoryActivity : ComponentActivity() {
                 }
                 else -> {
 
-                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    val error =
+                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
 
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
@@ -217,9 +223,10 @@ class InventoryActivity : ComponentActivity() {
 
             val diff = if (isInDepo) it.value.rfidWareHouseNumber else it.value.rfidStoreNumber
 
-            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno") && !it.value.name.contains(
-                    "جوراب"
-                )
+            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno")
+                && !it.value.name.contains("جوراب")
+                && !it.value.name.contains("عينك")
+                && !it.value.name.contains("شاپينگ")
             ) {
 
                 if (it.value.KBarCode in scannedProducts) {
@@ -238,9 +245,9 @@ class InventoryActivity : ComponentActivity() {
                                 abs(scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber)
                             }
                             else -> {
-                                if(scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
+                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
                                     0
-                                } else if ((scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber) > diff){
+                                } else if ((scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber) > diff) {
                                     scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber
                                 } else {
                                     diff
@@ -255,18 +262,16 @@ class InventoryActivity : ComponentActivity() {
                                 "تایید شده"
                             }
                             diff < 0 -> {
-                                if(scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
+                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
                                     "اضافی"
-                                }
-                                else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
+                                } else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
                                     "کسری"
-                                }
-                                else {
+                                } else {
                                     "تایید شده"
                                 }
                             }
                             diff > 0 -> {
-                                if(scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
+                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
                                     "تایید شده"
                                 } else {
                                     "اضافی"
@@ -282,18 +287,16 @@ class InventoryActivity : ComponentActivity() {
                                 "تایید شده"
                             }
                             diff < 0 -> {
-                                if(scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
+                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
                                     "اضافی فایل"
-                                }
-                                else if(scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
+                                } else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
                                     "کسری"
-                                }
-                                else {
+                                } else {
                                     "تایید شده"
                                 }
                             }
                             diff > 0 -> {
-                                if(scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
+                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
                                     "تایید شده"
                                 } else {
                                     "اضافی فایل"
@@ -310,6 +313,8 @@ class InventoryActivity : ComponentActivity() {
                         salePrice = it.value.salePrice,
                         rfidKey = it.value.rfidKey,
                         primaryKey = it.value.primaryKey,
+                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
+                        rfidStoreNumber = it.value.rfidStoreNumber,
                     )
                     result[it.value.KBarCode] = resultData
 
@@ -358,7 +363,9 @@ class InventoryActivity : ComponentActivity() {
                         salePrice = it.value.salePrice,
                         rfidKey = it.value.rfidKey,
                         primaryKey = it.value.primaryKey,
-                        desiredNumber = it.value.desiredNumber
+                        desiredNumber = it.value.desiredNumber,
+                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
+                        rfidStoreNumber = it.value.rfidStoreNumber,
                     )
                     result[it.value.KBarCode] = (resultData)
                 }
@@ -366,9 +373,10 @@ class InventoryActivity : ComponentActivity() {
         }
 
         scannedProducts.forEach {
-            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno") && !it.value.name.contains(
-                    "جوراب"
-                )
+            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno")
+                && !it.value.name.contains("جوراب")
+                && !it.value.name.contains("عينك")
+                && !it.value.name.contains("شاپينگ")
             ) {
                 if (it.key !in result.keys) {
                     val resultData = Product(
@@ -389,7 +397,9 @@ class InventoryActivity : ComponentActivity() {
                         salePrice = it.value.salePrice,
                         rfidKey = it.value.rfidKey,
                         primaryKey = it.value.primaryKey,
-                        desiredNumber = 0
+                        desiredNumber = 0,
+                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
+                        rfidStoreNumber = it.value.rfidStoreNumber,
                     )
                     result[it.key] = (resultData)
                 }
@@ -426,13 +436,41 @@ class InventoryActivity : ComponentActivity() {
 
         val uiListTemp = mutableListOf<Product>()
         uiListTemp.addAll(shortageAndAdditional.values.toMutableStateList())
+
+        uiListTemp.sortBy {
+            it.productCode
+        }
+
         uiListTemp.sortBy {
             it.productCode !in currentScannedProductProductCodes
         }
+
+        uiListTemp.sortBy {
+            it.name
+        }
+
+        signedKBarCode.removeAll {
+            uiListTemp.indexOfLast { it1 ->
+                it1.KBarCode == it
+            } == -1
+        }
+
         uiList.clear()
         uiList.addAll(uiListTemp)
+        filterUiList()
 
         syncScannedProductsRunning = false
+        saveToMemory()
+    }
+
+    private fun filterUiList() {
+
+        val uiListParameters = uiList.filter {
+            it.result== scanFilter
+        } as MutableList<Product>
+
+        uiList.clear()
+        uiList.addAll(uiListParameters)
     }
 
     private fun exportFile() {
@@ -442,59 +480,19 @@ class InventoryActivity : ComponentActivity() {
 
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
         headerRow.createCell(0).setCellValue("کد جست و جو")
-        headerRow.createCell(1).setCellValue("تعداد اسکن شده")
-        headerRow.createCell(2).setCellValue("کسری")
-        headerRow.createCell(3).setCellValue("اضافی")
+        headerRow.createCell(1).setCellValue("مغایرت")
 
-        uiList.forEach {
-            val row = sheet.createRow(sheet.physicalNumberOfRows)
-            row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
+        val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
-            if (it.scan == "کسری") {
-                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
-            } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
-                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
-            }
-        }
+        inventoryResult.values.forEach {
 
-        val row = sheet.createRow(sheet.physicalNumberOfRows)
-        row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(number.toDouble())
+            if(it.result != "تایید شده") {
 
-        val sheet2 = workbook.createSheet("کسری")
+                val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
 
-        val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
-        header2Row.createCell(0).setCellValue("کد جست و جو")
-        header2Row.createCell(1).setCellValue("موجودی")
-        header2Row.createCell(2).setCellValue("کسری")
-
-        uiList.forEach {
-
-            if (it.scan == "کسری") {
-                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
-                shortageRow.createCell(0).setCellValue(it.KBarCode)
-                shortageRow.createCell(1)
-                    .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                shortageRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
-            }
-        }
-
-        val sheet3 = workbook.createSheet("اضافی")
-
-        val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
-        header3Row.createCell(0).setCellValue("کد جست و جو")
-        header3Row.createCell(1).setCellValue("موجودی")
-        header3Row.createCell(2).setCellValue("اضافی")
-
-        uiList.forEach {
-
-            if (it.scan == "اضافی") {
-                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
-                additionalRow.createCell(0).setCellValue(it.KBarCode)
-                additionalRow.createCell(1)
-                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                additionalRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
+                val row = sheet.createRow(sheet.physicalNumberOfRows)
+                row.createCell(0).setCellValue(it.KBarCode)
+                row.createCell(1).setCellValue(diff.toDouble())
             }
         }
 
@@ -688,16 +686,18 @@ class InventoryActivity : ComponentActivity() {
 
             if (it1.value.KBarCode !in inputProducts.keys) {
                 inputProducts[it1.value.KBarCode] = it1.value
-                inputProducts[it1.value.KBarCode]!!.desiredNumber = if(isInDepo) {
+                inputProducts[it1.value.KBarCode]!!.desiredNumber = if (isInDepo) {
                     inputProducts[it1.value.KBarCode]!!.wareHouseNumber
                 } else {
                     inputProducts[it1.value.KBarCode]!!.storeNumber
                 }
-                if(!isInProgress) {
-                    if(isInDepo) {
-                        inputProducts[it1.value.KBarCode]!!.rfidWareHouseNumber = -1 * inputProducts[it1.value.KBarCode]!!.wareHouseNumber
+                if (!isInProgress) {
+                    if (isInDepo) {
+                        inputProducts[it1.value.KBarCode]!!.rfidWareHouseNumber =
+                            -1 * inputProducts[it1.value.KBarCode]!!.wareHouseNumber
                     } else {
-                        inputProducts[it1.value.KBarCode]!!.rfidStoreNumber = -1 * inputProducts[it1.value.KBarCode]!!.storeNumber
+                        inputProducts[it1.value.KBarCode]!!.rfidStoreNumber =
+                            -1 * inputProducts[it1.value.KBarCode]!!.storeNumber
                     }
                 }
             }
@@ -779,17 +779,19 @@ class InventoryActivity : ComponentActivity() {
             }
 
             if (it1.value.KBarCode in scannedProducts.keys) {
-                if(it1.value.scannedEPCs[0] !in scannedProducts[it1.value.KBarCode]!!.scannedEPCs) {
+                if (it1.value.scannedEPCs[0] !in scannedProducts[it1.value.KBarCode]!!.scannedEPCs) {
                     scannedProducts[it1.value.KBarCode]!!.scannedEPCNumber += 1
                     scannedProducts[it1.value.KBarCode]!!.scannedEPCs.add(it1.value.scannedEPCs[0])
                 }
             } else {
                 scannedProducts[it1.value.KBarCode] = it1.value
-                if(!isInProgress) {
-                    if(isInDepo) {
-                        scannedProducts[it1.value.KBarCode]!!.rfidWareHouseNumber = -1 * scannedProducts[it1.value.KBarCode]!!.wareHouseNumber
+                if (!isInProgress) {
+                    if (isInDepo) {
+                        scannedProducts[it1.value.KBarCode]!!.rfidWareHouseNumber =
+                            -1 * scannedProducts[it1.value.KBarCode]!!.wareHouseNumber
                     } else {
-                        scannedProducts[it1.value.KBarCode]!!.rfidStoreNumber = -1 * scannedProducts[it1.value.KBarCode]!!.storeNumber
+                        scannedProducts[it1.value.KBarCode]!!.rfidStoreNumber =
+                            -1 * scannedProducts[it1.value.KBarCode]!!.storeNumber
                     }
                 }
             }
@@ -819,7 +821,8 @@ class InventoryActivity : ComponentActivity() {
                 }
             } else {
 
-                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
@@ -870,11 +873,9 @@ class InventoryActivity : ComponentActivity() {
 
             saveToServerInProgress = false
             if (resultsBiggerThan500) {
-                Log.e("error", "2 running")
                 saveApi2()
             } else {
                 resultIndexForApi2 = 0
-                Log.e("error", "2 passed")
                 saveApi3()
             }
         }, {
@@ -888,7 +889,8 @@ class InventoryActivity : ComponentActivity() {
                 }
             } else {
 
-                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
@@ -921,14 +923,15 @@ class InventoryActivity : ComponentActivity() {
                     val productJson = JSONObject()
 
                     val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
-                    val newDiff = it.matchedNumber * -1
+                    val newDiff = if(it.result == "کسری") it.matchedNumber * -1 else it.matchedNumber
 
                     productJson.put("BarcodeMain_ID", it.primaryKey)
                     productJson.put("kbarcode", it.KBarCode)
                     productJson.put("K_Name", it.kName)
                     productJson.put(
                         "diffCount",
-                        if(diff > newDiff) diff else newDiff
+                        if (diff > newDiff) diff else newDiff
+                        //if(it.result == "کسری") it.matchedNumber * -1 else it.matchedNumber
                     )
                     products.put(productJson)
 
@@ -1027,6 +1030,7 @@ class InventoryActivity : ComponentActivity() {
         val edit = memory.edit()
 
         edit.putString("InventoryEPCTable", JSONArray(scannedEpcTable).toString())
+        edit.putString("InventorySignedProductCodes", JSONArray(signedKBarCode).toString())
         edit.putString("warehouseCodeForInventory", warehouseCode)
         edit.putBoolean("inventoryStarted", inventoryStarted)
         edit.apply()
@@ -1062,6 +1066,12 @@ class InventoryActivity : ComponentActivity() {
             scannedEpcTable.javaClass
         ) ?: mutableListOf()
 
+        signedKBarCode = Gson().fromJson(
+            memory.getString("InventorySignedProductCodes", ""),
+            signedKBarCode.javaClass
+        ) ?: mutableStateListOf()
+
+
         epcTablePreviousSize = scannedEpcTable.size
 
         number = scannedEpcTable.size
@@ -1081,6 +1091,8 @@ class InventoryActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
+            signedKBarCode.clear()
+            saveToMemory()
             saveToServerInProgress = false
             Log.e("error", "4 passed")
 
@@ -1094,7 +1106,8 @@ class InventoryActivity : ComponentActivity() {
                     )
                 }
             } else {
-                val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
@@ -1114,6 +1127,7 @@ class InventoryActivity : ComponentActivity() {
                     "Bearer " + MainActivity.token
                 return params
             }
+
             override fun getBody(): ByteArray {
 
                 val body = JSONObject()
@@ -1405,6 +1419,17 @@ class InventoryActivity : ComponentActivity() {
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                 )
+
+                Text(
+                    text = "پیدا نشده: " + (inventoryResult.values.toMutableStateList().filter {
+                        it.result == "اضافی" || it.result == "کسری"
+                    }.size - signedKBarCode.size).toString(),
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                )
+
+                ScanFilterDropDownList()
             }
         }
     }
@@ -1450,27 +1475,35 @@ class InventoryActivity : ComponentActivity() {
                 )
             }
 
-            Button(modifier = Modifier.padding(top = 16.dp).align(Alignment.CenterHorizontally), onClick = {
+            Button(
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .align(Alignment.CenterHorizontally),
+                onClick = {
 
-                if (inventoryStarted) {
-                    stopRFScan()
-                    rfPower = 5
-                    scanningJob = CoroutineScope(IO).launch {
-                        startRFScan()
+                    if (inventoryStarted) {
+                        stopRFScan()
+                        rfPower = 5
+                        scanningJob = CoroutineScope(IO).launch {
+                            startRFScan()
+                        }
                     }
-                }
-            }) {
+                }) {
                 Text(text = "تعریف ناحیه جست و جو")
             }
+            val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
             LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
+
+                    val diff = if (isInDepo) uiList[i].rfidWareHouseNumber else uiList[i].rfidStoreNumber
+
                     Item(
                         i,
                         uiList,
                         text1 = "موجودی: " + uiList[i].desiredNumber,
-                        text2 = uiList[i].result + ":" + " " + uiList[i].matchedNumber,
+                        text2 = uiList[i].result + ":" + " " + uiList[i].matchedNumber + "(" + diff + ")",
                         clickable = true,
                         onClick = {
                             Intent(
@@ -1491,6 +1524,7 @@ class InventoryActivity : ComponentActivity() {
                             } else {
                                 signedKBarCode.remove(uiList[i].KBarCode)
                             }
+                            saveToMemory()
                         }
                     )
                 }
@@ -1679,5 +1713,42 @@ class InventoryActivity : ComponentActivity() {
                 }
             }
         )
+    }
+    @Composable
+    fun ScanFilterDropDownList() {
+
+        val scanValues =
+            mutableListOf("اضافی", "کسری")
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box {
+            Row(modifier = Modifier
+                .clickable { expanded = true }
+                .testTag("CountActivityFilterDropDownList")
+            ) {
+                Text(text = scanFilter)
+                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                scanValues.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        scanFilter = it
+                        getConflicts()
+                    }) {
+                        Text(text = it)
+                    }
+                }
+            }
+        }
     }
 }
