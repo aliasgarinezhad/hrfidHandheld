@@ -11,7 +11,7 @@ class ExceptionHandler(var context : Context, var default : Thread.UncaughtExcep
 
     override fun uncaughtException(thread: Thread, exception: Throwable) {
 
-        val sdf = SimpleDateFormat("MM.dd'T'HH:mm", Locale.ENGLISH)
+        val sdf = SimpleDateFormat("MM-dd'T'HH:mm", Locale.ENGLISH)
         val logFileName = "log" + sdf.format(Date()) + ".txt"
 
         val dir = File(context.getExternalFilesDir(null), "/")

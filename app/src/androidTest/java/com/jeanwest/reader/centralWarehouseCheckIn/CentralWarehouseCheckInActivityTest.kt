@@ -5,16 +5,17 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.sharedClassesAndFiles.Product
+import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
 
-class CheckInActivityTest {
+class CentralWarehouseCheckInActivityTest {
 
     @get:Rule
-    val checkInActivity = createAndroidComposeRule<CheckInActivity>()
+    val checkInActivity = createAndroidComposeRule<CentralWarehouseCheckInActivity>()
 
     //open a check-in, scan some items, check filters
     @Test
@@ -31,6 +32,14 @@ class CheckInActivityTest {
 
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
+
+        checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
+        checkInActivity.waitForIdle()
+        checkInActivity.onNodeWithText("بارکد").performClick()
+        checkInActivity.waitForIdle()
+        barcodeScan("22181508-2525-34-1")
+        checkInActivity.waitForIdle()
+
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
         checkInActivity.waitForIdle()
@@ -39,7 +48,7 @@ class CheckInActivityTest {
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
         checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
 
-        val appProductMap = mutableMapOf<Long, Int>()
+        /*val appProductMap = mutableMapOf<Long, Int>()
         checkInActivity.activity.inputProducts.forEach {
             appProductMap[it.value.rfidKey] = it.value.desiredNumber
         }
@@ -135,7 +144,7 @@ class CheckInActivityTest {
                 assertTextContains("موجودی: " + additionalProductList[i].desiredNumber)
                 assertTextContains("اضافی: " + additionalProductList[i].matchedNumber)
             }
-        }
+        }*/
     }
 
     private fun epcScan(withDifference : Boolean) {
@@ -243,6 +252,14 @@ class CheckInActivityTest {
 
         return epc0To64 + epc64To96
 
+    }
+
+    private fun barcodeScan(barcode : String) {
+        Barcode2D.barcode = barcode
+        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        checkInActivity.waitForIdle()
+        Thread.sleep(500)
+        checkInActivity.waitForIdle()
     }
 
     private val productList = mutableListOf(

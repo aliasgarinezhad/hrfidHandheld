@@ -6,11 +6,11 @@ import com.jeanwest.reader.MainActivity
 import org.junit.Rule
 import org.junit.Test
 
-class GetCheckInPropertiesActivityTest {
+class CentralWarehouseGetCheckInPropertiesActivityTest {
 
     @get:Rule
     var getCheckInPropertiesActivityTest =
-        createAndroidComposeRule<GetCheckInPropertiesActivity>()
+        createAndroidComposeRule<CentralWarehouseGetCheckInPropertiesActivity>()
 
     @Test
     fun getBarcodesByCheckInNumberActivityTest1() {

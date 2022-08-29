@@ -44,7 +44,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import com.jeanwest.reader.sharedClassesAndFiles.*
 
-class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
+class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 
     private var warehouseNumber by mutableStateOf("")
     private var barcodeTable = mutableListOf<Product>()
@@ -286,7 +286,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
         TopAppBar(
             title = {
                 Text(
-                    text = stringResource(id = R.string.checkInText),
+                    text = stringResource(id = R.string.centralCheckInCheckInText),
                     modifier = Modifier
                         .padding(end = 50.dp)
                         .fillMaxSize()
@@ -460,7 +460,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
             onClick = {
                 stopBarcodeScan()
                 //Log.e("error", uiList.toMutableList().toString())
-                Intent(this, CheckInActivity::class.java).also {
+                Intent(this, CentralWarehouseCheckInActivity::class.java).also {
                     startActivity(it)
                 }
             },

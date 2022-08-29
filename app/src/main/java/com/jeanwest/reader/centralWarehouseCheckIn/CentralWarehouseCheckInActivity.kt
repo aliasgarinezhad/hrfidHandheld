@@ -48,7 +48,7 @@ import org.json.JSONArray
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
-class CheckInActivity : ComponentActivity(), IBarcodeResult {
+class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
@@ -459,6 +459,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
         run breakForEach@{
             barcodeTable.forEach {
+
                 if (it !in scannedBarcodeMapWithProperties.keys && it !in barcodeArray) {
                     if (barcodeArray.size < 1000) {
                         barcodeArray.add(it)
@@ -555,23 +556,46 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
+        val shouldBeCleanedFromScannedBarcodes = mutableListOf<String>()
+
         scannedBarcodeMapWithProperties.forEach { it1 ->
 
-            if (it1.value.KBarCode !in scannedProducts.keys) {
-
-                scannedProducts[it1.value.KBarCode] = it1.value.copy()
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = barcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
+            if ((it1.value.brandName == "JeansWest" || it1.value.brandName == "JootiJeans" || it1.value.brandName == "Baleno")
+                && !it1.value.name.contains("جوراب")
+                && !it1.value.name.contains("عينك")
+                && !it1.value.name.contains("شاپينگ")
+            ) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "این کالا باید با RFID اسکن شود",
+                        null,
+                        SnackbarDuration.Long
+                    )
                 }
-
+                shouldBeCleanedFromScannedBarcodes.add(it1.key)
             } else {
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber =
-                    barcodeTable.count { innerIt2 ->
+                if (it1.value.KBarCode !in scannedProducts.keys) {
+
+                    scannedProducts[it1.value.KBarCode] = it1.value.copy()
+                    scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = barcodeTable.count { innerIt2 ->
                         innerIt2 == it1.key
                     }
-                scannedProducts[it1.value.KBarCode]?.scannedBarcode = it1.key
+
+                } else {
+                    scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber =
+                        barcodeTable.count { innerIt2 ->
+                            innerIt2 == it1.key
+                        }
+                    scannedProducts[it1.value.KBarCode]?.scannedBarcode = it1.key
+                }
             }
         }
+
+        shouldBeCleanedFromScannedBarcodes.forEach {
+            scannedBarcodeMapWithProperties.remove(it)
+            barcodeTable.remove(it)
+        }
+        numberOfScanned = barcodeTable.size + epcTable.size
     }
 
     override fun getBarcode(barcode: String?) {
@@ -707,7 +731,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         Log.e("error", shortageAndAdditional.size.toString())
 
-        Intent(this, ConfirmCheckInsActivity::class.java).also {
+        Intent(this, CentralWarehouseConfirmCheckInsActivity::class.java).also {
             it.putExtra(
                 "additionalAndShortageProducts",
                 Gson().toJson(shortageAndAdditional).toString()
@@ -762,7 +786,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.checkInText),
+                    text = stringResource(id = R.string.centralCheckInCheckInText),
                     modifier = Modifier
                         .padding(end = 10.dp)
                         .fillMaxSize()

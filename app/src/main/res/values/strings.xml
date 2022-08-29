@@ -4,6 +4,7 @@
     <string name="manualRefill">شارژ</string>
     <string name="checkOut">ثبت حواله</string>
     <string name="checkInText">تروفالس</string>
+    <string name="centralCheckInCheckInText">تروفالس انبار مرکزی</string>
     <string name="inventoryText">انبارگردانی</string>
     <string name="refill">خطی</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>

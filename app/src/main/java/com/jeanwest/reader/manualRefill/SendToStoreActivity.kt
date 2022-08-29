@@ -69,14 +69,14 @@ class SendToStoreActivity : ComponentActivity() {
         }
 
         queue = Volley.newRequestQueue(this)
+        uiList = ManualRefillActivity.products.filter { it1 ->
+            it1.scannedNumber > 0
+        }.toMutableStateList()
 
-        val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
-
-        uiList = Gson().fromJson(
-            intent.getStringExtra("ManualRefillProducts"), type
-        ) ?: mutableStateListOf()
-
-        numberOfScanned = intent.getIntExtra("ManualRefillValidScannedProductsNumber", 0)
+        numberOfScanned = 0
+        uiList.forEach {
+            numberOfScanned += it.scannedNumber
+        }
 
         val util = JalaliDate()
         fileName += util.currentShamsidate

@@ -41,7 +41,7 @@ import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -726,6 +726,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         scannedBarcodeMapWithProperties.forEach { it1 ->
 
             if (it1.value.KBarCode in scannedProducts.keys) {
+                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
+                    innerIt2 == it1.key
+                }
+            } else {
                 scannedProducts[it1.value.KBarCode] = it1.value
                 scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
                     innerIt2 == it1.key
@@ -1024,6 +1028,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             scannedEpcTable.clear()
             searchModeEpcTable.clear()
             searchModeProductCodes.clear()
+            scannedBarcodeMapWithProperties.clear()
+            scannedEpcMapWithProperties.clear()
             epcTablePreviousSize = 0
             number = 0
             scannedProducts.clear()

@@ -37,11 +37,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -199,7 +199,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     Log.e("error", "charge database is empty")
                 }
                 else -> {
-                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    val error = JSONObject(it.networkResponse?.data?.decodeToString().toString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             error.getString("message"),
@@ -594,17 +594,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
-    private fun openSendToStoreActivity() {
-
-        Intent(this, SendToStoreActivity::class.java).also {
-            it.putExtra("ManualRefillProducts", Gson().toJson(products.filter { it1 ->
-                it1.scannedBarcodeNumber + it1.scannedEPCNumber > 0
-            }).toString())
-            it.putExtra("ManualRefillValidScannedProductsNumber", numberOfScanned)
-            startActivity(it)
-        }
-    }
-
     private fun openSearchActivity(product: Product) {
 
         val intent = Intent(this, SearchSubActivity::class.java)
@@ -661,7 +650,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         Text(text = "تعریف شارژ")
                     }
 
-                    Button(onClick = { openSendToStoreActivity() }) {
+                    Button(onClick = {
+                        Intent(this@ManualRefillActivity, SendToStoreActivity::class.java).also {
+                            startActivity(it)
+                        }
+                    }) {
                         Text(text = "ارسال")
                     }
                 }

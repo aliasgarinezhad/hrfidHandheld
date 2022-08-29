@@ -1,11 +1,11 @@
-package com.jeanwest.reader.refill
+package com.jeanwest.reader.checkIn
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -20,10 +20,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.android.volley.DefaultRetryPolicy
+import androidx.preference.PreferenceManager
+import coil.annotation.ExperimentalCoilApi
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -31,11 +32,9 @@ import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
 import com.jeanwest.reader.sharedClassesAndFiles.JalaliDate.JalaliDate
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
 import com.jeanwest.reader.sharedClassesAndFiles.Item
-import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,18 +44,20 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
-import java.util.*
 
-class SendToStoreActivity : ComponentActivity() {
 
+@OptIn(ExperimentalFoundationApi::class)
+class CentralWarehouseConfirmCheckInsActivity : ComponentActivity() {
+
+    private var conflictResultProducts = mutableStateListOf<Product>()
     private var uiList = mutableStateListOf<Product>()
-    private var fileName by mutableStateOf("ارسالی خطی تاریخ ")
-    private var openFileDialog by mutableStateOf(false)
+    private var openDialog by mutableStateOf(false)
+    private var fileName by mutableStateOf("حواله تایید شده تاریخ ")
+    private var shortagesNumber by mutableStateOf(0)
+    private var additionalNumber by mutableStateOf(0)
     private var numberOfScanned by mutableStateOf(0)
+    private var checkInProperties = mutableListOf<CheckInProperties>()
     private var state = SnackbarHostState()
-    private val apiTimeout = 120000
-    private var isSubmitting by mutableStateOf(false)
     private lateinit var queue : RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,34 +71,104 @@ class SendToStoreActivity : ComponentActivity() {
 
         val type = object : TypeToken<SnapshotStateList<Product>>() {}.type
 
-        uiList = RefillActivity.refillProducts.filter { it1 ->
-            it1.scannedNumber > 0
+        conflictResultProducts = Gson().fromJson(
+            intent.getStringExtra("additionalAndShortageProducts"), type
+        ) ?: mutableStateListOf()
+
+        uiList = conflictResultProducts.filter { it1 ->
+            it1.scan == "کسری" || it1.scan == "اضافی" || it1.scan == "اضافی فایل"
         }.toMutableStateList()
 
-        numberOfScanned = 0
-        uiList.forEach {
-            numberOfScanned += it.scannedNumber
-        }
+        numberOfScanned = intent.getIntExtra("numberOfScanned", 0)
+        shortagesNumber = intent.getIntExtra("shortagesNumber", 0)
+        additionalNumber = intent.getIntExtra("additionalNumber", 0)
+
+        loadMemory()
 
         val util = JalaliDate()
         fileName += util.currentShamsidate
+
         Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+    }
+
+    private fun loadMemory() {
+
+        val type = object : TypeToken<List<CheckInProperties>>() {}.type
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+
+        checkInProperties = Gson().fromJson(
+            memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+            type
+        ) ?: mutableListOf()
     }
 
     private fun exportFile() {
 
         val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("ارسالی به فروشگاه")
+        val sheet = workbook.createSheet("تروفالس")
 
         val headerRow = sheet.createRow(sheet.physicalNumberOfRows)
         headerRow.createCell(0).setCellValue("کد جست و جو")
         headerRow.createCell(1).setCellValue("تعداد")
+        headerRow.createCell(2).setCellValue("کسری")
+        headerRow.createCell(3).setCellValue("اضافی")
+        headerRow.createCell(4).setCellValue("نشانه")
 
-        uiList.forEach {
+        conflictResultProducts.forEach {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it.KBarCode)
-            row.createCell(1)
-                .setCellValue(it.scannedEPCNumber.toDouble() + it.scannedBarcodeNumber.toDouble())
+            row.createCell(1).setCellValue(it.scannedNumber.toDouble())
+
+            if (it.scan == "کسری") {
+                row.createCell(2).setCellValue(it.matchedNumber.toDouble())
+            } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
+                row.createCell(3).setCellValue(it.matchedNumber.toDouble())
+            }
+        }
+
+        val row = sheet.createRow(sheet.physicalNumberOfRows)
+        row.createCell(0).setCellValue("مجموع")
+        row.createCell(1).setCellValue(numberOfScanned.toDouble())
+        row.createCell(2).setCellValue(shortagesNumber.toDouble())
+        row.createCell(3).setCellValue(additionalNumber.toDouble())
+
+        val sheet2 = workbook.createSheet("کسری")
+
+        val header2Row = sheet2.createRow(sheet2.physicalNumberOfRows)
+        header2Row.createCell(0).setCellValue("کد جست و جو")
+        header2Row.createCell(1).setCellValue("موجودی")
+        header2Row.createCell(2).setCellValue("کسری")
+        header2Row.createCell(3).setCellValue("نشانه")
+
+        conflictResultProducts.forEach {
+
+            if (it.scan == "کسری") {
+                val shortageRow = sheet2.createRow(sheet2.physicalNumberOfRows)
+                shortageRow.createCell(0).setCellValue(it.KBarCode)
+                shortageRow.createCell(1)
+                    .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
+                shortageRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
+            }
+        }
+
+        val sheet3 = workbook.createSheet("اضافی")
+
+        val header3Row = sheet3.createRow(sheet3.physicalNumberOfRows)
+        header3Row.createCell(0).setCellValue("کد جست و جو")
+        header3Row.createCell(1).setCellValue("موجودی")
+        header3Row.createCell(2).setCellValue("اضافی")
+        header3Row.createCell(3).setCellValue("نشانه")
+
+        conflictResultProducts.forEach {
+
+            if (it.scan == "اضافی") {
+                val additionalRow = sheet3.createRow(sheet3.physicalNumberOfRows)
+                additionalRow.createCell(0).setCellValue(it.KBarCode)
+                additionalRow.createCell(1)
+                    .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
+                additionalRow.createCell(2).setCellValue(it.matchedNumber.toDouble())
+            }
         }
 
         val dir = File(this.getExternalFilesDir(null), "/")
@@ -121,12 +192,13 @@ class SendToStoreActivity : ComponentActivity() {
         applicationContext.startActivity(shareIntent)
     }
 
-    private fun sendToStore() {
+    private fun confirmCheckIns() {
 
-        if(numberOfScanned == 0) {
+        if (checkInProperties.size == 0) {
+
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    "کالایی برای ارسال وجود ندارد",
+                    "حواله ای برای تایید وجود ندارد",
                     null,
                     SnackbarDuration.Long
                 )
@@ -134,39 +206,31 @@ class SendToStoreActivity : ComponentActivity() {
             return
         }
 
-        uiList.forEach {
-            if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                return
-            }
-        }
-
-        isSubmitting = true
-
-        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
+        if (uiList.size != 0) {
 
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
-                    "اجناس با موفقیت به فروشگاه حواله شدند",
+                    "لطفا ابتدا مغایرت ها را برطرف نمایید.",
                     null,
                     SnackbarDuration.Long
                 )
             }
-            isSubmitting = false
-            RefillActivity.scannedBarcodeTable.clear()
-            RefillActivity.scannedEpcTable.clear()
-            uiList.clear()
-            numberOfScanned = 0
+            return
+        }
 
+        val url = "https://rfid-api.avakatan.ir/stock-draft/confirm"
+        val request = object : JsonArrayRequest(Method.POST, url, null, {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "حواله ها با موفقیت تایید شدند",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
         }, {
             if (it is NoConnectionError) {
+
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
                         "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
@@ -175,7 +239,9 @@ class SendToStoreActivity : ComponentActivity() {
                     )
                 }
             } else {
+
                 val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
                         error.getString("message"),
@@ -184,51 +250,22 @@ class SendToStoreActivity : ComponentActivity() {
                     )
                 }
             }
-
-            isSubmitting = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
                 params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
+                params["Authorization"] = "Bearer " + MainActivity.token
                 return params
             }
 
             override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val products = JSONArray()
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                Log.e("time", sdf.format(Date()))
-
-                uiList.forEach {
-                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        products.put(productJson)
-                    }
+                val body = JSONArray()
+                checkInProperties.forEach {
+                    body.put(it.number)
                 }
-
-                body.put("desc", "خطی هندهلد RFID")
-                body.put("createDate", sdf.format(Date()))
-                body.put("products", products)
-
-                Log.e("error", body.toString())
-
                 return body.toString().toByteArray()
             }
         }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
         queue.add(request)
     }
 
@@ -244,6 +281,8 @@ class SendToStoreActivity : ComponentActivity() {
         finish()
     }
 
+    @ExperimentalCoilApi
+    @ExperimentalFoundationApi
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -251,7 +290,9 @@ class SendToStoreActivity : ComponentActivity() {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { Content() },
-                    bottomBar = { BottomAppBar() },
+                    bottomBar = {
+                        BottomAppBar()
+                    },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -260,7 +301,7 @@ class SendToStoreActivity : ComponentActivity() {
 
     @Composable
     fun BottomAppBar() {
-        BottomAppBar(backgroundColor = JeanswestBottomBar) {
+        BottomAppBar(backgroundColor = MaterialTheme.colors.background) {
 
             Row(
                 modifier = Modifier
@@ -268,9 +309,15 @@ class SendToStoreActivity : ComponentActivity() {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Text(
+                    text = "جمع کسری: $shortagesNumber",
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                )
 
                 Text(
-                    text = "مجموع ارسالی: $numberOfScanned",
+                    text = "جمع اضافی: $additionalNumber",
                     textAlign = TextAlign.Right,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -282,16 +329,10 @@ class SendToStoreActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            if (!isSubmitting) {
-                                sendToStore()
-                            }
+                            confirmCheckIns()
                         },
                     ) {
-                        if (!isSubmitting) {
-                            Text(text = "ارسال به فروشگاه")
-                        } else {
-                            Text(text = "در حال ارسال ...")
-                        }
+                        Text(text = "تایید حواله ها")
                     }
                 }
             }
@@ -304,9 +345,7 @@ class SendToStoreActivity : ComponentActivity() {
         TopAppBar(
 
             navigationIcon = {
-                IconButton(onClick = {
-                    back()
-                }) {
+                IconButton(onClick = { finish() }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
                         contentDescription = ""
@@ -315,7 +354,7 @@ class SendToStoreActivity : ComponentActivity() {
             },
 
             actions = {
-                IconButton(onClick = { openFileDialog = true }) {
+                IconButton(onClick = { openDialog = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
                         contentDescription = ""
@@ -325,7 +364,7 @@ class SendToStoreActivity : ComponentActivity() {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.refill),
+                    text = stringResource(id = R.string.centralCheckInCheckInText),
                     modifier = Modifier
                         .padding(end = 15.dp)
                         .fillMaxSize()
@@ -336,24 +375,26 @@ class SendToStoreActivity : ComponentActivity() {
         )
     }
 
+    @ExperimentalCoilApi
+    @ExperimentalFoundationApi
     @Composable
     fun Content() {
 
         Column {
 
-            if (openFileDialog) {
+            if (openDialog) {
                 FileAlertDialog()
             }
 
             LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
-                    Item(
-                        i, uiList,
-                        text1 = "اسکن: " + uiList[i].scannedNumber,
-                        text2 = "انبار: " + uiList[i].wareHouseNumber.toString(),
-                        enableWarehouseNumberCheck = true,
-                    )
+                        Item(
+                            i,
+                            uiList,
+                            text1 = "موجودی: " + uiList[i].desiredNumber,
+                            text2 = uiList[i].result
+                        )
                 }
             }
         }
@@ -386,7 +427,7 @@ class SendToStoreActivity : ComponentActivity() {
                         .padding(bottom = 10.dp, top = 10.dp, start = 10.dp, end = 10.dp)
                         .align(Alignment.CenterHorizontally),
                         onClick = {
-                            openFileDialog = false
+                            openDialog = false
                             exportFile()
                         }) {
                         Text(text = "ذخیره")
@@ -395,7 +436,7 @@ class SendToStoreActivity : ComponentActivity() {
             },
 
             onDismissRequest = {
-                openFileDialog = false
+                openDialog = false
             }
         )
     }
