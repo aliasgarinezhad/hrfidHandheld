@@ -1,4 +1,4 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.centralWarehouseCheckIn
 
 import android.content.Intent
 import android.media.AudioManager
@@ -37,6 +37,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.sharedClassesAndFiles.JalaliDate.JalaliDateConverter
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.checkIn.CheckInProperties
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,12 +105,12 @@ class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarco
         try {
 
             barcodeTable = Gson().fromJson(
-                memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
+                memory.getString("CentralWarehouseCheckInInputBarcodeTable", ""),
                 type1
             ) ?: mutableListOf()
 
             uiList = Gson().fromJson(
-                memory.getString("GetBarcodesByCheckInNumberActivityUiList", ""),
+                memory.getString("CentralWarehouseCheckInNumbers", ""),
                 type
             ) ?: mutableStateListOf()
 
@@ -124,10 +125,10 @@ class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarco
         val edit = memory.edit()
 
         edit.putString(
-            "GetBarcodesByCheckInNumberActivityBarcodeTable",
+            "CentralWarehouseCheckInInputBarcodeTable",
             Gson().toJson(barcodeTable).toString()
         )
-        edit.putString("GetBarcodesByCheckInNumberActivityUiList", Gson().toJson(uiList).toString())
+        edit.putString("CentralWarehouseCheckInNumbers", Gson().toJson(uiList).toString())
 
         edit.apply()
     }
@@ -165,6 +166,17 @@ class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarco
             return
         }
 
+        if(uiList.size == 1) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "تنها یک حواله مجاز است",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
         val number = code.toLong()
         uiList.forEach {
             if (it.number == number) {
@@ -180,7 +192,7 @@ class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarco
             }
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft-details/$code"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/$code/details"
         val request = object : JsonArrayRequest(url, fun(it) {
 
             val source = it.getJSONObject(0).getInt("FromWareHouse_ID")
@@ -203,6 +215,7 @@ class CentralWarehouseGetCheckInPropertiesActivity : ComponentActivity(), IBarco
                         KBarCode = it.getJSONObject(i).getString("kbarcode"),
                         desiredNumber = it.getJSONObject(i).getInt("Qty"),
                         checkInNumber = code.toLong(),
+                        primaryKey = it.getJSONObject(i).getLong("BarcodeMain_ID")
                     )
                 )
             }

@@ -6,8 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART.uhfTagInfo
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART.uhfTagInfo
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test

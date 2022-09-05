@@ -35,14 +35,15 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
-import com.jeanwest.reader.sharedClassesAndFiles.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import kotlin.math.abs
@@ -66,6 +67,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
     private var inputProductsBiggerThan1000 = false
+    private var inputEpcTable = mutableMapOf<String, Long>()
 
     //ui parameters
     var conflictResultProducts = mutableStateListOf<Product>()
@@ -171,7 +173,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
                 if (uhfTagInfo != null) {
-                    if (uhfTagInfo.epc.startsWith("30")) {
+                    if (uhfTagInfo.epc.startsWith("30") && uhfTagInfo.epc in inputEpcTable) {
                         epcTable.add(uhfTagInfo.epc)
                     }
                 } else {
@@ -355,6 +357,12 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             }
         uiList.clear()
         uiList.addAll(uiListParameters)
+        uiList.sortBy {
+            it.productCode
+        }
+        uiList.sortBy {
+            it.name
+        }
     }
 
 
@@ -418,7 +426,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 inputProducts[it1.value.KBarCode] = it1.value.copy()
                 inputProducts[it1.value.KBarCode]!!.desiredNumber = 0
                 inputBarcodes.filter {
-                    it.KBarCode == it1.value.scannedBarcode
+                    it.primaryKey == it1.value.primaryKey
                 }.forEach { it2->
                     inputProducts[it1.value.KBarCode]!!.desiredNumber += it2.desiredNumber
                 }
@@ -617,6 +625,11 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             barcodeTable.javaClass
         ) ?: mutableListOf()
 
+        inputEpcTable = Gson().fromJson(
+            memory.getString("CheckInInputEpcTable", ""),
+            inputEpcTable.javaClass
+        ) ?: mutableMapOf()
+
         numberOfScanned = epcTable.size + barcodeTable.size
     }
 
@@ -661,7 +674,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         var checkInNumber = 0L
         inputBarcodes.forEach {
-            if (product.KBarCode == it.KBarCode) {
+            if (product.primaryKey == it.primaryKey) {
                 checkInNumber = it.checkInNumber
             }
         }

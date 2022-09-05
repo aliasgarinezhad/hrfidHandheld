@@ -1,4 +1,4 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.centralWarehouseCheckIn
 
 import android.content.Intent
 import android.media.AudioManager
@@ -30,21 +30,27 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
+import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
+import com.jeanwest.reader.checkIn.CheckInProperties
+import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -66,6 +72,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
     private var inputProductsBiggerThan1000 = false
+    private var checkInProperties = mutableListOf<CheckInProperties>()
 
     //ui parameters
     var conflictResultProducts = mutableStateListOf<Product>()
@@ -259,7 +266,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         originalPrice = fileProduct.value.originalPrice,
                         salePrice = fileProduct.value.salePrice,
                         rfidKey = fileProduct.value.rfidKey,
-                        primaryKey = fileProduct.value.primaryKey
+                        primaryKey = fileProduct.value.primaryKey,
+                        scannedEPCs = scannedProduct.value.scannedEPCs
                     )
                     result.add(resultData)
                     samePrimaryKeys.add(fileProduct.value.primaryKey)
@@ -284,6 +292,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                     rfidKey = scannedProduct.value.rfidKey,
                     primaryKey = scannedProduct.value.primaryKey,
                     desiredNumber = 0,
+                    scannedEPCs = scannedProduct.value.scannedEPCs
                 )
                 result.add(resultData)
             }
@@ -355,6 +364,12 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             }
         uiList.clear()
         uiList.addAll(uiListParameters)
+        uiList.sortBy {
+            it.productCode
+        }
+        uiList.sortBy {
+            it.name
+        }
     }
 
 
@@ -418,19 +433,30 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                 inputProducts[it1.value.KBarCode] = it1.value.copy()
                 inputProducts[it1.value.KBarCode]!!.desiredNumber = 0
                 inputBarcodes.filter {
-                    it.KBarCode == it1.value.scannedBarcode
+                    it.primaryKey == it1.value.primaryKey
                 }.forEach { it2->
                     inputProducts[it1.value.KBarCode]!!.desiredNumber += it2.desiredNumber
                 }
             }
         }
 
-        /*val logList = mutableMapOf<Long, Int>()
+        /*val rfidLogList = mutableMapOf<Long, Int>()
+        val barcodeLogList = mutableMapOf<String, Int>()
+
         inputProducts.forEach {
-            logList[it.value.rfidKey] = it.value.desiredNumber
+            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno")
+                && !it.value.name.contains("جوراب")
+                && !it.value.name.contains("عينك")
+                && !it.value.name.contains("شاپينگ")
+            ) {
+                rfidLogList[it.value.rfidKey] = it.value.desiredNumber
+            } else {
+                barcodeLogList[it.value.scannedBarcode] = it.value.desiredNumber
+            }
         }
 
-        Log.e("error", logList.toString())*/
+        Log.e("rfidLogList", rfidLogList.toString())
+        Log.e("barcodeLogList", barcodeLogList.toString())*/
     }
 
     private fun syncScannedItemsToServer() {
@@ -614,8 +640,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString("CheckInEPCTable", JSONArray(epcTable).toString())
-        edit.putString("CheckInBarcodeTable", JSONArray(barcodeTable).toString())
+        edit.putString("CentralWarehouseCheckInEPCTable", JSONArray(epcTable).toString())
+        edit.putString("CentralWarehouseCheckInBarcodeTable", JSONArray(barcodeTable).toString())
         edit.apply()
     }
 
@@ -623,22 +649,28 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val type1 = object : TypeToken<MutableList<Product>>() {}.type
+        val type = object : TypeToken<List<CheckInProperties>>() {}.type
 
         inputBarcodes = Gson().fromJson(
-            memory.getString("GetBarcodesByCheckInNumberActivityBarcodeTable", ""),
+            memory.getString("CentralWarehouseCheckInInputBarcodeTable", ""),
             type1
         ) ?: mutableListOf()
 
         epcTable = Gson().fromJson(
-            memory.getString("CheckInEPCTable", ""),
+            memory.getString("CentralWarehouseCheckInEPCTable", ""),
             epcTable.javaClass
         ) ?: mutableListOf()
 
         epcTablePreviousSize = epcTable.size
 
         barcodeTable = Gson().fromJson(
-            memory.getString("CheckInBarcodeTable", ""),
+            memory.getString("CentralWarehouseCheckInBarcodeTable", ""),
             barcodeTable.javaClass
+        ) ?: mutableListOf()
+
+        checkInProperties = Gson().fromJson(
+            memory.getString("CentralWarehouseCheckInNumbers", ""),
+            type
         ) ?: mutableListOf()
 
         numberOfScanned = epcTable.size + barcodeTable.size
@@ -685,7 +717,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
         var checkInNumber = 0L
         inputBarcodes.forEach {
-            if (product.KBarCode == it.KBarCode) {
+            if (product.primaryKey == it.primaryKey) {
                 checkInNumber = it.checkInNumber
             }
         }
@@ -710,38 +742,114 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
         startActivity(intent)
     }
 
-    private fun openConfirmCheckInsActivity() {
+    private fun editCheckIns() {
 
-        val shortageAndAdditional = mutableListOf<Product>()
+        if (checkInProperties.size == 0) {
 
-        run breakForEach@ {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "حواله ای برای تایید وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
 
-            conflictResultProducts.forEach {
+        if (uiList.size != 0) {
 
-                if (it.scan == "کسری" || it.scan == "اضافی" || it.scan == "اضافی فایل") {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "لطفا ابتدا مغایرت ها را برطرف نمایید.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
 
-                    if (shortageAndAdditional.size > 100) {
-                        return@breakForEach
-                    } else {
-                        shortageAndAdditional.add(it)
+        checkInProperties.forEach { checkInProperty ->
+            val url = "https://rfid-api.avakatan.ir/stock-draft/${checkInProperty.number}"
+
+            val request = object : JsonArrayRequest(Method.PATCH, url, null, {
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "حواله " + checkInProperty.number + "با موفقیت تایید شد.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }, {
+                if (it is NoConnectionError) {
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                } /*else if(it.networkResponse.statusCode == 204) {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "حواله " + checkInProperty.number + "با موفقیت تایید شد.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }*/ else {
+
+                    if(it.networkResponse != null) {
+                        val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
+                        CoroutineScope(Dispatchers.Default).launch {
+                            state.showSnackbar(
+                                error.getString("message"),
+                                null,
+                                SnackbarDuration.Long
+                            )
+                        }
                     }
                 }
+            }) {
+                override fun getHeaders(): MutableMap<String, String> {
+                    val params = HashMap<String, String>()
+                    params["Content-Type"] = "application/json;charset=UTF-8"
+                    params["Authorization"] = "Bearer " + MainActivity.token
+                    return params
+                }
+
+                override fun getBody(): ByteArray {
+                    val body = JSONArray()
+
+                    conflictResultProducts.forEach {
+
+                        var checkInNumber = 0L
+
+                        inputBarcodes.forEach { it1 ->
+                            if (it1.primaryKey == it.primaryKey) {
+                                checkInNumber = it1.checkInNumber
+                            }
+                        }
+
+                        if(checkInNumber == checkInProperty.number) {
+                            val item = JSONObject()
+                            item.put("BarcodeMain_ID", it.primaryKey)
+                            item.put("epcs", JSONArray(it.scannedEPCs))
+                            body.put(item)
+                        }
+                    }
+
+                    Log.e("error", body.toString())
+
+                    return body.toString().toByteArray()
+                }
             }
-        }
-
-        Log.e("error", shortageAndAdditional.size.toString())
-
-        Intent(this, CentralWarehouseConfirmCheckInsActivity::class.java).also {
-            it.putExtra(
-                "additionalAndShortageProducts",
-                Gson().toJson(shortageAndAdditional).toString()
-            )
-            it.putExtra("numberOfScanned", numberOfScanned)
-            it.putExtra("shortagesNumber", shortagesNumber)
-            it.putExtra("additionalNumber", additionalNumber)
-            startActivity(it)
+            queue.add(request)
         }
     }
+
 
     @ExperimentalFoundationApi
     @Composable
@@ -820,7 +928,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         scanTypeValue = it
                     }
                     ScanFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
-                    Button(onClick = { openConfirmCheckInsActivity() }) {
+                    Button(onClick = { editCheckIns() }) {
                         Text(text = "تایید حواله ها")
                     }
                 }

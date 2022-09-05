@@ -53,6 +53,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private val barcode2D = Barcode2D(this)
     private lateinit var queue: RequestQueue
+    private var inputEpcTable = mutableMapOf<String, String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,6 +114,11 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
                 type
             ) ?: mutableStateListOf()
 
+            inputEpcTable = Gson().fromJson(
+                memory.getString("CheckInInputEpcTable", ""),
+                inputEpcTable.javaClass
+            ) ?: mutableMapOf()
+
         } catch (e : Exception) {
             uiList = mutableStateListOf()
         }
@@ -129,18 +135,34 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
         )
         edit.putString("GetBarcodesByCheckInNumberActivityUiList", Gson().toJson(uiList).toString())
 
+        edit.putString(
+            "CheckInInputEpcTable",
+            JSONObject(inputEpcTable as Map<*, *>).toString()
+        )
+
         edit.apply()
     }
 
     fun clear(checkInProperties : CheckInProperties) {
         uiList.remove(checkInProperties)
         val removeProducts = mutableListOf<Product>()
+        val removeEpcProducts = mutableListOf<String>()
         barcodeTable.forEach {
             if(it.checkInNumber == checkInProperties.number) {
                 removeProducts.add(it)
             }
         }
         barcodeTable.removeAll(removeProducts)
+
+        inputEpcTable.forEach {
+            if (it.value == checkInProperties.number.toString()) {
+                removeEpcProducts.add(it.key)
+            }
+        }
+        removeEpcProducts.forEach {
+            inputEpcTable.remove(it)
+        }
+
         saveMemory()
     }
 
@@ -180,7 +202,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft-details/$code"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/$code/details"
         val request = object : JsonArrayRequest(url, fun(it) {
 
             val source = it.getJSONObject(0).getInt("FromWareHouse_ID")
@@ -203,8 +225,11 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
                         KBarCode = it.getJSONObject(i).getString("kbarcode"),
                         desiredNumber = it.getJSONObject(i).getInt("Qty"),
                         checkInNumber = code.toLong(),
+                        primaryKey = it.getJSONObject(i).getLong("BarcodeMain_ID")
                     )
                 )
+
+                inputEpcTable[it.getJSONObject(i).getString("EPC")] = number.toString()
             }
 
             val checkInProperties = CheckInProperties(

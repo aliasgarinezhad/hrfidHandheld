@@ -37,11 +37,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.jeanwest.reader.sharedClassesAndFiles.testClasses.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*

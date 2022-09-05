@@ -1,8 +1,9 @@
-package com.jeanwest.reader.checkIn
+package com.jeanwest.reader.centralWarehouseCheckIn
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.checkIn.CheckInProperties
 import org.junit.Rule
 import org.junit.Test
 

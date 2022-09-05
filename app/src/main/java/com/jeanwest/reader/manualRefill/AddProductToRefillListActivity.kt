@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
+//import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle

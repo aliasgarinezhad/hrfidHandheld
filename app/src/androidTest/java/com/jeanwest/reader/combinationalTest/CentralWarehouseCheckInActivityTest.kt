@@ -1,9 +1,10 @@
-package com.jeanwest.reader.centralWarehouseCheckIn
+package com.jeanwest.reader.combinationalTest
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity
 import com.jeanwest.reader.sharedClassesAndFiles.Product
 import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.rscja.deviceapi.RFIDWithUHFUART
@@ -21,154 +22,25 @@ class CentralWarehouseCheckInActivityTest {
     @Test
     fun checkInActivityTest1() {
 
-        val inputProductsNumber = 1062
-
         start()
         clearUserData()
         restart()
 
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
-
-        checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("بارکد").performClick()
-        checkInActivity.waitForIdle()
-        barcodeScan("22181508-2525-34-1")
-        checkInActivity.waitForIdle()
-
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
-        checkInActivity.waitForIdle()
 
-        checkInActivity.onNodeWithText("کسری: $inputProductsNumber").assertExists()
-        checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
-
-        val appProductMap = mutableMapOf<Long, Int>()
-        checkInActivity.activity.inputProducts.forEach {
-            appProductMap[it.value.rfidKey] = it.value.desiredNumber
-        }
-
-        assert(appProductMap == productMap)
-
-        for (i in 0 until 3) {
-
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(productList[i].KBarCode)
-                assertTextContains(productList[i].name)
-                assertTextContains("موجودی: " + productList[i].desiredNumber)
-                assertTextContains("کسری: " + productList[i].desiredNumber)
-            }
-        }
-
-        checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("RFID").performClick()
-        checkInActivity.waitForIdle()
-
-        epcScan(false, productMap)
-
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-
-        checkInActivity.onNodeWithText("کسری: 0").assertExists()
-        checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: $inputProductsNumber").assertExists()
-        checkInActivity.onNodeWithTag("items").assertDoesNotExist()
-
-        clearUserData()
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        epcScan(true, productMap)
-        checkResults()
-
-        clearUserData()
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        epcScan(true, productMapRFID)
+        epcScan(false, productMapRFID)
         checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("بارکد").performClick()
         checkInActivity.waitForIdle()
         barcodeArrayScan()
-        checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
+        checkInActivity.onNodeWithText("تایید حواله ها").performClick()
         checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("کسری").performClick()
+        Thread.sleep(20000)
         checkInActivity.waitForIdle()
-        checkResults()
-
-    }
-
-    private fun checkResults() {
-
-        val shortagesNumber = 351
-        val additionalNumber = 243
-        val scannedNumber = 954
-
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-
-        checkInActivity.onNodeWithText("کسری: $shortagesNumber").assertExists()
-        checkInActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: $scannedNumber").assertExists()
-
-        checkInActivity.activity.inputProducts.forEach {
-
-            if (it.value.desiredNumber >= 3) {
-
-                checkInActivity.activity.conflictResultProducts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
-                        assert(it1.matchedNumber == 3 && it1.scan == "کسری")
-                    }
-                }
-            } else if (it.value.desiredNumber == 2) {
-
-                checkInActivity.activity.conflictResultProducts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
-                        assert(it1.matchedNumber == 3 && it1.scan == "اضافی")
-                    }
-                }
-            } else {
-
-                checkInActivity.activity.conflictResultProducts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
-                        assert(it1.matchedNumber == 1 && it1.scan == "اضافی")
-                    }
-                }
-            }
-        }
-
-        for (i in 0 until 3) {
-
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(shortageProductList[i].KBarCode)
-                assertTextContains(shortageProductList[i].name)
-                assertTextContains("موجودی: " + shortageProductList[i].desiredNumber)
-                assertTextContains("کسری: " + shortageProductList[i].matchedNumber)
-            }
-        }
-
-        checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("اضافی").performClick()
-        checkInActivity.waitForIdle()
-
-        for (i in 0 until 3) {
-
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(additionalProductList[i].KBarCode)
-                assertTextContains(additionalProductList[i].name)
-                assertTextContains("موجودی: " + additionalProductList[i].desiredNumber)
-                assertTextContains("اضافی: " + additionalProductList[i].matchedNumber)
-            }
-        }
     }
 
     private fun epcScan(withDifference: Boolean, rfidMap: MutableMap<Long, Int>) {
@@ -280,19 +152,8 @@ class CentralWarehouseCheckInActivityTest {
 
     private fun barcodeArrayScan() {
         productMapBarcode.forEach {
-
-            if (it.value >= 3) {
-                for (i in 0 until it.value - 3) {
-                    barcodeScan(it.key)
-                }
-            } else if (it.value == 2) {
-                for (i in 0 until it.value + 3) {
-                    barcodeScan(it.key)
-                }
-            } else {
-                for (i in 0 until it.value + 1) {
-                    barcodeScan(it.key)
-                }
+            for (i in 0 until it.value) {
+                barcodeScan(it.key)
             }
         }
     }
