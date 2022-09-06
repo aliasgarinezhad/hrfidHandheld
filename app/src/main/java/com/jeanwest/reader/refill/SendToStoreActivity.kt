@@ -161,7 +161,6 @@ class SendToStoreActivity : ComponentActivity() {
             }
             isSubmitting = false
             RefillActivity.scannedBarcodeTable.clear()
-            RefillActivity.scannedEpcTable.clear()
             uiList.clear()
             numberOfScanned = 0
 

@@ -5,8 +5,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test

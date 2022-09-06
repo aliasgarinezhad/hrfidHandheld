@@ -1,4 +1,4 @@
-package com.jeanwest.reader.sharedClassesAndFiles;
+package com.jeanwest.reader.sharedClassesAndFiles.hardware;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.util.Log;
 
 import com.barcode.BarcodeUtility;
+import com.jeanwest.reader.sharedClassesAndFiles.IBarcodeResult;
 
 /**
  * Created by Administrator on 2018-6-28.

@@ -26,7 +26,7 @@ import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseGetCheckInPropertiesActivity
+import com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity
 import com.jeanwest.reader.checkIn.GetCheckInPropertiesActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
@@ -43,7 +43,7 @@ import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -325,7 +325,7 @@ class MainActivity : ComponentActivity() {
                                     text = "تروفالس انبار مرکزی",
                                     iconId = R.drawable.inventory
                                 ) {
-                                    Intent(this@MainActivity, CentralWarehouseGetCheckInPropertiesActivity::class.java).apply {
+                                    Intent(this@MainActivity, CentralWarehouseCheckInActivity::class.java).apply {
                                         startActivity(this)
                                     }
                                 }

@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -37,17 +39,16 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.checkIn.CheckInProperties
-import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import org.json.JSONObject
@@ -62,7 +63,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var barcodeTable = mutableListOf<String>()
     private var inputBarcodes = mutableListOf<Product>()
-    private val barcode2D = Barcode2D(this)
+    private val barcode2D =
+        Barcode2D(this)
     val inputProducts = mutableMapOf<String, Product>()
     private var scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
@@ -91,6 +93,9 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
     private lateinit var queue: RequestQueue
     private var syncInputProductsRunning by mutableStateOf(false)
+    private var stockDraftNumber by mutableStateOf("")
+    private var scanningMode by mutableStateOf(false)
+    private var openFinishDialog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,7 +114,10 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
         loadMemory()
-        syncInputItemsToServer()
+
+        if (scanningMode) {
+            syncInputItemsToServer()
+        }
 
         Thread.setDefaultUncaughtExceptionHandler(
             ExceptionHandler(
@@ -125,23 +133,27 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
             if (keyCode == 280 || keyCode == 293) {
 
-                if (scanTypeValue == "بارکد") {
-                    stopRFScan()
-                    startBarcodeScan()
-                } else {
-                    if (!isScanning) {
-
-                        scanningJob = CoroutineScope(IO).launch {
-                            startRFScan()
-                        }
-
-                    } else {
-
+                if(scanningMode) {
+                    if (scanTypeValue == "بارکد") {
                         stopRFScan()
-                        if (numberOfScanned != 0) {
-                            syncScannedItemsToServer()
+                        startBarcodeScan()
+                    } else {
+                        if (!isScanning) {
+
+                            scanningJob = CoroutineScope(IO).launch {
+                                startRFScan()
+                            }
+
+                        } else {
+
+                            stopRFScan()
+                            if (numberOfScanned != 0) {
+                                syncScannedItemsToServer()
+                            }
                         }
                     }
+                } else {
+                    startBarcodeScan()
                 }
             } else if (keyCode == 4) {
                 back()
@@ -625,13 +637,22 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
     }
 
     override fun getBarcode(barcode: String?) {
-        if (!barcode.isNullOrEmpty()) {
 
-            barcodeTable.add(barcode)
-            numberOfScanned = epcTable.size + barcodeTable.size
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            saveToMemory()
-            syncScannedItemsToServer()
+        if(scanningMode) {
+
+            if (!barcode.isNullOrEmpty()) {
+
+                barcodeTable.add(barcode)
+                numberOfScanned = epcTable.size + barcodeTable.size
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                saveToMemory()
+                syncScannedItemsToServer()
+            }
+        } else {
+            if (!barcode.isNullOrBlank()) {
+                getWarehouseDetails(barcode)
+                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            }
         }
     }
 
@@ -642,6 +663,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString("CentralWarehouseCheckInEPCTable", JSONArray(epcTable).toString())
         edit.putString("CentralWarehouseCheckInBarcodeTable", JSONArray(barcodeTable).toString())
+        edit.putString("stockDraftNumber", stockDraftNumber)
+        edit.putBoolean("scanningMode", scanningMode)
         edit.apply()
     }
 
@@ -650,6 +673,9 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val type1 = object : TypeToken<MutableList<Product>>() {}.type
         val type = object : TypeToken<List<CheckInProperties>>() {}.type
+
+        stockDraftNumber = memory.getString("stockDraftNumber", "") ?: ""
+        scanningMode = memory.getBoolean("scanningMode", false)
 
         inputBarcodes = Gson().fromJson(
             memory.getString("CentralWarehouseCheckInInputBarcodeTable", ""),
@@ -780,6 +806,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         SnackbarDuration.Long
                     )
                 }
+                clear()
+                scanningMode = false
             }, {
                 if (it is NoConnectionError) {
 
@@ -850,7 +878,77 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
+    private fun getWarehouseDetails(code: String) {
 
+        if (code.isEmpty()) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "لطفا شماره حواله را وارد کنید",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
+        val url = "https://rfid-api.avakatan.ir/stock-draft/$code/details"
+        val request = object : JsonArrayRequest(url, fun(it) {
+
+            var numberOfItems = 0
+            for (i in 0 until it.length()) {
+                numberOfItems += it.getJSONObject(i).getInt("Qty")
+                inputBarcodes.add(
+                    Product(
+                        KBarCode = it.getJSONObject(i).getString("kbarcode"),
+                        desiredNumber = it.getJSONObject(i).getInt("Qty"),
+                        checkInNumber = code.toLong(),
+                        primaryKey = it.getJSONObject(i).getLong("BarcodeMain_ID")
+                    )
+                )
+            }
+
+            saveToMemory()
+            stopBarcodeScan()
+            scanningMode = true
+            syncInputItemsToServer()
+
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+                else -> {
+
+                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            error.getString("message"),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+            }
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+        }
+        queue.add(request)
+    }
+
+
+    @OptIn(ExperimentalCoilApi::class)
     @ExperimentalFoundationApi
     @Composable
     fun Page() {
@@ -858,9 +956,9 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    content = { Content() },
+                    content = { if(scanningMode) Content() else Content2() },
                     snackbarHost = { ErrorSnackBar(state) },
-                    bottomBar = { BottomBar() },
+                    bottomBar = { if(scanningMode) BottomBar() },
                 )
             }
         }
@@ -928,8 +1026,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         scanTypeValue = it
                     }
                     ScanFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
-                    Button(onClick = { editCheckIns() }) {
-                        Text(text = "تایید حواله ها")
+                    Button(onClick = { openFinishDialog = true }) {
+                        Text(text = "پایان تروفالس")
                     }
                 }
             }
@@ -945,6 +1043,10 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
             if (openClearDialog) {
                 ClearAlertDialog()
+            }
+
+            if (openFinishDialog) {
+                FinishAlertDialog()
             }
 
             Column(
@@ -1009,6 +1111,36 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         openSearchActivity(uiList[i])
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun Content2() {
+
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            Column(
+                Modifier
+                    .background(color = Color.White)
+                    .border(
+                        BorderStroke(1.dp, borderColor),
+                        shape = RoundedCornerShape(0.dp)
+                    )
+            ) {
+                CustomTextField(
+                    modifier = Modifier
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                        .border(
+                            BorderStroke(1.dp, borderColor),
+                            shape = MaterialTheme.shapes.small
+                        )
+                        .fillMaxWidth(),
+                    hint = "شماره حواله را وارد کنید",
+                    onSearch = { getWarehouseDetails(stockDraftNumber) },
+                    onValueChange = { stockDraftNumber = it },
+                    value = stockDraftNumber
+                )
             }
         }
     }
@@ -1085,6 +1217,53 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                             modifier = Modifier.padding(top = 10.dp)
                         ) {
                             Text(text = "خیر")
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun FinishAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openFinishDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceAround
+                ) {
+
+                    Text(
+                        text = "کالاهای اسکن شده ثبت شوند؟",
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        fontSize = 22.sp
+                    )
+
+                    Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                        Button(onClick = {
+                            openFinishDialog = false
+                            editCheckIns()
+
+                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
+                            Text(text = "بله")
+                        }
+                        Button(
+                            onClick = {
+                                clear()
+                                scanningMode = false
+                            },
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(text = "خیر، نتایج پاک شوند")
                         }
                     }
                 }

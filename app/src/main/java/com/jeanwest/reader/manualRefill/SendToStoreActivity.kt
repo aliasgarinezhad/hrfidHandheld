@@ -183,7 +183,6 @@ class SendToStoreActivity : ComponentActivity() {
                 it.scannedBarcodeNumber + it.scannedEPCNumber > 0
             }
             ManualRefillActivity.scannedBarcodeTable.clear()
-            ManualRefillActivity.scannedEpcTable.clear()
             saveToMemory()
             uiList.clear()
             numberOfScanned = 0
@@ -257,11 +256,7 @@ class SendToStoreActivity : ComponentActivity() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
-
-        edit.putString(
-            "ManualRefillWarehouseManagerEPCTable",
-            JSONArray(ManualRefillActivity.scannedEpcTable).toString()
-        )
+        
         edit.putString(
             "ManualRefillWarehouseManagerBarcodeTable",
             JSONArray(ManualRefillActivity.scannedBarcodeTable).toString()

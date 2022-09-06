@@ -29,7 +29,8 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.*
-//import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+//import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +50,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private var storeFilterValue = 0
     private var state = SnackbarHostState()
 
-    private var barcode2D = Barcode2D(this)
+    private var barcode2D =
+        Barcode2D(this)
     private lateinit var queue : RequestQueue
     val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 

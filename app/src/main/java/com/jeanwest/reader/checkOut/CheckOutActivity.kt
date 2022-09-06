@@ -25,25 +25,20 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
-import com.android.volley.VolleyError
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
-import org.json.JSONObject
 
 @OptIn(ExperimentalFoundationApi::class)
 class CheckOutActivity : ComponentActivity(), IBarcodeResult {
@@ -53,7 +48,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var scannedEpcTable = mutableListOf<String>()
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
-    private val barcode2D = Barcode2D(this)
+    private val barcode2D =
+        Barcode2D(this)
     val scannedProducts = mutableListOf<Product>()
     private var scanningJob: Job? = null
     private lateinit var queue: RequestQueue

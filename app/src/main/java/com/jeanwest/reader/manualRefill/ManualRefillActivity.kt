@@ -31,17 +31,16 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -52,25 +51,18 @@ import org.json.JSONObject
 @OptIn(ExperimentalFoundationApi::class)
 class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
-    private lateinit var rf: RFIDWithUHFUART
-    private var rfPower = 5
     private val barcode2D = Barcode2D(this)
-    private var scanningJob: Job? = null
     val inputBarcodes = ArrayList<String>()
 
     //ui parameters
-    private var isScanning by mutableStateOf(false)
     private var isDataLoading by mutableStateOf(false)
-    private var numberOfScanned by mutableStateOf(0)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
-    private lateinit var queue : RequestQueue
+    private lateinit var queue: RequestQueue
 
     companion object {
-        var scannedEpcTable = mutableListOf<String>()
         var scannedBarcodeTable = mutableListOf<String>()
         var products = mutableListOf<Product>()
     }
@@ -81,24 +73,22 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         barcodeInit()
         queue = Volley.newRequestQueue(this)
 
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-        setRFEpcMode(rf, state)
-
         setContent {
             Page()
         }
 
         loadMemory()
 
-        if (numberOfScanned != 0) {
+        if (scannedBarcodeTable.size != 0) {
             syncScannedItemsToServer()
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onResume() {
@@ -130,42 +120,12 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         if (event.repeatCount == 0) {
 
             if (keyCode == 280 || keyCode == 293) {
-
-                if (scanTypeValue == "بارکد") {
-                    stopRFScan()
-                    startBarcodeScan()
-                } else {
-                    if (!isScanning) {
-
-                        scanningJob = CoroutineScope(IO).launch {
-                            startRFScan()
-                        }
-
-                    } else {
-
-                        stopRFScan()
-                        if (numberOfScanned != 0) {
-                            syncScannedItemsToServer()
-                        }
-                    }
-                }
+                startBarcodeScan()
             } else if (keyCode == 4) {
                 back()
-            } else if (keyCode == 139) {
-                stopRFScan()
             }
         }
         return true
-    }
-
-    private fun stopRFScan() {
-
-        scanningJob?.let {
-            if (it.isActive) {
-                isScanning = false // cause scanning routine loop to stop
-                runBlocking { it.join() }
-            }
-        }
     }
 
     private fun getRefillBarcodes() {
@@ -199,7 +159,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     Log.e("error", "charge database is empty")
                 }
                 else -> {
-                    val error = JSONObject(it.networkResponse?.data?.decodeToString().toString()).getJSONObject("error")
+                    val error = JSONObject(
+                        it.networkResponse?.data?.decodeToString().toString()
+                    ).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             error.getString("message"),
@@ -238,7 +200,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
                 var isInRefillProductList = false
 
-                run forEach1@ {
+                run forEach1@{
                     products.forEach { it1 ->
                         if (it1.KBarCode == it.KBarCode) {
                             it1.requestedNum += 1
@@ -258,7 +220,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
             isDataLoading = false
 
-            if (numberOfScanned != 0) {
+            if (scannedBarcodeTable.size != 0) {
                 syncScannedItemsToServer()
             } else {
                 uiList.clear()
@@ -277,88 +239,20 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         }, {
             isDataLoading = false
 
-            if (numberOfScanned != 0) {
+            if (scannedBarcodeTable.size != 0) {
                 syncScannedItemsToServer()
             }
         })
     }
 
-    private suspend fun startRFScan() {
-
-        isScanning = true
-        if (!setRFPower(state, rf, rfPower)) {
-            isScanning = false
-            return
-        }
-
-        var epcTablePreviousSize = scannedEpcTable.size
-
-        rf.startInventoryTag(0, 0, 0)
-
-        while (isScanning) {
-
-            var uhfTagInfo: UHFTAGInfo?
-            while (true) {
-                uhfTagInfo = rf.readTagFromBuffer()
-                if (uhfTagInfo != null) {
-                    if (uhfTagInfo.epc.startsWith("30")) {
-                        scannedEpcTable.add(uhfTagInfo.epc)
-                    }
-                } else {
-                    break
-                }
-            }
-
-            scannedEpcTable = scannedEpcTable.distinct().toMutableList()
-
-            numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
-
-            val speed = scannedEpcTable.size - epcTablePreviousSize
-            when {
-                speed > 100 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
-                }
-                speed > 30 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                }
-                speed > 10 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                }
-                speed > 0 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                }
-            }
-            epcTablePreviousSize = scannedEpcTable.size
-
-            saveToMemory()
-
-            delay(1000)
-        }
-
-        rf.stopInventory()
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
-        saveToMemory()
-    }
-
     private fun syncScannedItemsToServer() {
 
-        val epcArray = mutableListOf<String>()
         val barcodeArray = mutableListOf<String>()
-        val alreadySyncedEpcs = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
 
         products.forEach {
-            if (it.scannedEPCNumber > 0) {
-                alreadySyncedEpcs.addAll(it.scannedEPCs)
-            }
             if (it.scannedBarcodeNumber > 0) {
                 alreadySyncedBarcodes.add(it.scannedBarcode)
-            }
-        }
-
-        scannedEpcTable.forEach {
-            if (it !in alreadySyncedEpcs) {
-                epcArray.add(it)
             }
         }
 
@@ -376,7 +270,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        if (epcArray.size == 0 && barcodeArray.size == 0) {
+        if (barcodeArray.size == 0) {
             uiList.clear()
             uiList.addAll(products)
             uiList.sortBy {
@@ -394,24 +288,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         isDataLoading = true
 
-        getProductsV4(queue, state, epcArray, barcodeArray, { epcs, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes ->
 
-            epcs.forEach {
-                var isInRefillProductList = false
-                run forEach1@ {
-                    products.forEach { it1 ->
-                        if (it1.KBarCode == it.KBarCode) {
-                            it1.scannedEPCs.add(it.scannedEPCs[0])
-                            it1.scannedEPCNumber += 1
-                            isInRefillProductList = true
-                            return@forEach1
-                        }
-                    }
-                }
-                if (!isInRefillProductList) {
-                    products.add(it)
-                }
-            }
 
             barcodes.forEach {
                 var isInRefillProductList = false
@@ -486,7 +364,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             scannedBarcodeTable.add(barcode)
-            numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -498,10 +375,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString(
-            "ManualRefillWarehouseManagerEPCTable",
-            JSONArray(scannedEpcTable).toString()
-        )
         edit.putString(
             "ManualRefillWarehouseManagerBarcodeTable",
             JSONArray(scannedBarcodeTable).toString()
@@ -521,11 +394,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         val type = object : TypeToken<List<Product>>() {}.type
 
-        scannedEpcTable = Gson().fromJson(
-            memory.getString("ManualRefillWarehouseManagerEPCTable", ""),
-            scannedEpcTable.javaClass
-        ) ?: mutableListOf()
-
         scannedBarcodeTable = Gson().fromJson(
             memory.getString("ManualRefillWarehouseManagerBarcodeTable", ""),
             scannedBarcodeTable.javaClass
@@ -535,8 +403,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             memory.getString("ManualRefillProducts", ""),
             type
         ) ?: ArrayList()
-
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
     }
 
     fun clear(product: Product) {
@@ -546,7 +412,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         products.forEach {
             if (it.KBarCode == product.KBarCode) {
 
-                scannedEpcTable.removeAll(it.scannedEPCs)
                 scannedBarcodeTable.removeAll { it1 ->
                     it1 == it.scannedBarcode
                 }
@@ -556,7 +421,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         products.removeAll(removedRefillProducts)
         removedRefillProducts.clear()
 
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList.clear()
         uiList.addAll(products)
         uiList.sortBy { it1 ->
@@ -587,7 +451,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private fun back() {
 
         saveToMemory()
-        stopRFScan()
         stopBarcodeScan()
         beep.release()
         queue.stop()
@@ -632,12 +495,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
-                    ScanTypeDropDownList(
-                        Modifier.align(Alignment.CenterVertically), scanTypeValue
-                    ) {
-                        scanTypeValue = it
-                    }
 
                     Button(onClick = {
                         Intent(
@@ -701,9 +558,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     .background(JeanswestBackground, Shapes.small)
                     .fillMaxWidth()
             ) {
-
-                PowerSlider(scanTypeValue == "RFID", rfPower) { rfPower = it }
-                LoadingCircularProgressIndicator(isScanning, isDataLoading)
+                LoadingCircularProgressIndicator(false, isDataLoading)
             }
 
             LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
@@ -728,7 +583,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 text2 = "انبار: " + uiList[i].wareHouseNumber,
                 colorFull = uiList[i].scannedNumber >= uiList[i].requestedNum,
                 enableWarehouseNumberCheck = true,
-                ) {
+            ) {
                 openSearchActivity(uiList[i])
             }
 

@@ -1,12 +1,9 @@
 package com.jeanwest.reader.write
 
-import android.content.ComponentName
-import android.content.Intent
-import android.content.ServiceConnection
+
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.os.IBinder
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,16 +30,12 @@ import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.checkOut.CheckOutActivity
-import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -50,33 +43,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.*
 import com.android.volley.toolbox.JsonObjectRequest as JsonObjectRequest1
 
 class WriteActivity : ComponentActivity(), IBarcodeResult {
 
-    private var deviceSerialNumber = ""
     private var barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
     private var oldMethodTid = ""
     private var newMethodTid = ""
     private var barcodeID = ""
-    private var barcodeTable = mutableListOf<String>()
-    private lateinit var iotHubService: IotHub
 
     private var beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private var counter by mutableStateOf(0)
     private var numberOfWrittenRfTags by mutableStateOf(0L)
     private var result by mutableStateOf("")
-    private var openClearDialog by mutableStateOf(false)
     private var openRewriteDialog by mutableStateOf(false)
     private var openHelpDialog by mutableStateOf(false)
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(Color.White)
-    private var writeRecords = mutableListOf<WriteRecord>()
-    private var writtenEPCs = mutableListOf<String>()
     private var barcodeInformation = JSONObject()
     private val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
     var tagTypeValue by mutableStateOf("تگ سفید")
@@ -95,20 +80,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var partitionNumber = 0 // 3bit
     private var headerNumber = 48 // 8bit
     private var companyNumber = 101 // 12bit
-
-    private var iotHubConnected = false
-    private val serviceConnection = object : ServiceConnection {
-
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as IotHub.LocalBinder
-            iotHubService = binder.service
-            iotHubConnected = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            iotHubConnected = false
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,19 +105,14 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         }
 
         loadMemory()
-
-        val intent = Intent(this, IotHub::class.java)
-        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
     private fun loadMemory() {
-        val type = object : TypeToken<List<WriteRecord>>() {}.type
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         if (memory.getLong("value", -1L) != -1L) {
 
-            deviceSerialNumber = memory.getString("deviceSerialNumber", "") ?: ""
             counterValue = memory.getLong("value", -1L)
             counterMaxValue = memory.getLong("max", -1L)
             counterMinValue = memory.getLong("min", -1L)
@@ -155,18 +121,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             partitionNumber = memory.getInt("partition", -1)
             companyNumber = memory.getInt("company", -1)
             tagPassword = memory.getString("password", "") ?: "00000000"
-
-            writtenEPCs = Gson().fromJson(
-                memory.getString("WriteActivityWrittenEPCs", ""),
-                writtenEPCs.javaClass
-            ) ?: mutableListOf()
-
-            writeRecords = Gson().fromJson(
-                memory.getString("WriteActivityWriteRecords", ""),
-                type
-            ) ?: mutableListOf()
-
-            counter = writtenEPCs.size
         }
 
         numberOfWrittenRfTags = counterValue - counterMinValue
@@ -177,17 +131,10 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
         memoryEditor.putLong("value", counterValue)
-
-        memoryEditor.putString(
-            "WriteActivityWrittenEPCs", JSONArray(writtenEPCs).toString()
-        )
-        memoryEditor.putString("WriteActivityWriteRecords", Gson().toJson(writeRecords).toString())
-
         memoryEditor.apply()
     }
 
     private fun back() {
-        unbindService(serviceConnection)
         stopBarcodeScan()
         write = false
         if (barcodeIsScanning || rfIsScanning) {
@@ -245,12 +192,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private fun stopBarcodeScan() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
-    }
-
-    private fun clear() {
-        writtenEPCs.clear()
-        counter = writtenEPCs.size
-        saveMemory()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -366,31 +307,9 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         result += "سریال جدید: $productEPC"
 
         counterValue++
-        barcodeTable.add(barcodeInformation.getString("KBarCode"))
 
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)
-        val writeRecord = WriteRecord(
-            barcode = barcodeInformation.getString("KBarCode"),
-            epc = productEPC,
-            dateAndTime = sdf.format(Date()),
-            username = MainActivity.username,
-            deviceSerialNumber = deviceSerialNumber,
-            wroteOnRawTag = writeOnRawTag
-        )
-        writeRecords.add(writeRecord)
-        writtenEPCs.add(productEPC)
-
-        counter = writtenEPCs.size
         numberOfWrittenRfTags = counterValue - counterMinValue
         saveMemory()
-        if (writeRecords.size % 100 == 0) {
-            if (iotHubConnected) {
-                if (iotHubService.sendWriteLog(writeRecords)) {
-                    writeRecords.clear()
-                    saveMemory()
-                }
-            }
-        }
     }
 
     @Throws(InterruptedException::class)
@@ -633,13 +552,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         queue.add(request)
     }
 
-    private fun openCheckOutActivity() {
-        Intent(this, CheckOutActivity::class.java).apply {
-            this.putExtra("productEPCs", JSONArray(writtenEPCs).toString())
-            startActivity(this)
-        }
-    }
-
     private fun epcGenerator(
         header: Int,
         filter: Int,
@@ -698,21 +610,8 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     topBar = { AppBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
-                    floatingActionButton = { OpenCheckOutActivityFun() },
-                    floatingActionButtonPosition = FabPosition.Center,
                 )
             }
-        }
-    }
-
-    @Composable
-    fun OpenCheckOutActivityFun() {
-        Button(onClick = {
-            openCheckOutActivity()
-        }) {
-            Text(
-                text = "ثبت حواله کالاهای رایت شده " + "(" + "$counter" + " کالا" + ")",
-            )
         }
     }
 
@@ -739,22 +638,13 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         contentDescription = ""
                     )
                 }
-
-                IconButton(onClick = {
-                    openClearDialog = true
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_baseline_delete_24),
-                        contentDescription = ""
-                    )
-                }
             },
 
             title = {
                 Text(
                     text = "رایت",
                     modifier = Modifier
-                        .padding(start = 35.dp)
+                        .padding(end = 50.dp)
                         .fillMaxSize()
                         .wrapContentSize(),
                     textAlign = TextAlign.Center,
@@ -782,10 +672,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth()
             ) {
 
-                if (openClearDialog) {
-                    ClearAlertDialog()
-                }
-
                 if (openRewriteDialog) {
                     RewriteAlertDialog()
                 }
@@ -802,14 +688,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                         modifier = Modifier
                             .weight(1F)
                             .padding(start = 16.dp, bottom = 8.dp, top = 8.dp)
-                    )
-
-                    Text(
-                        text = "تعداد رایت شده: $counter",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .weight(1F)
-                            .padding(start = 16.dp, bottom = 8.dp, top = 8.dp),
                     )
                 }
                 LoadingCircularProgressIndicator(barcodeIsScanning || rfIsScanning)
@@ -838,50 +716,6 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
                 )
             }
         }
-    }
-
-    @Composable
-    fun ClearAlertDialog() {
-
-        AlertDialog(
-            onDismissRequest = {
-                openClearDialog = false
-            },
-            buttons = {
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.SpaceAround
-                ) {
-
-                    Text(
-                        text = "حافظه پاک شود؟",
-                        modifier = Modifier.padding(bottom = 10.dp),
-                        fontSize = 22.sp
-                    )
-
-                    Row(horizontalArrangement = Arrangement.SpaceAround) {
-
-                        Button(onClick = {
-                            openClearDialog = false
-                            clear()
-
-                        }, modifier = Modifier.padding(top = 10.dp, end = 20.dp)) {
-                            Text(text = "بله")
-                        }
-                        Button(
-                            onClick = { openClearDialog = false },
-                            modifier = Modifier.padding(top = 10.dp)
-                        ) {
-                            Text(text = "خیر")
-                        }
-                    }
-                }
-            }
-        )
     }
 
     @Composable

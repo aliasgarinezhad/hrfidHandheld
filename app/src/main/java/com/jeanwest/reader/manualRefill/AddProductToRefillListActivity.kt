@@ -1,6 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
-//import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+//import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -31,6 +31,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,8 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
     private var filteredUiList = mutableStateListOf<Product>()
     private var colorFilterValues = mutableStateListOf("همه رنگ ها")
     private var sizeFilterValues = mutableStateListOf("همه سایز ها")
-    private var barcode2D = Barcode2D(this)
+    private var barcode2D =
+        Barcode2D(this)
     private var colorFilterValue by mutableStateOf("همه رنگ ها")
     private var sizeFilterValue by mutableStateOf("همه سایز ها")
     private var storeFilterValue = 0

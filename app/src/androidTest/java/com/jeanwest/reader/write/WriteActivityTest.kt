@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.MainActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -55,6 +55,8 @@ class WriteActivityTest {
             writeActivity.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
             writeActivity.waitForIdle()
+            writeActivity.waitForIdle()
+            Thread.sleep(1000)
             writeActivity.waitForIdle()
             Thread.sleep(1000)
 
@@ -112,8 +114,10 @@ class WriteActivityTest {
 
         writeActivity.waitForIdle()
 
+        writeActivity.waitForIdle()
         Thread.sleep(1000)
         writeActivity.waitForIdle()
+        Thread.sleep(1000)
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
     }
@@ -152,6 +156,7 @@ class WriteActivityTest {
         writeActivity.waitForIdle()
         Thread.sleep(1000)
         writeActivity.waitForIdle()
+        Thread.sleep(1000)
 
         assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }
@@ -176,8 +181,10 @@ class WriteActivityTest {
 
         writeActivity.waitForIdle()
 
-        Thread.sleep(2000)
         writeActivity.waitForIdle()
+        Thread.sleep(1000)
+        writeActivity.waitForIdle()
+        Thread.sleep(1000)
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.epc == "")
     }
@@ -213,6 +220,7 @@ class WriteActivityTest {
         writeActivity.waitForIdle()
         Thread.sleep(1000)
         writeActivity.waitForIdle()
+        Thread.sleep(1000)
 
         assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }

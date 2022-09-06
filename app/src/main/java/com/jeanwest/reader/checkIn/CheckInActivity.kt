@@ -36,11 +36,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -57,7 +57,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var epcTablePreviousSize = 0
     private var barcodeTable = mutableListOf<String>()
     private var inputBarcodes = mutableListOf<Product>()
-    private val barcode2D = Barcode2D(this)
+    private val barcode2D =
+        Barcode2D(this)
     val inputProducts = mutableMapOf<String, Product>()
     private var scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null

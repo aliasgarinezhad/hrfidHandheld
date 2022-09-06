@@ -43,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import com.jeanwest.reader.sharedClassesAndFiles.*
+import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
 
 class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 
@@ -51,7 +52,8 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<CheckInProperties>()
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private val barcode2D = Barcode2D(this)
+    private val barcode2D =
+        Barcode2D(this)
     private lateinit var queue: RequestQueue
     private var inputEpcTable = mutableMapOf<String, String>()
 

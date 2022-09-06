@@ -9,7 +9,7 @@ import org.junit.Test
 
 class CentralWarehouseGetCheckInPropertiesActivityTest {
 
-    @get:Rule
+    /*@get:Rule
     var getCheckInPropertiesActivityTest =
         createAndroidComposeRule<CentralWarehouseGetCheckInPropertiesActivity>()
 
@@ -190,5 +190,5 @@ class CentralWarehouseGetCheckInPropertiesActivityTest {
             getCheckInPropertiesActivityTest.activity.clear(it)
             getCheckInPropertiesActivityTest.waitForIdle()
         }
-    }
+    }*/
 }
