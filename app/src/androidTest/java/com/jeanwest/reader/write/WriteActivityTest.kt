@@ -8,19 +8,17 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
 
-// before starting test, copy 1000000-1000120 serial range in iot hub
 class WriteActivityTest {
 
     @get:Rule
     var writeActivity = createAndroidComposeRule<WriteActivity>()
 
-    //write 100 stuffs
     @Test
     fun addProductTest1() {
 

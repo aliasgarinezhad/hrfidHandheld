@@ -43,14 +43,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
 
 class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 
     private var warehouseNumber by mutableStateOf("")
     private var barcodeTable = mutableListOf<Product>()
     private var state = SnackbarHostState()
-    var uiList = mutableStateListOf<CheckInProperties>()
+    var uiList = mutableStateListOf<DraftProperties>()
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private val barcode2D =
         Barcode2D(this)
@@ -99,7 +99,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
 
     private fun loadMemory() {
 
-        val type = object : TypeToken<SnapshotStateList<CheckInProperties>>() {}.type
+        val type = object : TypeToken<SnapshotStateList<DraftProperties>>() {}.type
         val type1 = object : TypeToken<MutableList<Product>>() {}.type
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
@@ -145,7 +145,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
         edit.apply()
     }
 
-    fun clear(checkInProperties : CheckInProperties) {
+    fun clear(checkInProperties : DraftProperties) {
         uiList.remove(checkInProperties)
         val removeProducts = mutableListOf<Product>()
         val removeEpcProducts = mutableListOf<String>()
@@ -234,7 +234,7 @@ class GetCheckInPropertiesActivity : ComponentActivity(), IBarcodeResult {
                 inputEpcTable[it.getJSONObject(i).getString("EPC")] = number.toString()
             }
 
-            val checkInProperties = CheckInProperties(
+            val checkInProperties = DraftProperties(
                 number = number,
                 date = jalaliCreateDate,
                 source = source,

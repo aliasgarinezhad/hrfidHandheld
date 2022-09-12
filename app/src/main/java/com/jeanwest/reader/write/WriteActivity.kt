@@ -1,6 +1,7 @@
 package com.jeanwest.reader.write
 
 
+import android.annotation.SuppressLint
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -33,9 +34,9 @@ import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -602,6 +603,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
         return result
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {

@@ -1,12 +1,17 @@
 package com.jeanwest.reader.centralWarehouseCheckIn
 
+import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.preference.PreferenceManager
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.checkIn.DraftProperties
 import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -17,18 +22,45 @@ class CentralWarehouseCheckInActivityTest {
     @get:Rule
     val checkInActivity = createAndroidComposeRule<CentralWarehouseCheckInActivity>()
 
-    //open a check-in, scan some items, check filters
     @Test
-    fun checkInActivityTest1() {
+    fun test() {
 
-        val inputProductsNumber = 1062
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
-        start()
-        clearUserData()
-        restart()
+        val memory = PreferenceManager.getDefaultSharedPreferences(checkInActivity.activity)
+        val type = object : TypeToken<MutableList<Product>>() {}.type
+        val products: MutableList<Product> = Gson().fromJson(
+            memory.getString("inputProductsForTest", ""),
+            type
+        )
+
+        products.sortBy {
+            it.productCode
+        }
+        products.sortBy {
+            it.name
+        }
 
         checkInActivity.waitForIdle()
-        Thread.sleep(5000)
+        checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
+
+        /*checkInActivity.onNodeWithTag("CustomTextField")
+            .performTextClearance()
+        checkInActivity.onNodeWithTag("CustomTextField")
+            .performTextInput(checkInCode.number.toString())
+        checkInActivity.onNodeWithTag("CustomTextField")
+            .performImeAction()*/
+
+        barcodeScan(checkInCode.number.toString())
+
+        checkInActivity.waitForIdle()
+        Thread.sleep(500)
+        checkInActivity.waitForIdle()
+        Thread.sleep(500)
+        checkInActivity.waitForIdle()
+        Thread.sleep(500)
+        checkInActivity.waitForIdle()
 
         checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
         checkInActivity.waitForIdle()
@@ -36,14 +68,17 @@ class CentralWarehouseCheckInActivityTest {
         checkInActivity.waitForIdle()
         barcodeScan("22181508-2525-34-1")
         checkInActivity.waitForIdle()
-
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
+        Thread.sleep(2000)
         checkInActivity.waitForIdle()
 
-        checkInActivity.onNodeWithText("کسری: $inputProductsNumber").assertExists()
+        checkInActivity.onNodeWithText("کسری: ${checkInCode.numberOfItems}").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
         checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
+
+        val productMap = mutableMapOf<Long, Int>()
+        products.forEach {
+            productMap[it.rfidKey] = it.desiredNumber
+        }
 
         val appProductMap = mutableMapOf<Long, Int>()
         checkInActivity.activity.inputProducts.forEach {
@@ -55,10 +90,10 @@ class CentralWarehouseCheckInActivityTest {
         for (i in 0 until 3) {
 
             checkInActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(productList[i].KBarCode)
-                assertTextContains(productList[i].name)
-                assertTextContains("موجودی: " + productList[i].desiredNumber)
-                assertTextContains("کسری: " + productList[i].desiredNumber)
+                assertTextContains(products[i].KBarCode)
+                assertTextContains(products[i].name)
+                assertTextContains("موجودی: " + products[i].desiredNumber)
+                assertTextContains("کسری: " + products[i].desiredNumber)
             }
         }
 
@@ -70,44 +105,71 @@ class CentralWarehouseCheckInActivityTest {
         epcScan(false, productMap)
 
         checkInActivity.waitForIdle()
-        Thread.sleep(5000)
+        Thread.sleep(4000)
         checkInActivity.waitForIdle()
-        Thread.sleep(5000)
+        Thread.sleep(2000)
         checkInActivity.waitForIdle()
+        restart()
 
         checkInActivity.onNodeWithText("کسری: 0").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: $inputProductsNumber").assertExists()
-        checkInActivity.onNodeWithTag("items").assertDoesNotExist()
+        checkInActivity.onNodeWithText("اسکن شده: ${checkInCode.numberOfItems}").assertExists()
+        //checkInActivity.onNodeWithTag("items").assertDoesNotExist()
 
         clearUserData()
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
+        checkInActivity.waitForIdle()
         epcScan(true, productMap)
         checkResults()
 
+        val productMapRFID = mutableMapOf<Long, Int>()
+        val productMapBarcode = mutableMapOf<String, Int>()
+        products.forEach { it1 ->
+            if ((it1.brandName == "JeansWest" || it1.brandName == "JootiJeans" || it1.brandName == "Baleno")
+                && !it1.name.contains("جوراب")
+                && !it1.name.contains("عينك")
+                && !it1.name.contains("شاپينگ")
+            ) {
+                productMapRFID[it1.rfidKey] = it1.desiredNumber
+            } else {
+                productMapBarcode[it1.KBarCode] = it1.desiredNumber
+            }
+        }
+
+        Log.e("rfid", productMapRFID.toString())
+        Log.e("barcode", productMapBarcode.toString())
+
         clearUserData()
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
+        checkInActivity.waitForIdle()
         epcScan(true, productMapRFID)
         checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("بارکد").performClick()
         checkInActivity.waitForIdle()
-        barcodeArrayScan()
+        barcodeArrayScan(productMapBarcode)
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("کسری").performClick()
         checkInActivity.waitForIdle()
         checkResults()
 
+        checkInActivity.onNodeWithText("پایان تروفالس").performClick()
+        checkInActivity.waitForIdle()
+        checkInActivity.onNodeWithText("بله").performClick()
+        Thread.sleep(5000)
+        checkInActivity.waitForIdle()
+        checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
+
     }
 
     private fun checkResults() {
 
-        val shortagesNumber = 351
-        val additionalNumber = 243
-        val scannedNumber = 954
+        val shortagesNumber = 3
+        val additionalNumber = 128
+        val scannedNumber = 250
 
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
@@ -115,7 +177,7 @@ class CentralWarehouseCheckInActivityTest {
         Thread.sleep(5000)
         checkInActivity.waitForIdle()
 
-        checkInActivity.onNodeWithText("کسری: $shortagesNumber").assertExists()
+        checkInActivity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
         checkInActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
         checkInActivity.onNodeWithText("اسکن شده: $scannedNumber").assertExists()
 
@@ -145,7 +207,19 @@ class CentralWarehouseCheckInActivityTest {
             }
         }
 
-        for (i in 0 until 3) {
+        val shortageProductList = checkInActivity.activity.conflictResultProducts.filter {
+            it.scan == "کسری"
+        }.toMutableList()
+
+        shortageProductList.sortBy {
+            it.productCode
+        }
+        shortageProductList.sortBy {
+            it.name
+        }
+
+        val forLoopMaxValue = if(shortageProductList.size > 3) 3 else shortageProductList.size
+        for (i in 0 until forLoopMaxValue) {
 
             checkInActivity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(shortageProductList[i].KBarCode)
@@ -153,6 +227,17 @@ class CentralWarehouseCheckInActivityTest {
                 assertTextContains("موجودی: " + shortageProductList[i].desiredNumber)
                 assertTextContains("کسری: " + shortageProductList[i].matchedNumber)
             }
+        }
+
+        val additionalProductList = checkInActivity.activity.conflictResultProducts.filter {
+            it.scan == "اضافی"
+        }.toMutableList()
+
+        additionalProductList.sortBy {
+            it.productCode
+        }
+        additionalProductList.sortBy {
+            it.name
         }
 
         checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
@@ -232,11 +317,6 @@ class CentralWarehouseCheckInActivityTest {
         checkInActivity.waitForIdle()
     }
 
-    private fun start() {
-        MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
-    }
-
     private fun clearUserData() {
 
         checkInActivity.onNodeWithTag("CheckInTestTag").performClick()
@@ -244,6 +324,14 @@ class CentralWarehouseCheckInActivityTest {
         checkInActivity.onNodeWithText("بله").performClick()
         checkInActivity.waitForIdle()
     }
+
+    private val checkInCode = DraftProperties(
+        number = 119945,
+        date = "1401/5/30",
+        numberOfItems = 125,
+        source = 44,
+        destination = 1707
+    )
 
     private fun epcGenerator(
         header: Int,
@@ -278,7 +366,7 @@ class CentralWarehouseCheckInActivityTest {
 
     }
 
-    private fun barcodeArrayScan() {
+    private fun barcodeArrayScan(productMapBarcode: MutableMap<String, Int>) {
         productMapBarcode.forEach {
 
             if (it.value >= 3) {
@@ -306,75 +394,6 @@ class CentralWarehouseCheckInActivityTest {
         Thread.sleep(500)
         checkInActivity.waitForIdle()
     }
-
-    private val productList = mutableListOf(
-
-        Product(
-            "DL013010400010001",
-            desiredNumber = 13,
-            name = "100 ml Body Scrub - Japanese Cherry Blossom ",
-            matchedNumber = 3
-        ),
-
-        Product(
-            "DL013010500010001",
-            desiredNumber = 7,
-            name = "100 ml Body Scrub -Mandarin Lime and Basil",
-            matchedNumber = 3
-        ),
-
-        Product(
-            "DL013011700050001",
-            desiredNumber = 14,
-            name = "500 ml Shampoo - Nectarine and Ruby Grapefruit",
-            matchedNumber = 3
-        ),
-    )
-
-    private val shortageProductList = mutableListOf(
-
-        Product(
-            "DL013010400010001",
-            desiredNumber = 13,
-            name = "100 ml Body Scrub - Japanese Cherry Blossom ",
-            matchedNumber = 3
-        ),
-
-        Product(
-            "DL013010500010001",
-            desiredNumber = 7,
-            name = "100 ml Body Scrub -Mandarin Lime and Basil",
-            matchedNumber = 3
-        ),
-
-        Product(
-            "DL013011700050001",
-            desiredNumber = 14,
-            name = "500 ml Shampoo - Nectarine and Ruby Grapefruit",
-            matchedNumber = 3
-        ),
-    )
-
-    private val additionalProductList = mutableListOf(
-        Product(
-            "03659511-8010-140-1",
-            desiredNumber = 2,
-            name = "اسلش",
-            matchedNumber = 3
-        ),
-        Product(
-            "03659511-8010-130-1",
-            desiredNumber = 2,
-            name = "اسلش",
-            matchedNumber = 3
-        ),
-        Product(
-            "03659511-8010-120-1",
-            desiredNumber = 2,
-            name = "اسلش",
-            matchedNumber = 3
-        )
-    )
 
     private val productMapBarcode = mutableMapOf(
         "ZD-K9" to 1,

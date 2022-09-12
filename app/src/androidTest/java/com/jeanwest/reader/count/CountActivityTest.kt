@@ -7,7 +7,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -52,7 +52,6 @@ class CountActivityTest {
         countActivity.waitForIdle()
         countActivity.onNodeWithText("91273501-8420-S-1").assertExists()
         countActivity.onAllNodesWithTag("items").assertCountEquals(1)
-
 
         countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
         countActivity.waitForIdle()

@@ -1,5 +1,6 @@
 package com.jeanwest.reader.checkIn
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -36,11 +37,11 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
+import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
 import com.jeanwest.reader.sharedClassesAndFiles.theme.JeanswestBottomBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -438,8 +439,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         inputProducts.forEach {
             logList[it.value.rfidKey] = it.value.desiredNumber
         }
-
-        Log.e("error", logList.toString())*/
+*/
     }
 
     private fun syncScannedItemsToServer() {
@@ -601,6 +601,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString("CheckInEPCTable", JSONArray(epcTable).toString())
         edit.putString("CheckInBarcodeTable", JSONArray(barcodeTable).toString())
+        edit.putString("inputProductsForTest", Gson().toJson(inputProducts.values).toString())
         edit.apply()
     }
 
@@ -733,6 +734,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @ExperimentalFoundationApi
     @Composable
     fun Page() {

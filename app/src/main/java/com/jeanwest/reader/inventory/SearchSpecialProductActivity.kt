@@ -27,7 +27,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.sharedClassesAndFiles.setRFEpcMode
 import com.jeanwest.reader.sharedClassesAndFiles.setRFPower
 import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
 import com.jeanwest.reader.sharedClassesAndFiles.LoadingCircularProgressIndicator
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme

@@ -1,6 +1,7 @@
 package com.jeanwest.reader
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -43,7 +44,7 @@ import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
 import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
 import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -218,6 +219,7 @@ class MainActivity : ComponentActivity() {
         var token = ""
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainMenu() {

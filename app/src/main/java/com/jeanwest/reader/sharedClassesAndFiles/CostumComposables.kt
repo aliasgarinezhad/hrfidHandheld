@@ -77,7 +77,7 @@ fun Item(
 ) {
 
     val topPadding = if (i == 0) 16.dp else 12.dp
-    val bottomPadding = if (i == uiList.size - 1) 12.dp else 0.dp
+    val bottomPadding = if (i == uiList.size - 1) 128.dp else 0.dp
 
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,

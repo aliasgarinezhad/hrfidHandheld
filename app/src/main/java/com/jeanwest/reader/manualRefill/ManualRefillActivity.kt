@@ -1,5 +1,6 @@
 package com.jeanwest.reader.manualRefill
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -18,6 +19,8 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -31,6 +34,7 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -38,8 +42,8 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.test.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.test.RFIDWithUHFUART
+import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
+import com.rscja.deviceapi.RFIDWithUHFUART
 import com.jeanwest.reader.sharedClassesAndFiles.theme.*
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -47,6 +51,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 @OptIn(ExperimentalFoundationApi::class)
 class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
@@ -61,9 +69,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
     private lateinit var queue: RequestQueue
+    private var isSubmitting by mutableStateOf(false)
+    private var scanMode by mutableStateOf(true)
+    var scannedBarcodeTable = mutableListOf<String>()
 
     companion object {
-        var scannedBarcodeTable = mutableListOf<String>()
         var products = mutableListOf<Product>()
     }
 
@@ -78,10 +88,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         }
 
         loadMemory()
-
-        if (scannedBarcodeTable.size != 0) {
-            syncScannedItemsToServer()
-        }
 
         Thread.setDefaultUncaughtExceptionHandler(
             ExceptionHandler(
@@ -102,11 +108,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             it.name
         }
         uiList.sortBy { it1 ->
-            it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+            it1.scannedBarcodeNumber > 0
         }
         barcodeInit()
         saveToMemory()
-        loadMemory()
         getRefillBarcodes()
     }
 
@@ -139,11 +144,15 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             inputBarcodes.clear()
 
             for (i in 0 until it.length()) {
-
                 inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
             }
             isDataLoading = false
-            getRefillItems()
+
+            if (inputBarcodes.size > 0) {
+                getRefillItems()
+            } else if (scannedBarcodeTable.size != 0) {
+                syncScannedItemsToServer()
+            }
         }, {
             when {
                 it is NoConnectionError -> {
@@ -172,6 +181,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             isDataLoading = false
+            if (scannedBarcodeTable.size != 0) {
+                syncScannedItemsToServer()
+            }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -232,7 +244,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     it.name
                 }
                 uiList.sortBy { it1 ->
-                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                    it1.scannedBarcodeNumber > 0
                 }
             }
 
@@ -246,6 +258,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun syncScannedItemsToServer() {
+
+        isDataLoading = true
 
         val barcodeArray = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
@@ -285,8 +299,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             isDataLoading = false
             return
         }
-
-        isDataLoading = true
 
         getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes ->
 
@@ -360,6 +372,117 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         })
     }
 
+    private fun sendToStore() {
+
+        if (products.filter { it1 ->
+                it1.scannedNumber > 0
+            }.toMutableStateList().isEmpty()) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "کالایی برای ارسال وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
+        uiList.forEach {
+            if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                return
+            }
+        }
+
+        isSubmitting = true
+
+        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "اجناس با موفقیت به فروشگاه حواله شدند",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            isSubmitting = false
+            scannedBarcodeTable.clear()
+
+        }, {
+            if (it is NoConnectionError) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        error.getString("message"),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+
+            isSubmitting = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = java.util.HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                val body = JSONObject()
+                val products = JSONArray()
+
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+                Log.e("time", sdf.format(Date()))
+
+                uiList.forEach {
+                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
+                        products.put(productJson)
+                    }
+                }
+
+                body.put("desc", "خطی هندهلد RFID")
+                body.put("createDate", sdf.format(Date()))
+                body.put("products", products)
+
+                Log.e("error", body.toString())
+
+                return body.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
+    }
+
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
@@ -370,6 +493,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
+    @SuppressLint("ApplySharedPref")
     private fun saveToMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
@@ -450,11 +574,17 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun back() {
 
-        saveToMemory()
-        stopBarcodeScan()
-        beep.release()
-        queue.stop()
-        finish()
+        if (scanMode) {
+            saveToMemory()
+            stopBarcodeScan()
+            beep.release()
+            queue.stop()
+            finish()
+        } else {
+            saveToMemory()
+            scanMode = true
+            getRefillBarcodes()
+        }
     }
 
     private fun openSearchActivity(product: Product) {
@@ -464,16 +594,15 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         startActivity(intent)
     }
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    bottomBar = { BottomBar() },
-                    content = { Content() },
+                    content = { if (scanMode) Content() else Content2() },
+                    bottomBar = { if (scanMode) BottomBar() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -508,11 +637,22 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
 
                     Button(onClick = {
-                        Intent(this@ManualRefillActivity, SendToStoreActivity::class.java).also {
-                            startActivity(it)
+                        if (products.filter { it1 ->
+                                it1.scannedNumber > 0
+                            }.toMutableStateList().isEmpty()) {
+                            CoroutineScope(Dispatchers.Default).launch {
+                                state.showSnackbar(
+                                    "هنوز کالایی برای ارسال اسکن نکرده اید",
+                                    null,
+                                    SnackbarDuration.Long
+                                )
+                            }
+                        } else {
+                            scanMode = false
                         }
+
                     }) {
-                        Text(text = "ارسال")
+                        Text(text = "ارسال اسکن شده ها")
                     }
                 }
             }
@@ -561,10 +701,46 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 LoadingCircularProgressIndicator(false, isDataLoading)
             }
 
-            LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+            if (uiList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 56.dp)
+                        .fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(256.dp)
+                    ) {
+                        Box(
 
-                items(uiList.size) { i ->
-                    LazyColumnItem(i)
+                            modifier = Modifier
+                                .background(color = Color.White, shape = Shapes.medium)
+                                .size(256.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_empty_box),
+                                contentDescription = "",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+
+                        Text(
+                            "هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید",
+                            style = Typography.h1,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                        )
+                    }
+                }
+            } else {
+
+                LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+
+                    items(uiList.size) { i ->
+                        LazyColumnItem(i)
+                    }
                 }
             }
         }
@@ -609,6 +785,117 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                         .align(Alignment.Center)
                         .size(20.dp)
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun Content2() {
+
+        Column {
+
+            if (uiList.filter {
+                    it.scannedBarcodeNumber > 0
+                }.toMutableList().isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 56.dp)
+                        .fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(256.dp)
+                    ) {
+                        Box(
+
+                            modifier = Modifier
+                                .background(color = Color.White, shape = Shapes.medium)
+                                .size(256.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_empty_box),
+                                contentDescription = "",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+
+                        Text(
+                            "هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید",
+                            style = Typography.h1,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                        )
+                    }
+                }
+            } else {
+
+                LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
+
+                    items(uiList.filter {
+                        it.scannedBarcodeNumber > 0
+                    }.size) { i ->
+                        Item(
+                            i,
+                            uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList(),
+                            text1 = "اسکن: " + uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList()[i].scannedNumber,
+                            text2 = "انبار: " + uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList()[i].wareHouseNumber.toString(),
+                            enableWarehouseNumberCheck = true,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (uiList.filter {
+                it.scannedBarcodeNumber > 0
+            }.toMutableList().isNotEmpty()) {
+            SendRequestButton()
+        }
+    }
+
+    @Composable
+    fun SendRequestButton() {
+
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            Box(
+                modifier = Modifier
+                    .shadow(6.dp, RoundedCornerShape(0.dp))
+                    .background(Color.White, RoundedCornerShape(0.dp))
+                    .height(100.dp)
+                    .align(Alignment.BottomCenter),
+            ) {
+
+                Button(modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp)
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                    enabled = !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Jeanswest,
+                        disabledBackgroundColor = DisableButtonColor,
+                        disabledContentColor = Color.White
+                    ),
+                    onClick = {
+                        if (!isSubmitting) {
+                            sendToStore()
+                        }
+                    }) {
+                    Text(
+                        text = if (isSubmitting) "در حال ارسال ..." else "ارسال به فروشگاه",
+                        style = Typography.body1,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
         }
     }

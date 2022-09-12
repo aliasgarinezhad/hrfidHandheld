@@ -56,7 +56,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
     private var numberOfScanned by mutableStateOf(0)
-    private var checkInProperties = mutableListOf<CheckInProperties>()
+    private var checkInProperties = mutableListOf<DraftProperties>()
     private var state = SnackbarHostState()
     private lateinit var queue : RequestQueue
 
@@ -93,7 +93,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
 
     private fun loadMemory() {
 
-        val type = object : TypeToken<List<CheckInProperties>>() {}.type
+        val type = object : TypeToken<List<DraftProperties>>() {}.type
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 

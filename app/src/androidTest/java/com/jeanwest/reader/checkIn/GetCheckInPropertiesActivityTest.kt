@@ -16,126 +16,126 @@ class GetCheckInPropertiesActivityTest {
     fun getBarcodesByCheckInNumberActivityTest1() {
 
         val checkInCodes = mutableListOf(
-            CheckInProperties(
+            DraftProperties(
                 number = 410693089,
                 date = "1401/5/29",
                 numberOfItems = 1,
                 source = 1709,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 410693090,
                 date = "1401/5/29",
                 numberOfItems = 1,
                 source = 1709,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039336,
                 date = "1401/5/29",
                 numberOfItems = 310,
                 source = 44,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039343,
                 date = "1401/5/29",
                 numberOfItems = 51,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039381,
                 date = "1401/5/30",
                 numberOfItems = 72,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039384,
                 date = "1401/5/30",
                 numberOfItems = 57,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039386,
                 date = "1401/5/30",
                 numberOfItems = 52,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039467,
                 date = "1401/5/30",
                 numberOfItems = 30,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039470,
                 date = "1401/5/30",
                 numberOfItems = 21,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039474,
                 date = "1401/5/30",
                 numberOfItems = 27,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039480,
                 date = "1401/5/30",
                 numberOfItems = 58,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039484,
                 date = "1401/5/30",
                 numberOfItems = 33,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039487,
                 date = "1401/5/30",
                 numberOfItems = 24,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039488,
                 date = "1401/5/30",
                 numberOfItems = 24,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039500,
                 date = "1401/5/30",
                 numberOfItems = 54,
                 source = 1911,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039507,
                 date = "1401/5/30",
                 numberOfItems = 80,
                 source = 44,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039508,
                 date = "1401/5/30",
                 numberOfItems = 97,
                 source = 44,
                 destination = 1707
             ),
-            CheckInProperties(
+            DraftProperties(
                 number = 114100039520,
                 date = "1401/5/30",
                 numberOfItems = 70,
@@ -183,7 +183,7 @@ class GetCheckInPropertiesActivityTest {
     }
 
     private fun clearUserData() {
-        val uiListCopy = mutableListOf<CheckInProperties>()
+        val uiListCopy = mutableListOf<DraftProperties>()
         uiListCopy.addAll(getCheckInPropertiesActivityTest.activity.uiList)
         uiListCopy.forEach {
             getCheckInPropertiesActivityTest.activity.clear(it)
