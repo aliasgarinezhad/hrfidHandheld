@@ -1,5 +1,6 @@
 package com.jeanwest.reader.checkIn
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -269,6 +270,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
         finish()
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
@@ -381,7 +383,7 @@ class ConfirmCheckInsActivity : ComponentActivity() {
                             i,
                             uiList,
                             text1 = "موجودی: " + uiList[i].desiredNumber,
-                            text2 = uiList[i].result
+                            text2 = uiList[i].scan + ":" + " " + uiList[i].matchedNumber,
                         )
                 }
             }

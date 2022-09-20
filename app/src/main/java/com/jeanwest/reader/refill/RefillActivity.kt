@@ -38,7 +38,6 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.sharedClassesAndFiles.*
 import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
@@ -399,6 +398,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
             isSubmitting = false
             scannedBarcodeTable.clear()
+            refillProducts.removeAll {
+                it.scannedBarcodeNumber > 0
+            }
+            syncScannedItemsToServer()
+            saveToMemory()
 
         }, {
             if (it is NoConnectionError) {
@@ -449,7 +453,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                body.put("desc", "خطی هندهلد RFID")
+                body.put("desc", "خطی با RFID")
                 body.put("createDate", sdf.format(Date()))
                 body.put("products", products)
 
@@ -576,7 +580,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     )
 
                     Button(onClick = {
-                        if (ManualRefillActivity.products.filter { it1 ->
+                        if (refillProducts.filter { it1 ->
                                 it1.scannedNumber > 0
                             }.toMutableStateList().isEmpty()) {
                             CoroutineScope(Dispatchers.Default).launch {

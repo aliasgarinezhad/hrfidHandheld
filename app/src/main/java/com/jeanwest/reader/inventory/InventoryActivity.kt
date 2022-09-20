@@ -1,5 +1,6 @@
 package com.jeanwest.reader.inventory
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -211,8 +212,6 @@ class InventoryActivity : ComponentActivity() {
 
     private fun getConflicts() {
 
-        Log.e("error", "getConflicts")
-
         syncScannedProductsRunning = true
 
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
@@ -256,31 +255,6 @@ class InventoryActivity : ComponentActivity() {
                         },
                         scannedEPCNumber = scannedProducts[it.value.KBarCode]!!.scannedNumber,
                         desiredNumber = it.value.desiredNumber,
-                        result = when {
-
-                            diff == 0 -> {
-                                "تایید شده"
-                            }
-                            diff < 0 -> {
-                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
-                                    "اضافی"
-                                } else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
-                                    "کسری"
-                                } else {
-                                    "تایید شده"
-                                }
-                            }
-                            diff > 0 -> {
-                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
-                                    "تایید شده"
-                                } else {
-                                    "اضافی"
-                                }
-                            }
-                            else -> {
-                                "تایید شده"
-                            }
-                        },
                         scan = when {
 
                             diff == 0 -> {
@@ -288,7 +262,7 @@ class InventoryActivity : ComponentActivity() {
                             }
                             diff < 0 -> {
                                 if (scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
-                                    "اضافی فایل"
+                                    "اضافی"
                                 } else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
                                     "کسری"
                                 } else {
@@ -299,7 +273,7 @@ class InventoryActivity : ComponentActivity() {
                                 if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
                                     "تایید شده"
                                 } else {
-                                    "اضافی فایل"
+                                    "اضافی"
                                 }
                             }
                             else -> {
@@ -334,17 +308,6 @@ class InventoryActivity : ComponentActivity() {
                             }
                         },
                         scannedEPCNumber = 0,
-                        result = when {
-                            diff == 0 -> {
-                                "تایید شده"
-                            }
-                            diff < 0 -> {
-                                "کسری"
-                            }
-                            else -> {
-                                "اضافی"
-                            }
-                        },
                         scan = when {
                             diff == 0 -> {
                                 "تایید شده"
@@ -353,7 +316,7 @@ class InventoryActivity : ComponentActivity() {
                                 "کسری"
                             }
                             else -> {
-                                "اضافی فایل"
+                                "اضافی"
                             }
                         },
                         productCode = it.value.productCode,
@@ -367,7 +330,7 @@ class InventoryActivity : ComponentActivity() {
                         rfidWareHouseNumber = it.value.rfidWareHouseNumber,
                         rfidStoreNumber = it.value.rfidStoreNumber,
                     )
-                    result[it.value.KBarCode] = (resultData)
+                    result[it.value.KBarCode] = resultData
                 }
             }
         }
@@ -385,10 +348,8 @@ class InventoryActivity : ComponentActivity() {
                         storeNumber = it.value.storeNumber,
                         wareHouseNumber = it.value.wareHouseNumber,
                         imageUrl = it.value.imageUrl,
-                        category = "نامعلوم",
                         matchedNumber = it.value.scannedNumber,
                         scannedEPCNumber = it.value.scannedNumber,
-                        result = "اضافی",
                         scan = "اضافی",
                         productCode = it.value.productCode,
                         size = it.value.size,
@@ -401,7 +362,7 @@ class InventoryActivity : ComponentActivity() {
                         rfidWareHouseNumber = it.value.rfidWareHouseNumber,
                         rfidStoreNumber = it.value.rfidStoreNumber,
                     )
-                    result[it.key] = (resultData)
+                    result[it.key] = resultData
                 }
             }
         }
@@ -413,8 +374,13 @@ class InventoryActivity : ComponentActivity() {
             0F
         } else {
             (inventoryResult.filter {
-                it.value.result == "تایید شده"
+                it.value.scan == "تایید شده"
             }.size.toFloat()) / inventoryResult.size.toFloat()
+        }
+
+        var numberOfProducts = 0
+        inputProducts.forEach {
+            numberOfProducts += it.value.storeNumber
         }
 
         shortagesNumber = 0
@@ -422,16 +388,16 @@ class InventoryActivity : ComponentActivity() {
         numberOfScanned = 0
 
         inventoryResult.values.toMutableStateList().forEach {
-            if (it.result == "کسری") {
+            if (it.scan == "کسری") {
                 shortagesNumber += it.matchedNumber
-            } else if (it.result == "اضافی") {
+            } else if (it.scan == "اضافی") {
                 additionalNumber += it.matchedNumber
             }
             numberOfScanned += it.scannedNumber
         }
 
         val shortageAndAdditional = inventoryResult.filter { it1 ->
-            it1.value.result == "کسری" || it1.value.result == "اضافی"
+            it1.value.scan == "کسری" || it1.value.scan == "اضافی"
         }.toMutableMap()
 
         val uiListTemp = mutableListOf<Product>()
@@ -466,7 +432,7 @@ class InventoryActivity : ComponentActivity() {
     private fun filterUiList() {
 
         val uiListParameters = uiList.filter {
-            it.result== scanFilter
+            it.scan== scanFilter
         } as MutableList<Product>
 
         uiList.clear()
@@ -486,7 +452,7 @@ class InventoryActivity : ComponentActivity() {
 
         inventoryResult.values.forEach {
 
-            if(it.result != "تایید شده") {
+            if(it.scan != "تایید شده") {
 
                 val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
 
@@ -902,6 +868,7 @@ class InventoryActivity : ComponentActivity() {
             }
 
             saveToServerInProgress = false
+            resultIndexForApi2 = 0
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = mutableMapOf<String, String>()
@@ -923,7 +890,7 @@ class InventoryActivity : ComponentActivity() {
                     val productJson = JSONObject()
 
                     val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
-                    val newDiff = if(it.result == "کسری") it.matchedNumber * -1 else it.matchedNumber
+                    val newDiff = if(it.scan == "کسری") it.matchedNumber * -1 else it.matchedNumber
 
                     productJson.put("BarcodeMain_ID", it.primaryKey)
                     productJson.put("kbarcode", it.KBarCode)
@@ -931,7 +898,6 @@ class InventoryActivity : ComponentActivity() {
                     productJson.put(
                         "diffCount",
                         if (diff > newDiff) diff else newDiff
-                        //if(it.result == "کسری") it.matchedNumber * -1 else it.matchedNumber
                     )
                     products.put(productJson)
 
@@ -1094,7 +1060,6 @@ class InventoryActivity : ComponentActivity() {
             signedKBarCode.clear()
             saveToMemory()
             saveToServerInProgress = false
-            Log.e("error", "4 passed")
 
         }, {
             if (it is NoConnectionError) {
@@ -1177,6 +1142,7 @@ class InventoryActivity : ComponentActivity() {
         finish()
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @OptIn(ExperimentalCoilApi::class)
     @ExperimentalFoundationApi
     @Composable
@@ -1404,7 +1370,7 @@ class InventoryActivity : ComponentActivity() {
 
                 Text(
                     text = "کسری: " + inventoryResult.values.toMutableStateList().filter {
-                        it.result == "کسری"
+                        it.scan == "کسری"
                     }.size,
                     textAlign = TextAlign.Right,
                     modifier = Modifier
@@ -1413,7 +1379,7 @@ class InventoryActivity : ComponentActivity() {
 
                 Text(
                     text = "اضافی: " + inventoryResult.values.toMutableStateList().filter {
-                        it.result == "اضافی"
+                        it.scan == "اضافی"
                     }.size,
                     textAlign = TextAlign.Right,
                     modifier = Modifier
@@ -1422,7 +1388,7 @@ class InventoryActivity : ComponentActivity() {
 
                 Text(
                     text = "پیدا نشده: " + (inventoryResult.values.toMutableStateList().filter {
-                        it.result == "اضافی" || it.result == "کسری"
+                        it.scan == "اضافی" || it.scan == "کسری"
                     }.size - signedKBarCode.size).toString(),
                     textAlign = TextAlign.Right,
                     modifier = Modifier
@@ -1491,19 +1457,16 @@ class InventoryActivity : ComponentActivity() {
                 }) {
                 Text(text = "تعریف ناحیه جست و جو")
             }
-            val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
             LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
 
                 items(uiList.size) { i ->
 
-                    val diff = if (isInDepo) uiList[i].rfidWareHouseNumber else uiList[i].rfidStoreNumber
-
                     Item(
                         i,
                         uiList,
                         text1 = "موجودی: " + uiList[i].desiredNumber,
-                        text2 = uiList[i].result + ":" + " " + uiList[i].matchedNumber + "(" + diff + ")",
+                        text2 = uiList[i].scan + ":" + " " + uiList[i].matchedNumber,
                         clickable = true,
                         onClick = {
                             Intent(

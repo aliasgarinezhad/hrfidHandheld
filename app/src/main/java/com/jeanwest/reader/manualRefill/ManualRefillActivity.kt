@@ -302,7 +302,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes ->
 
-
             barcodes.forEach {
                 var isInRefillProductList = false
 
@@ -414,6 +413,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
             isSubmitting = false
             scannedBarcodeTable.clear()
+            products.removeAll {
+                it.scannedBarcodeNumber > 0
+            }
+            syncScannedItemsToServer()
+            saveToMemory()
 
         }, {
             if (it is NoConnectionError) {
@@ -464,7 +468,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                body.put("desc", "خطی هندهلد RFID")
+                body.put("desc", "شارژ با RFID")
                 body.put("createDate", sdf.format(Date()))
                 body.put("products", products)
 

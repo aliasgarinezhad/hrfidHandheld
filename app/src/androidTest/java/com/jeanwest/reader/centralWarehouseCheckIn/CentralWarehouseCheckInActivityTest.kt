@@ -1,6 +1,5 @@
 package com.jeanwest.reader.centralWarehouseCheckIn
 
-import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -16,6 +15,7 @@ import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
 
+//first run GetCheckInPropertiesActivity with stock draft code = 119945
 
 class CentralWarehouseCheckInActivityTest {
 
@@ -43,14 +43,17 @@ class CentralWarehouseCheckInActivityTest {
         }
 
         checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
+        Thread.sleep(500)
+        checkInActivity.waitForIdle()
 
-        /*checkInActivity.onNodeWithTag("CustomTextField")
-            .performTextClearance()
-        checkInActivity.onNodeWithTag("CustomTextField")
-            .performTextInput(checkInCode.number.toString())
-        checkInActivity.onNodeWithTag("CustomTextField")
-            .performImeAction()*/
+        if(checkInActivity.activity.scanningMode) {
+
+            checkInActivity.onNodeWithText("پایان تروفالس").performClick()
+            checkInActivity.waitForIdle()
+            checkInActivity.onNodeWithText("خیر، نتایج پاک شوند").performClick()
+            checkInActivity.waitForIdle()
+            checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
+        }
 
         barcodeScan(checkInCode.number.toString())
 
@@ -73,7 +76,7 @@ class CentralWarehouseCheckInActivityTest {
 
         checkInActivity.onNodeWithText("کسری: ${checkInCode.numberOfItems}").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: 0").assertExists()
+        checkInActivity.onNodeWithText("اسکن: 0").assertExists()
 
         val productMap = mutableMapOf<Long, Int>()
         products.forEach {
@@ -85,7 +88,9 @@ class CentralWarehouseCheckInActivityTest {
             appProductMap[it.value.rfidKey] = it.value.desiredNumber
         }
 
-        assert(appProductMap == productMap)
+        products.forEach {
+            assert(checkInActivity.activity.inputProducts[it.KBarCode] == it)
+        }
 
         for (i in 0 until 3) {
 
@@ -113,7 +118,7 @@ class CentralWarehouseCheckInActivityTest {
 
         checkInActivity.onNodeWithText("کسری: 0").assertExists()
         checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: ${checkInCode.numberOfItems}").assertExists()
+        checkInActivity.onNodeWithText("اسکن: ${checkInCode.numberOfItems}").assertExists()
         //checkInActivity.onNodeWithTag("items").assertDoesNotExist()
 
         clearUserData()
@@ -137,9 +142,6 @@ class CentralWarehouseCheckInActivityTest {
             }
         }
 
-        Log.e("rfid", productMapRFID.toString())
-        Log.e("barcode", productMapBarcode.toString())
-
         clearUserData()
         checkInActivity.waitForIdle()
         Thread.sleep(5000)
@@ -156,13 +158,14 @@ class CentralWarehouseCheckInActivityTest {
         checkInActivity.waitForIdle()
         checkResults()
 
-        checkInActivity.onNodeWithText("پایان تروفالس").performClick()
+        /*checkInActivity.onNodeWithText("پایان تروفالس").performClick()
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("بله").performClick()
         Thread.sleep(5000)
         checkInActivity.waitForIdle()
         checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
-
+        Thread.sleep(1000)
+        checkInActivity.waitForIdle()*/
     }
 
     private fun checkResults() {
@@ -179,7 +182,7 @@ class CentralWarehouseCheckInActivityTest {
 
         checkInActivity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
         checkInActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
-        checkInActivity.onNodeWithText("اسکن شده: $scannedNumber").assertExists()
+        checkInActivity.onNodeWithText("اسکن: $scannedNumber").assertExists()
 
         checkInActivity.activity.inputProducts.forEach {
 
@@ -218,7 +221,7 @@ class CentralWarehouseCheckInActivityTest {
             it.name
         }
 
-        val forLoopMaxValue = if(shortageProductList.size > 3) 3 else shortageProductList.size
+        val forLoopMaxValue = if (shortageProductList.size > 3) 3 else shortageProductList.size
         for (i in 0 until forLoopMaxValue) {
 
             checkInActivity.onAllNodesWithTag("items")[i].apply {

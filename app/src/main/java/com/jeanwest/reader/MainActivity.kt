@@ -51,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 
+@OptIn(ExperimentalFoundationApi::class)
 class MainActivity : ComponentActivity() {
 
     private var openAccountDialog by mutableStateOf(false)
@@ -220,7 +221,6 @@ class MainActivity : ComponentActivity() {
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainMenu() {
 

@@ -7,7 +7,6 @@ import coil.annotation.ExperimentalCoilApi
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalCoilApi::class)
 @ExperimentalCoilApi
 
 class SearchActivityTest {
@@ -67,7 +66,6 @@ class SearchActivityTest {
     fun searchActivityTest3() {
 
         searchActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-
 
         searchActivity.waitForIdle()
 

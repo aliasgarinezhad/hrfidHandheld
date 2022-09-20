@@ -23,10 +23,8 @@ data class Product(
     var scannedEPCNumber: Int = 0,
     var requestedNum: Int = 0,
     var matchedNumber: Int = 0,
-    var result: String = "",
     var scan: String = "",
     var desiredNumber: Int = 0,
-    var category: String = "",
     var checkInNumber: Long = 0L
 ) {
     var scannedNumber: Int

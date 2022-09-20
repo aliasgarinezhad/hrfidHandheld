@@ -69,10 +69,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
     private var inputProductsBiggerThan1000 = false
-    private var inputEpcTable = mutableMapOf<String, Long>()
+    var inputEpcTable = mutableMapOf<String, Long>()
 
     //ui parameters
-    var conflictResultProducts = mutableStateListOf<Product>()
+    var conflicts = mutableStateListOf<Product>()
     private var isScanning by mutableStateOf(false)
     private var syncScannedProductsRunning by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
@@ -234,18 +234,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         matchedNumber = abs(scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber),
                         scannedEPCNumber = scannedProduct.value.scannedNumber,
                         desiredNumber = fileProduct.value.desiredNumber,
-                        result =
-                        when {
-                            scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
-                                "اضافی: " + (scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber)
-                            }
-                            scannedProduct.value.scannedNumber < fileProduct.value.desiredNumber -> {
-                                "کسری: " + (fileProduct.value.desiredNumber - scannedProduct.value.scannedNumber)
-                            }
-                            else -> {
-                                "تایید شده: " + fileProduct.value.desiredNumber
-                            }
-                        },
                         scan = when {
                             scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
                                 "اضافی"
@@ -278,7 +266,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = scannedProduct.value.wareHouseNumber,
                     matchedNumber = scannedProduct.value.scannedNumber,
                     scannedEPCNumber = scannedProduct.value.scannedNumber,
-                    result = "اضافی: " + scannedProduct.value.scannedNumber,
                     scan = "اضافی",
                     productCode = scannedProduct.value.productCode,
                     size = scannedProduct.value.size,
@@ -303,7 +290,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = fileProduct.value.wareHouseNumber,
                     matchedNumber = fileProduct.value.desiredNumber,
                     scannedEPCNumber = 0,
-                    result = "کسری: " + fileProduct.value.desiredNumber,
                     scan = "کسری",
                     productCode = fileProduct.value.productCode,
                     size = fileProduct.value.size,
@@ -317,8 +303,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 result.add(resultData)
             }
         }
-        conflictResultProducts.clear()
-        conflictResultProducts.addAll(result)
+        conflicts.clear()
+        conflicts.addAll(result)
     }
 
     private fun filterResult(conflictResult: MutableList<Product>) {
@@ -404,7 +390,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             makeInputProductMap()
             getConflicts()
-            filterResult(conflictResultProducts)
+            filterResult(conflicts)
 
             if (inputProductsBiggerThan1000) {
                 syncInputItemsToServer()
@@ -483,7 +469,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             getConflicts()
-            filterResult(conflictResultProducts)
+            filterResult(conflicts)
             syncScannedProductsRunning = false
             return
         }
@@ -502,7 +488,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             getConflicts()
-            filterResult(conflictResultProducts)
+            filterResult(conflicts)
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
@@ -543,7 +529,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
             getConflicts()
-            filterResult(conflictResultProducts)
+            filterResult(conflicts)
 
             syncScannedProductsRunning = false
 
@@ -594,7 +580,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         }
     }
 
-    private fun saveToMemory() {
+    fun saveToMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
@@ -645,7 +631,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         scannedBarcodeMapWithProperties.clear()
         scannedEpcMapWithProperties.clear()
         getConflicts()
-        filterResult(conflictResultProducts)
+        filterResult(conflicts)
         saveToMemory()
     }
 
@@ -707,7 +693,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         run breakForEach@ {
 
-            conflictResultProducts.forEach {
+            conflicts.forEach {
 
                 if (it.scan == "کسری" || it.scan == "اضافی" || it.scan == "اضافی فایل") {
 
@@ -853,7 +839,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "اسکن شده: $numberOfScanned",
+                        text = "اسکن: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 16.dp)
@@ -888,7 +874,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         uiList,
                         true,
                         text1 = "موجودی: " + uiList[i].desiredNumber,
-                        text2 = uiList[i].result
+                        text2 = uiList[i].scan + ":" + " " + uiList[i].matchedNumber,
                     ) {
                         openSearchActivity(uiList[i])
                     }
@@ -923,7 +909,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     DropdownMenuItem(onClick = {
                         expanded = false
                         scanFilter = scanValues.indexOf(it)
-                        filterResult(conflictResultProducts)
+                        filterResult(conflicts)
                     }) {
                         Text(text = it)
                     }

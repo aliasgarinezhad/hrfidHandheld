@@ -20,6 +20,7 @@ class ManualRefillActivityTest {
     @get:Rule
     val manualRefillActivity = createAndroidComposeRule<ManualRefillActivity>()
 
+    //send all stuffs after test
     @Test
     fun manualRefillActivityTest1() {
 

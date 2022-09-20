@@ -16,8 +16,9 @@ class RefillActivityTest {
     @get:Rule
     val refillActivity = createAndroidComposeRule<RefillActivity>()
 
+    //send all stuffs after test
     @Test
-    fun refillActivityTest1() {
+    fun test1() {
 
         start()
         clearUserData()
@@ -114,9 +115,9 @@ class RefillActivityTest {
         Barcode2D.barcode = barcode
         refillActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
         refillActivity.waitForIdle()
-        Thread.sleep(500)
+        Thread.sleep(1000)
         refillActivity.waitForIdle()
-        Thread.sleep(500)
+        Thread.sleep(1000)
         refillActivity.waitForIdle()
     }
 

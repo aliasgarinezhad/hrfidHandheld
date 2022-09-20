@@ -1,5 +1,6 @@
 package com.jeanwest.reader.count
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -66,13 +67,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var scannedEpcTable = mutableListOf<String>()
     private var epcTablePreviousSize = 0
     private var scannedBarcodeTable = mutableListOf<String>()
-    var excelBarcodes = mutableListOf<String>()
+    var inputBarcodes = mutableStateListOf<String>()
     private val barcode2D =
         Barcode2D(this)
-    private val fileProducts = mutableMapOf<String, Product>()
-    private val scannedProducts = mutableMapOf<String, Product>()
+    val inputProducts = mutableMapOf<String, Product>()
+    val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
-    private var barcodeToCategoryMap = mutableMapOf<String, String>()
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedProductsBiggerThan1000 = false
@@ -80,30 +80,27 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var inputProductsBiggerThan1000 = false
 
     //ui parameters
-    private var uiList = mutableStateMapOf<String, Product>()
+    var uiList = mutableStateMapOf<String, Product>()
     private var syncScannedProductsRunning by mutableStateOf(false)
     private var syncFileProductsRunning by mutableStateOf(false)
     private var isScanning by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
-    private var number by mutableStateOf(0)
+    private var scannedNumber by mutableStateOf(0)
     private var fileName by mutableStateOf("خروجی")
     private var openDialog by mutableStateOf(false)
     private var filteredUiList = mutableStateListOf<Product>()
-    private var categoryFilter by mutableStateOf("همه دسته ها")
-    private var categoryValues = mutableStateListOf("همه دسته ها", "نامعلوم")
-    private var scanFilter by mutableStateOf("همه اجناس")
-    private var searchMode by mutableStateOf(false)
+    private var scanFilter by mutableStateOf("اضافی")
+    private var defineZoneMode by mutableStateOf(false)
     private var signedFilter by mutableStateOf("همه")
     private var searchModeProductCodes = mutableListOf<String>()
     private var signedProductCodes = mutableListOf<String>()
     private var openClearDialog by mutableStateOf(false)
-    private val scanTypeValues = mutableListOf("RFID", "بارکد")
     private var scanTypeValue by mutableStateOf("RFID")
     private var state = SnackbarHostState()
 
     private val apiTimeout = 30000
-    private lateinit var queue : RequestQueue
+    private lateinit var queue: RequestQueue
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,13 +153,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         SnackbarDuration.Long
                     )
                 }
-                syncFileItemsToServer()
+                syncInputItemsToServer()
             }
         } else {
             while (!rf.setEPCMode()) {
                 rf.free()
             }
-            syncFileItemsToServer()
+            syncInputItemsToServer()
         }
     }
 
@@ -170,7 +167,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         val result = mutableStateMapOf<String, Product>()
 
-        fileProducts.forEach { fileProduct ->
+        inputProducts.forEach { fileProduct ->
 
             if (fileProduct.value.KBarCode in scannedProducts) {
 
@@ -178,29 +175,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     name = fileProduct.value.name,
                     KBarCode = fileProduct.value.KBarCode,
                     imageUrl = fileProduct.value.imageUrl,
-                    category = fileProduct.value.category,
                     storeNumber = fileProduct.value.storeNumber,
                     wareHouseNumber = fileProduct.value.wareHouseNumber,
-                    matchedNumber = abs(scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber - fileProduct.value.scannedNumber),
+                    matchedNumber = abs(scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber - fileProduct.value.desiredNumber),
                     scannedEPCNumber = scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber,
-                    desiredNumber = fileProduct.value.scannedNumber,
-                    result =
-                    when {
-                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber > fileProduct.value.scannedNumber -> {
+                    desiredNumber = fileProduct.value.desiredNumber,
+                    scan = when {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber > fileProduct.value.desiredNumber -> {
                             "اضافی"
                         }
-                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber < fileProduct.value.scannedNumber -> {
-                            "کسری"
-                        }
-                        else -> {
-                            "تایید شده"
-                        }
-                    },
-                    scan = when {
-                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber > fileProduct.value.scannedNumber -> {
-                            "اضافی فایل"
-                        }
-                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber < fileProduct.value.scannedNumber -> {
+                        scannedProducts[fileProduct.value.KBarCode]!!.scannedNumber < fileProduct.value.desiredNumber -> {
                             "کسری"
                         }
                         else -> {
@@ -213,7 +197,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     originalPrice = fileProduct.value.originalPrice,
                     salePrice = fileProduct.value.salePrice,
                     rfidKey = fileProduct.value.rfidKey,
-                    primaryKey = fileProduct.value.primaryKey
+                    primaryKey = fileProduct.value.primaryKey,
                 )
                 result[fileProduct.value.KBarCode] = resultData
 
@@ -222,12 +206,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     name = fileProduct.value.name,
                     KBarCode = fileProduct.value.KBarCode,
                     imageUrl = fileProduct.value.imageUrl,
-                    category = fileProduct.value.category,
                     storeNumber = fileProduct.value.storeNumber,
                     wareHouseNumber = fileProduct.value.wareHouseNumber,
-                    matchedNumber = fileProduct.value.scannedNumber,
+                    matchedNumber = fileProduct.value.desiredNumber,
                     scannedEPCNumber = 0,
-                    result = "کسری",
                     scan = "کسری",
                     productCode = fileProduct.value.productCode,
                     size = fileProduct.value.size,
@@ -236,7 +218,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     salePrice = fileProduct.value.salePrice,
                     rfidKey = fileProduct.value.rfidKey,
                     primaryKey = fileProduct.value.primaryKey,
-                    desiredNumber = fileProduct.value.scannedNumber
+                    desiredNumber = fileProduct.value.desiredNumber
                 )
                 result[fileProduct.value.KBarCode] = (resultData)
             }
@@ -248,12 +230,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     name = it.value.name,
                     KBarCode = it.value.KBarCode,
                     imageUrl = it.value.imageUrl,
-                    category = "نامعلوم",
                     storeNumber = it.value.storeNumber,
                     wareHouseNumber = it.value.wareHouseNumber,
                     matchedNumber = it.value.scannedNumber,
                     scannedEPCNumber = it.value.scannedNumber,
-                    result = "اضافی",
                     scan = "اضافی",
                     productCode = it.value.productCode,
                     size = it.value.size,
@@ -269,6 +249,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
         uiList.clear()
         uiList.putAll(result)
+        filterUiList()
     }
 
     private fun checkLogin(): Boolean {
@@ -307,11 +288,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             val row = sheet.createRow(sheet.physicalNumberOfRows)
             row.createCell(0).setCellValue(it.KBarCode)
             row.createCell(1).setCellValue(it.scannedNumber.toDouble())
-            row.createCell(2).setCellValue(it.category)
 
             if (it.scan == "کسری") {
                 row.createCell(3).setCellValue(it.matchedNumber.toDouble())
-            } else if (it.scan == "اضافی" || it.scan == "اضافی فایل") {
+            } else if (it.scan == "اضافی") {
                 row.createCell(4).setCellValue(it.matchedNumber.toDouble())
             }
 
@@ -322,7 +302,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         val row = sheet.createRow(sheet.physicalNumberOfRows)
         row.createCell(0).setCellValue("مجموع")
-        row.createCell(1).setCellValue(number.toDouble())
+        row.createCell(1).setCellValue(scannedNumber.toDouble())
         row.createCell(3).setCellValue(shortagesNumber.toDouble())
         row.createCell(4).setCellValue(additionalNumber.toDouble())
 
@@ -342,7 +322,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 shortageRow.createCell(0).setCellValue(it.KBarCode)
                 shortageRow.createCell(1)
                     .setCellValue(it.scannedNumber.toDouble() + it.matchedNumber.toDouble())
-                shortageRow.createCell(2).setCellValue(it.category)
                 shortageRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
@@ -367,7 +346,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 additionalRow.createCell(0).setCellValue(it.KBarCode)
                 additionalRow.createCell(1)
                     .setCellValue(it.matchedNumber - it.scannedNumber.toDouble())
-                additionalRow.createCell(2).setCellValue(it.category)
                 additionalRow.createCell(3).setCellValue(it.matchedNumber.toDouble())
 
                 if (it.KBarCode in signedProductCodes) {
@@ -446,7 +424,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        searchModeEpcTable.clear()
+        if (defineZoneMode) {
+            searchModeEpcTable.clear()
+        }
+
         rf.startInventoryTag(0, 0, 0)
 
         while (isScanning) {
@@ -456,8 +437,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 uhfTagInfo = rf.readTagFromBuffer()
                 if (uhfTagInfo != null) {
                     if (uhfTagInfo.epc.startsWith("30")) {
-                        searchModeEpcTable.add(uhfTagInfo.epc)
                         scannedEpcTable.add(uhfTagInfo.epc)
+                        if (defineZoneMode) {
+                            searchModeEpcTable.add(uhfTagInfo.epc)
+                        }
                     }
                 } else {
                     break
@@ -467,7 +450,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             scannedEpcTable = scannedEpcTable.distinct().toMutableList()
             searchModeEpcTable = searchModeEpcTable.distinct().toMutableList()
 
-            number = scannedEpcTable.size + scannedBarcodeTable.size
+            scannedNumber = scannedEpcTable.size + scannedBarcodeTable.size
 
             val speed = scannedEpcTable.size - epcTablePreviousSize
             when {
@@ -492,10 +475,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
 
         rf.stopInventory()
-        if (searchMode && searchModeProductCodes.size == 0) {
+        if (defineZoneMode) {
             getSearchModeProductsProperties()
+            defineZoneMode = false
         }
-        number = scannedEpcTable.size + scannedBarcodeTable.size
+        scannedNumber = scannedEpcTable.size + scannedBarcodeTable.size
         saveToMemory()
     }
 
@@ -522,7 +506,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
         val zoneFilterOutput =
-            if (searchMode) {
+            if (defineZoneMode) {
                 signedFilterOutput.filter {
                     it.productCode in searchModeProductCodes
                 } as MutableList<Product>
@@ -530,58 +514,44 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 signedFilterOutput
             }
 
-        val categoryFilterOutput =
-            if (categoryFilter == "همه دسته ها") {
-                zoneFilterOutput
-            } else {
-                zoneFilterOutput.filter {
-                    it.category == categoryFilter
-                } as MutableList<Product>
-            }
-
         shortagesNumber = 0
-        categoryFilterOutput.filter {
+        signedFilterOutput.filter {
             it.scan == "کسری"
         }.forEach {
             shortagesNumber += it.matchedNumber
         }
 
         additionalNumber = 0
-        categoryFilterOutput.filter {
-            it.scan == "اضافی" || it.scan == "اضافی فایل"
+        signedFilterOutput.filter {
+            it.scan == "اضافی"
         }.forEach {
             additionalNumber += it.matchedNumber
         }
 
-        val uiListParameters =
-            when (scanFilter) {
-                "همه اجناس" -> {
-                    categoryFilterOutput
-                }
-                "اضافی" -> {
-                    categoryFilterOutput.filter {
-                        it.scan == "اضافی" || it.scan == "اضافی فایل"
-                    } as MutableList<Product>
-                }
-                else -> {
-                    categoryFilterOutput.filter {
-                        it.scan == scanFilter
-                    } as MutableList<Product>
-                }
-            }
+        val uiListParameters = zoneFilterOutput.filter {
+            it.scan == scanFilter
+        } as MutableList<Product>
+
+        uiListParameters.sortBy {
+            it.productCode
+        }
+        uiListParameters.sortBy {
+            it.name
+        }
+
         filteredUiList.clear()
         filteredUiList.addAll(uiListParameters)
     }
 
-    private fun syncFileItemsToServer() {
+    private fun syncInputItemsToServer() {
 
         val barcodeTableForV4 = mutableListOf<String>()
 
         syncFileProductsRunning = true
         inputProductsBiggerThan1000 = false
 
-        run breakForEach@ {
-            excelBarcodes.forEach {
+        run breakForEach@{
+            inputBarcodes.forEach {
                 if (it !in inputBarcodeMapWithProperties.keys) {
                     if (barcodeTableForV4.size < 1000) {
                         barcodeTableForV4.add(it)
@@ -594,10 +564,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
 
         if (barcodeTableForV4.size == 0) {
+            makeInputProductMap()
             syncScannedItemsToServer()
             syncFileProductsRunning = false
             return
         }
+
+        scanFilter = "کسری"
 
         syncFileProductsRunning = true
 
@@ -608,10 +581,9 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
             makeInputProductMap()
-            getConflicts()
 
             if (inputProductsBiggerThan1000) {
-                syncFileItemsToServer()
+                syncInputItemsToServer()
             } else {
                 syncFileProductsRunning = false
                 syncScannedItemsToServer()
@@ -627,10 +599,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         inputBarcodeMapWithProperties.forEach { it1 ->
 
-            if (it1.value.KBarCode !in fileProducts.keys) {
-                fileProducts[it1.value.KBarCode] = it1.value
-                fileProducts[it1.value.KBarCode]!!.scannedNumber =
-                    excelBarcodes.count { innerIt2 ->
+            if (it1.value.KBarCode !in inputProducts.keys) {
+                inputProducts[it1.value.KBarCode] = it1.value.copy()
+                inputProducts[it1.value.KBarCode]!!.desiredNumber =
+                    inputBarcodes.count { innerIt2 ->
                         innerIt2 == it1.key
                     }
             }
@@ -639,7 +611,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        if (number == 0) {
+        if (scannedNumber == 0) {
+            getConflicts()
             return
         }
 
@@ -679,8 +652,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             getConflicts()
-            filterUiList()
-
             syncScannedProductsRunning = false
             return
         }
@@ -696,18 +667,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
             makeScannedProductMap()
-            getConflicts()
-            filterUiList()
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
             } else {
+                getConflicts()
                 syncScannedProductsRunning = false
             }
 
         }, {
             getConflicts()
-            filterUiList()
             syncScannedProductsRunning = false
         })
     }
@@ -721,21 +690,23 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             if (it1.value.KBarCode in scannedProducts.keys) {
                 scannedProducts[it1.value.KBarCode]!!.scannedNumber += 1
             } else {
-                scannedProducts[it1.value.KBarCode] = it1.value
+                scannedProducts[it1.value.KBarCode] = it1.value.copy()
             }
         }
 
         scannedBarcodeMapWithProperties.forEach { it1 ->
 
             if (it1.value.KBarCode in scannedProducts.keys) {
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
-                }
+                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber =
+                    scannedBarcodeTable.count { innerIt2 ->
+                        innerIt2 == it1.key
+                    }
             } else {
-                scannedProducts[it1.value.KBarCode] = it1.value
-                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber = scannedBarcodeTable.count { innerIt2 ->
-                    innerIt2 == it1.key
-                }
+                scannedProducts[it1.value.KBarCode] = it1.value.copy()
+                scannedProducts[it1.value.KBarCode]!!.scannedBarcodeNumber =
+                    scannedBarcodeTable.count { innerIt2 ->
+                        innerIt2 == it1.key
+                    }
             }
         }
     }
@@ -859,25 +830,21 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        barcodeToCategoryMap.clear()
-        excelBarcodes.clear()
+        inputBarcodes.clear()
 
         for (i in 1 until sheet.physicalNumberOfRows) {
             if (sheet.getRow(i).getCell(0) == null || sheet.getRow(i).getCell(1) == null) {
                 break
             } else {
 
-                barcodeToCategoryMap[sheet.getRow(i).getCell(0).stringCellValue] =
-                    sheet.getRow(i).getCell(2)?.stringCellValue ?: "نامعلوم"
-
                 repeat(sheet.getRow(i).getCell(1).numericCellValue.toInt()) {
-                    excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
+                    inputBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
                 }
             }
         }
 
         saveToMemory()
-        syncFileItemsToServer()
+        syncInputItemsToServer()
     }
 
     private fun readXLSFile(uri: Uri) {
@@ -908,45 +875,31 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        barcodeToCategoryMap.clear()
-        excelBarcodes.clear()
+        inputBarcodes.clear()
 
         for (i in 1 until sheet.physicalNumberOfRows) {
             if (sheet.getRow(i).getCell(0) == null || sheet.getRow(i).getCell(1) == null) {
                 break
             } else {
-
-                barcodeToCategoryMap[sheet.getRow(i).getCell(0).stringCellValue] =
-                    sheet.getRow(i).getCell(2)?.stringCellValue ?: "نامعلوم"
-
                 repeat(sheet.getRow(i).getCell(1).numericCellValue.toInt()) {
-                    excelBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
+                    inputBarcodes.add(sheet.getRow(i).getCell(0).stringCellValue)
                 }
             }
         }
 
         saveToMemory()
-        syncFileItemsToServer()
+        syncInputItemsToServer()
     }
 
     private fun searchModeButton() {
-        if (!searchMode) {
-            searchModeProductCodes.clear()
 
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "ابتدا بارکد هایی که می خواهید جست و جو کنید را با اسکن مشخص کنید",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            searchMode = true
-            filterUiList()
-
-        } else {
-            searchMode = false
-            searchModeProductCodes.clear()
-            filterUiList()
+        searchModeProductCodes.clear()
+        defineZoneMode = true
+        filterUiList()
+        stopRFScan()
+        rfPower = 5
+        scanningJob = CoroutineScope(IO).launch {
+            startRFScan()
         }
     }
 
@@ -954,7 +907,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         if (!barcode.isNullOrEmpty()) {
 
             scannedBarcodeTable.add(barcode)
-            number = scannedEpcTable.size + scannedBarcodeTable.size
+            scannedNumber = scannedEpcTable.size + scannedBarcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -976,11 +929,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             "FileAttachmentFileSignedCodesTable",
             JSONArray(signedProductCodes).toString()
         )
-        edit.putString("FileAttachmentFileBarcodeTable", JSONArray(excelBarcodes).toString())
-        edit.putString(
-            "FileAttachmentBarcodeToCategoryMapTable",
-            JSONObject(barcodeToCategoryMap as Map<*, *>).toString()
-        )
+        edit.putString("FileAttachmentFileBarcodeTable", JSONArray(inputBarcodes).toString())
         edit.apply()
     }
 
@@ -1000,15 +949,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             scannedBarcodeTable.javaClass
         ) ?: mutableListOf()
 
-        excelBarcodes = Gson().fromJson(
+        inputBarcodes = Gson().fromJson(
             memory.getString("FileAttachmentFileBarcodeTable", ""),
-            excelBarcodes.javaClass
-        ) ?: mutableListOf()
-
-        barcodeToCategoryMap = Gson().fromJson(
-            memory.getString("FileAttachmentBarcodeToCategoryMapTable", ""),
-            barcodeToCategoryMap.javaClass
-        ) ?: mutableMapOf()
+            inputBarcodes.javaClass
+        ) ?: mutableStateListOf()
 
         searchModeProductCodes = Gson().fromJson(
             memory.getString("FileAttachmentFileZoneCodesTable", ""),
@@ -1020,12 +964,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             signedProductCodes.javaClass
         ) ?: mutableListOf()
 
-        number = scannedEpcTable.size + scannedBarcodeTable.size
+        scannedNumber = scannedEpcTable.size + scannedBarcodeTable.size
     }
 
     private fun clear() {
 
-        if (number != 0) {
+        if (scannedNumber != 0) {
             scannedBarcodeTable.clear()
             scannedEpcTable.clear()
             searchModeEpcTable.clear()
@@ -1033,10 +977,9 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             scannedBarcodeMapWithProperties.clear()
             scannedEpcMapWithProperties.clear()
             epcTablePreviousSize = 0
-            number = 0
+            scannedNumber = 0
             scannedProducts.clear()
             getConflicts()
-            filterUiList()
             openDialog = false
             saveToMemory()
         } else {
@@ -1045,13 +988,17 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             searchModeEpcTable.clear()
             searchModeProductCodes.clear()
             epcTablePreviousSize = 0
-            number = 0
-            excelBarcodes.clear()
-            barcodeToCategoryMap.clear()
+            scannedNumber = 0
+            inputBarcodes.clear()
+            inputBarcodeMapWithProperties.clear()
             scannedProducts.clear()
-            fileProducts.clear()
-            getConflicts()
-            filterUiList()
+            inputProducts.clear()
+            uiList.clear()
+            filteredUiList.clear()
+            additionalNumber = 0
+            shortagesNumber = 0
+            scanFilter = "اضافی"
+            scanTypeValue = "RFID"
             openDialog = false
             saveToMemory()
         }
@@ -1086,6 +1033,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         startActivity(intent)
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @ExperimentalFoundationApi
     @Composable
     fun Page() {
@@ -1095,7 +1043,41 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     topBar = { AppBar() },
                     content = { Content() },
                     snackbarHost = { ErrorSnackBar(state) },
+                    bottomBar = { if (inputBarcodes.isNotEmpty()) BottomBar() },
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun BottomBar() {
+
+        BottomAppBar(
+            backgroundColor = JeanswestBottomBar,
+            modifier = Modifier.wrapContentHeight()
+        ) {
+
+            Column {
+
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    ScanTypeDropDownList(
+                        Modifier.align(Alignment.CenterVertically), scanTypeValue
+                    ) {
+                        scanTypeValue = it
+                        if (scanTypeValue == "بارکد") {
+                            searchModeProductCodes.clear()
+                            defineZoneMode = false
+                        }
+                    }
+                    ScanFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
+                    SignedFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
+                }
             }
         }
     }
@@ -1173,21 +1155,41 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
                 Row(
                     modifier = Modifier
-                        .padding(top = 8.dp, bottom = 8.dp)
-                        .height(24.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
 
-                    ScanTypeDropDownList(
+                    Text(
+                        text = "اسکن: $scannedNumber",
+                        textAlign = TextAlign.Right,
                         modifier = Modifier
+                            .padding(start = 16.dp)
                             .align(Alignment.CenterVertically)
-                            .padding(start = 16.dp, end = 16.dp)
+                            .weight(1F),
                     )
+                    if (inputBarcodes.isNotEmpty()) {
 
-                    PowerSlider(scanTypeValue == "RFID", rfPower) { rfPower = it }
+                        Text(
+                            text = "کسری: $shortagesNumber",
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .weight(1F),
+                        )
+                        Text(
+                            text = "اضافی: $additionalNumber",
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .weight(1F),
+                        )
+                    }
                 }
 
-                if (scanTypeValue == "RFID") {
+                PowerSlider(scanTypeValue == "RFID", rfPower) { rfPower = it }
+
+                if (scanTypeValue == "RFID" && inputBarcodes.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .padding(bottom = 8.dp)
@@ -1196,11 +1198,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         Button(
                             onClick = { searchModeButton() }) {
                             Text(
-                                text = if (!searchMode) {
-                                    "فعال کردن جست و جو"
-                                } else {
-                                    "خروج از جست و جو"
-                                },
+                                text = "تعریف ناحیه جست و جو",
                                 textAlign = TextAlign.Right,
                             )
                         }
@@ -1213,81 +1211,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 )
             }
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-                    .border(
-                        BorderStroke(1.dp, borderColor),
-                        shape = MaterialTheme.shapes.small
-                    )
-                    .background(
-                        MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.small
-                    )
-                    .fillMaxWidth()
-            ) {
-
-                Row(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
-                ) {
-
-                    Text(
-                        text = "اسکن شده: $number",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1.1F),
-                    )
-
-                    Text(
-                        text = "کسری: $shortagesNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1F),
-                    )
-
-                    Text(
-                        text = "اضافی: $additionalNumber",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1F),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth(),
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .weight(1.1F)
-                            .padding(start = 16.dp),
-                    ) {
-                        ScanFilterDropDownList()
-                    }
-                    Row(
-                        modifier = Modifier
-                            .weight(1F)
-                            .padding(start = 16.dp),
-                    ) {
-                        CategoryFilterDropDownList()
-                    }
-                    Row(
-                        modifier = Modifier
-                            .weight(1F)
-                            .padding(start = 16.dp),
-                    ) {
-                        SignedFilterDropDownList()
-                    }
-                }
-            }
-
             LazyColumn {
 
                 items(filteredUiList.size) { i ->
@@ -1295,8 +1218,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                         i,
                         filteredUiList,
                         true,
-                        "موجودی: " + filteredUiList[i].desiredNumber,
-                        filteredUiList[i].result + ":" + " " + filteredUiList[i].matchedNumber,
+                        text1 = if (inputBarcodes.isNotEmpty()) {
+                            "موجودی: " + filteredUiList[i].desiredNumber
+                        } else {
+                            "رنگ: " + filteredUiList[i].color
+                        },
+                        text2 = if (inputBarcodes.isNotEmpty()) {
+                            filteredUiList[i].scan + ":" + " " + filteredUiList[i].matchedNumber
+                        } else {
+                            "اسکن: " + filteredUiList[i].scannedNumber
+                        },
                         filteredUiList[i].KBarCode in signedProductCodes,
                         onLongClick = {
                             if (filteredUiList[i].KBarCode !in signedProductCodes) {
@@ -1307,7 +1238,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                             filterUiList()
                         }, onClick = {
                             openSearchActivity(filteredUiList[i])
-
                         }
                     )
                 }
@@ -1316,17 +1246,17 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun ScanFilterDropDownList() {
+    fun ScanFilterDropDownList(modifier: Modifier) {
 
         val scanValues =
-            mutableListOf("همه اجناس", "تایید شده", "اضافی", "کسری", "اضافی فایل", "خراب")
+            mutableListOf("اضافی", "کسری")
 
         var expanded by rememberSaveable {
             mutableStateOf(false)
         }
 
         Box {
-            Row(modifier = Modifier
+            Row(modifier = modifier
                 .clickable { expanded = true }
                 .testTag("CountActivityFilterDropDownList")
             ) {
@@ -1354,40 +1284,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     }
 
     @Composable
-    fun CategoryFilterDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
-                Text(text = categoryFilter)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                categoryValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        categoryFilter = it
-                        filterUiList()
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun SignedFilterDropDownList() {
+    fun SignedFilterDropDownList(modifier: Modifier) {
 
         val signedValue = mutableListOf("همه", "نشانه دار", "بی نشانه")
         var expanded by rememberSaveable {
@@ -1395,7 +1292,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
 
         Box {
-            Row(modifier = Modifier.clickable { expanded = true }) {
+            Row(modifier = modifier.clickable { expanded = true }) {
                 Text(text = signedFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
             }
@@ -1478,7 +1375,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = if (number == 0) {
+                        text = if (scannedNumber == 0) {
                             "فایل پاک شود؟"
                         } else {
                             "کالاهای اسکن شده پاک شوند؟"
@@ -1506,49 +1403,5 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         )
-    }
-
-    @Composable
-    fun ScanTypeDropDownList(modifier: Modifier) {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box(modifier = modifier) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { expanded = true }) {
-                Text(text = scanTypeValue)
-                Icon(
-                    painter = if (!expanded) {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_down_24)
-                    } else {
-                        painterResource(id = R.drawable.ic_baseline_arrow_drop_up_24)
-                    }, ""
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                scanTypeValues.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        scanTypeValue = it
-                        if (scanTypeValue == "بارکد") {
-                            searchModeProductCodes.clear()
-                            searchMode = false
-                        }
-                    }) {
-                        Text(text = it)
-                    }
-                }
-            }
-        }
     }
 }

@@ -93,7 +93,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
     private lateinit var queue: RequestQueue
     private var syncInputProductsRunning by mutableStateOf(false)
     private var stockDraftNumber by mutableStateOf("")
-    private var scanningMode by mutableStateOf(false)
+    var scanningMode by mutableStateOf(false)
     private var openFinishDialog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -250,18 +250,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         matchedNumber = abs(scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber),
                         scannedEPCNumber = scannedProduct.value.scannedNumber,
                         desiredNumber = fileProduct.value.desiredNumber,
-                        result =
-                        when {
-                            scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
-                                "اضافی: " + (scannedProduct.value.scannedNumber - fileProduct.value.desiredNumber)
-                            }
-                            scannedProduct.value.scannedNumber < fileProduct.value.desiredNumber -> {
-                                "کسری: " + (fileProduct.value.desiredNumber - scannedProduct.value.scannedNumber)
-                            }
-                            else -> {
-                                "تایید شده: " + fileProduct.value.desiredNumber
-                            }
-                        },
                         scan = when {
                             scannedProduct.value.scannedNumber > fileProduct.value.desiredNumber -> {
                                 "اضافی"
@@ -295,7 +283,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = scannedProduct.value.wareHouseNumber,
                     matchedNumber = scannedProduct.value.scannedNumber,
                     scannedEPCNumber = scannedProduct.value.scannedNumber,
-                    result = "اضافی: " + scannedProduct.value.scannedNumber,
                     scan = "اضافی",
                     productCode = scannedProduct.value.productCode,
                     size = scannedProduct.value.size,
@@ -321,7 +308,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                     wareHouseNumber = fileProduct.value.wareHouseNumber,
                     matchedNumber = fileProduct.value.desiredNumber,
                     scannedEPCNumber = 0,
-                    result = "کسری: " + fileProduct.value.desiredNumber,
                     scan = "کسری",
                     productCode = fileProduct.value.productCode,
                     size = fileProduct.value.size,
@@ -1029,7 +1015,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                 ) {
 
                     Text(
-                        text = "اسکن شده: $numberOfScanned",
+                        text = "اسکن: $numberOfScanned",
                         textAlign = TextAlign.Right,
                         modifier = Modifier
                             .padding(start = 16.dp)
@@ -1067,7 +1053,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                         uiList,
                         true,
                         text1 = "موجودی: " + uiList[i].desiredNumber,
-                        text2 = uiList[i].result
+                        text2 = uiList[i].scan + ":" + " " + uiList[i].matchedNumber
                     ) {
                         openSearchActivity(uiList[i])
                     }
