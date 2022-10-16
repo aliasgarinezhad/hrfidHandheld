@@ -39,9 +39,9 @@ import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -57,11 +57,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     //ui parameters
     private var foundProductsNumber by mutableStateOf(0)
-    private var uiList = mutableStateListOf<Product>()
+    var uiList = mutableStateListOf<Product>()
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
-    private var isDataLoading by mutableStateOf(false)
+    var isDataLoading by mutableStateOf(false)
     private lateinit var queue: RequestQueue
     private var scanMode by mutableStateOf(true)
     private var isSubmitting by mutableStateOf(false)
@@ -174,12 +174,11 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         isDataLoading = true
 
-        getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes, _, _ ->
 
             refillProducts.clear()
             barcodes.forEach {
                 it.scannedBarcodeNumber = 0
-                it.scannedEPCNumber = 0
                 it.scannedBarcode = ""
                 it.scannedEPCs.clear()
                 refillProducts.add(it)
@@ -256,7 +255,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes, _, _ ->
 
             val junkBarcodes = mutableListOf<String>()
             for (i in 0 until barcodes.size) {
@@ -606,22 +605,25 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .background(JeanswestBackground, Shapes.small)
-                    .fillMaxWidth()
-            ) {
-                LoadingCircularProgressIndicator(false, isDataLoading)
-            }
+            if(isDataLoading) {
 
-            LazyColumn(
-                modifier = Modifier
-                    .padding(bottom = 56.dp)
-                    .testTag("RefillActivityLazyColumn")
-            ) {
-                items(uiList.size) { i ->
-                    LazyColumnItem(i)
+                Column(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .background(JeanswestBackground, Shapes.small)
+                        .fillMaxWidth()
+                ) {
+                    LoadingCircularProgressIndicator(false, isDataLoading)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(bottom = 56.dp)
+                        .testTag("RefillActivityLazyColumn")
+                ) {
+                    items(uiList.size) { i ->
+                        LazyColumnItem(i)
+                    }
                 }
             }
         }

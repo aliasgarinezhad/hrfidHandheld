@@ -33,10 +33,10 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.*
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -28,23 +29,23 @@ import com.android.volley.NoConnectionError
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity
-import com.jeanwest.reader.checkIn.GetCheckInPropertiesActivity
+import com.jeanwest.reader.checkIn.CheckInActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.inventory.InventoryActivity
-import com.jeanwest.reader.sharedClassesAndFiles.ExceptionHandler
-import com.jeanwest.reader.sharedClassesAndFiles.rfInit
+import com.jeanwest.reader.shared.ExceptionHandler
+import com.jeanwest.reader.shared.rfInit
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
-import com.jeanwest.reader.sharedClassesAndFiles.ErrorSnackBar
-import com.jeanwest.reader.sharedClassesAndFiles.theme.MyApplicationTheme
-import com.jeanwest.reader.sharedClassesAndFiles.theme.borderColor
+import com.jeanwest.reader.shared.ErrorSnackBar
+import com.jeanwest.reader.shared.theme.MyApplicationTheme
+import com.jeanwest.reader.shared.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -230,34 +231,36 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     topBar = {
-                        TopAppBar(
-                            title = {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(start = 40.dp)
-                                        .height(16.dp)
-                                        .fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_jeanswest_logo),
-                                        contentDescription = "",
-                                    )
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            TopAppBar(
+                                title = {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(start = 30.dp)
+                                            .height(16.dp)
+                                            .fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_jeanswest_logo),
+                                            contentDescription = "",
+                                        )
+                                    }
+                                },
+                                actions = {
+                                    IconButton(onClick = {
+                                        openAccountDialog = true
+                                    })
+                                    {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_baseline_person_24),
+                                            contentDescription = "",
+                                        )
+                                    }
                                 }
-                            },
-                            actions = {
-                                IconButton(onClick = {
-                                    openAccountDialog = true
-                                })
-                                {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_baseline_person_24),
-                                        contentDescription = "",
-                                    )
-                                }
-                            }
-                        )
+                            )
+                        }
                     },
                     content = {
 
@@ -274,62 +277,61 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-
-                                OpenActivityButton("خطی", R.drawable.refill) {
-                                    val intent = Intent(this@MainActivity, RefillActivity::class.java)
-                                    startActivity(intent)
-                                }
-                                OpenActivityButton("تروفالس", R.drawable.inventory) {
-                                    val intent = Intent(this@MainActivity, GetCheckInPropertiesActivity::class.java)
-                                    startActivity(intent)
-                                }
-                                OpenActivityButton("جستجو", R.drawable.search) {
-                                    val intent = Intent(this@MainActivity, SearchActivity::class.java)
-                                    startActivity(intent)
-                                }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                OpenActivityButton("شمارش", R.drawable.counter) {
-                                    val intent = Intent(this@MainActivity, CountActivity::class.java)
-                                    startActivity(intent)
-                                }
-                                OpenActivityButton("رایت", R.drawable.write) {
-                                    val intent = Intent(this@MainActivity, WriteActivity::class.java)
-                                    startActivity(intent)
-                                }
-                                OpenActivityButton("شارژ", R.drawable.check_in) {
+                                OpenActivityButton(stringResource(R.string.manualRefill), R.drawable.check_in) {
                                     val intent = Intent(this@MainActivity, ManualRefillActivity::class.java)
                                     startActivity(intent)
                                 }
+                                OpenActivityButton(stringResource(R.string.refill), R.drawable.refill) {
+                                    val intent = Intent(this@MainActivity, RefillActivity::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton(stringResource(R.string.checkInText), R.drawable.inventory) {
+                                    val intent = Intent(this@MainActivity, CheckInActivity::class.java)
+                                    startActivity(intent)
+                                }
                             }
 
                             Row(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                OpenActivityButton("ثبت حواله", R.drawable.check_in) {
+                                OpenActivityButton(stringResource(R.string.checkOut), R.drawable.check_in) {
                                     val intent = Intent(this@MainActivity, CheckOutActivity::class.java)
                                     startActivity(intent)
                                 }
+                                OpenActivityButton(stringResource(R.string.search), R.drawable.search) {
+                                    val intent = Intent(this@MainActivity, SearchActivity::class.java)
+                                    startActivity(intent)
+                                }
                                 OpenActivityButton(
-                                    text = "انبارگردانی",
+                                    text = stringResource(R.string.inventoryText),
                                     iconId = R.drawable.inventory
                                 ) {
                                     Intent(this@MainActivity, InventoryActivity::class.java).apply {
                                         startActivity(this)
                                     }
                                 }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OpenActivityButton(stringResource(R.string.tagProgramming), R.drawable.write) {
+                                    val intent = Intent(this@MainActivity, WriteActivity::class.java)
+                                    startActivity(intent)
+                                }
                                 OpenActivityButton(
-                                    text = "تروفالس انبار مرکزی",
+                                    text = stringResource(R.string.centralCheckInCheckInText),
                                     iconId = R.drawable.inventory
                                 ) {
                                     Intent(this@MainActivity, CentralWarehouseCheckInActivity::class.java).apply {
                                         startActivity(this)
                                     }
+                                }
+                                OpenActivityButton(stringResource(R.string.count), R.drawable.counter) {
+                                    val intent = Intent(this@MainActivity, CountActivity::class.java)
+                                    startActivity(intent)
                                 }
                             }
                         }

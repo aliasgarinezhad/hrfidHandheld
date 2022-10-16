@@ -1,5 +1,6 @@
 package com.jeanwest.reader.checkOut
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -14,87 +15,83 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import coil.annotation.ExperimentalCoilApi
+import com.android.volley.DefaultRetryPolicy
+import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
+import com.android.volley.toolbox.JsonArrayRequest
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
-import com.rscja.deviceapi.entity.UHFTAGInfo
-import com.rscja.deviceapi.exception.ConfigurationException
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
 @OptIn(ExperimentalFoundationApi::class)
 class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
-    private lateinit var rf: RFIDWithUHFUART
-    private var rfPower = 5
-    private var scannedEpcTable = mutableListOf<String>()
-    private var epcTablePreviousSize = 0
-    private var scannedBarcodeTable = mutableListOf<String>()
-    private val barcode2D =
-        Barcode2D(this)
-    val scannedProducts = mutableListOf<Product>()
-    private var scanningJob: Job? = null
-    private lateinit var queue: RequestQueue
+    private val barcode2D = Barcode2D(this)
 
     //ui parameters
-    private var isScanning by mutableStateOf(false)
-    private var isDataLoading by mutableStateOf(false)
-    private var numberOfScanned by mutableStateOf(0)
+    var isDataLoading by mutableStateOf(false)
+    private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    var scanTypeValue by mutableStateOf("بارکد")
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
+    private lateinit var queue: RequestQueue
+    private var isSubmitting by mutableStateOf(false)
+    private var scanMode by mutableStateOf(true)
+    var scannedBarcodeTable = mutableListOf<String>()
+    private var destination by mutableStateOf("انتخاب مقصد")
+    private var destinations = mutableStateMapOf<String, Int>()
+    private var source = 0
+    var products = mutableListOf<Product>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
-
         queue = Volley.newRequestQueue(this)
-
-        try {
-            rf = RFIDWithUHFUART.getInstance()
-        } catch (e: ConfigurationException) {
-            e.printStackTrace()
-        }
-        setRFEpcMode(rf, state)
 
         setContent {
             Page()
         }
 
-        if ((intent.getStringExtra("productEPCs") ?: "") == "") {
-            loadMemory()
-        } else {
-            scannedEpcTable = Gson().fromJson(
-                intent.getStringExtra("productEPCs") ?: "",
-                scannedEpcTable.javaClass
-            ) ?: mutableListOf()
-            numberOfScanned = scannedEpcTable.size
-            saveToMemory()
-        }
+        getDestinationLists()
+        loadMemory()
 
-        if (numberOfScanned != 0) {
-            syncScannedItemsToServer()
-        }
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
+        syncScannedItemsToServer()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -102,160 +99,313 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         if (event.repeatCount == 0) {
 
             if (keyCode == 280 || keyCode == 293) {
-
-                if (scanTypeValue == "بارکد") {
-                    stopRFScan()
-                    startBarcodeScan()
-                } else {
-                    if (!isScanning) {
-
-                        scanningJob = CoroutineScope(IO).launch {
-                            startRFScan()
-                        }
-
-                    } else {
-
-                        stopRFScan()
-                        if (numberOfScanned != 0) {
-                            syncScannedItemsToServer()
-                        }
-                    }
-                }
+                startBarcodeScan()
             } else if (keyCode == 4) {
                 back()
-            } else if (keyCode == 139) {
-                stopRFScan()
             }
         }
         return true
     }
 
-    private fun stopRFScan() {
+    private fun getDestinationLists() {
 
-        scanningJob?.let {
-            if (it.isActive) {
-                isScanning = false // cause scanning routine loop to stop
-                runBlocking { it.join() }
-            }
-        }
-    }
+        val url = "https://rfid-api.avakatan.ir/department-infos"
+        val request = object : JsonArrayRequest(Method.GET, url, null, {
 
-    private suspend fun startRFScan() {
+            for (i in 0 until it.length()) {
+                try {
+                    val warehouses = it.getJSONObject(i).getJSONArray("wareHouses")
 
-        isScanning = true
-        if (!setRFPower(state, rf, rfPower)) {
-            isScanning = false
-            return
-        }
-
-        rf.startInventoryTag(0, 0, 0)
-
-        while (isScanning) {
-
-            var uhfTagInfo: UHFTAGInfo?
-            while (true) {
-                uhfTagInfo = rf.readTagFromBuffer()
-                if (uhfTagInfo != null) {
-                    if (uhfTagInfo.epc.startsWith("30")) {
-                        scannedEpcTable.add(uhfTagInfo.epc)
+                    for (j in 0 until warehouses.length()) {
+                        val warehouse = warehouses.getJSONObject(j)
+                        if (warehouse.getString("WareHouseTypes_ID") == "2") {
+                            destinations[warehouse.getString("WareHouseTitle")] =
+                                warehouse.getInt("WareHouse_ID")
+                        }
                     }
-                } else {
-                    break
+                } catch (e: Exception) {
+
                 }
             }
 
-            scannedEpcTable = scannedEpcTable.distinct().toMutableList()
-
-            numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
-
-            val speed = scannedEpcTable.size - epcTablePreviousSize
-            when {
-                speed > 100 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
-                speed > 30 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-                }
-                speed > 10 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 300)
-                }
-                speed > 0 -> {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                else -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
-            epcTablePreviousSize = scannedEpcTable.size
-
-            saveToMemory()
-
-            delay(1000)
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = java.util.HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
         }
 
-        rf.stopInventory()
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
-        saveToMemory()
+        queue.add(request)
     }
 
     private fun syncScannedItemsToServer() {
 
         isDataLoading = true
 
-        getProductsV4(queue, state, scannedEpcTable, scannedBarcodeTable, { epcs, barcodes ->
+        val barcodeArray = mutableListOf<String>()
+        val alreadySyncedBarcodes = mutableListOf<String>()
 
-            scannedEpcTable.clear()
-            scannedProducts.clear()
+        products.forEach {
+            if (it.scannedBarcodeNumber > 0) {
+                alreadySyncedBarcodes.add(it.scannedBarcode)
+            }
+        }
 
-            epcs.forEach { product ->
+        scannedBarcodeTable.forEach {
+            if (it !in alreadySyncedBarcodes) {
+                barcodeArray.add(it)
+            } else {
+                val productIndex = products.indexOf(products.last { it1 ->
+                    it1.scannedBarcode == it
+                })
+                products[productIndex].scannedBarcodeNumber =
+                    scannedBarcodeTable.count { it1 ->
+                        it1 == it
+                    }
+            }
+        }
 
-                scannedEpcTable.add(product.scannedEPCs[0])
+        if (barcodeArray.size == 0) {
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            isDataLoading = false
+            return
+        }
 
+        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes, _, _ ->
+
+            barcodes.forEach {
                 var isInRefillProductList = false
-                scannedProducts.forEach breakForEach@ { scannedProduct ->
-                    if (scannedProduct.KBarCode == product.KBarCode) {
-                        scannedProduct.scannedEPCs.add(product.scannedEPCs[0])
-                        scannedProduct.scannedEPCNumber += 1
-                        isInRefillProductList = true
-                        return@breakForEach
+
+                run forEach1@{
+                    products.forEach { it1 ->
+                        if (it1.KBarCode == it.KBarCode) {
+                            it1.scannedBarcode = it.scannedBarcode
+                            it1.scannedBarcodeNumber += 1
+                            isInRefillProductList = true
+                            return@forEach1
+                        }
                     }
                 }
                 if (!isInRefillProductList) {
-                    scannedProducts.add(product)
+                    it.scannedBarcodeNumber = 1
+                    products.add(it)
                 }
             }
 
-            scannedBarcodeTable.clear()
-            barcodes.forEach { product ->
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            isDataLoading = false
 
-                scannedBarcodeTable.add(product.scannedBarcode)
+        }, {
+            when (it) {
+                is NoConnectionError -> {
 
-                var isInCheckOutProductList = false
-                scannedProducts.forEach breakForEach@ { scannedProduct ->
-                    if (scannedProduct.KBarCode == product.KBarCode) {
-                        scannedProduct.scannedBarcode = product.scannedBarcode
-                        scannedProduct.scannedBarcodeNumber += 1
-                        isInCheckOutProductList = true
-                        return@breakForEach
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
                     }
                 }
-                if (!isInCheckOutProductList) {
-                    scannedProducts.add(product)
+                else -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
                 }
             }
 
             uiList.clear()
-            uiList.addAll(scannedProducts)
-            isDataLoading = false
-        }, {
-            uiList.clear()
-            uiList.addAll(scannedProducts)
+            uiList.addAll(products)
+            uiList.sortBy { it1 ->
+                it1.productCode
+            }
+            uiList.sortBy { it1 ->
+                it1.name
+            }
             isDataLoading = false
         })
+    }
+
+    private fun sendToDestination() {
+
+        if (destination == "انتخاب مقصد") {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "لطفا مقصد را انتخاب کنید",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
+        if (products.size == 0) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "کالایی برای ارسال وجود ندارد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            return
+        }
+
+        uiList.forEach {
+            if (it.scannedBarcodeNumber > it.wareHouseNumber) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                return
+            }
+        }
+
+        isSubmitting = true
+
+        val url = "https://rfid-api.avakatan.ir/stock-draft"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "حواله با موفقیت ثبت شد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            isSubmitting = false
+            scannedBarcodeTable.clear()
+            products.removeAll {
+                it.scannedBarcodeNumber > 0
+            }
+            syncScannedItemsToServer()
+            saveToMemory()
+        }, {
+            if (it is NoConnectionError) {
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        error.getString("message"),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+            isSubmitting = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = java.util.HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                val body = JSONObject()
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+                val barcodeArray = JSONArray()
+                val epcArray = JSONArray()
+
+                uiList.forEach {
+                    repeat(it.scannedEPCNumber) { i ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
+                        productJson.put("epc", it.scannedEPCs[i])
+                        epcArray.put(productJson)
+                    }
+                    repeat(it.scannedBarcodeNumber) { _ ->
+                        val productJson = JSONObject()
+                        productJson.put("BarcodeMain_ID", it.primaryKey)
+                        productJson.put("kbarcode", it.KBarCode)
+                        productJson.put("K_Name", it.kName)
+                        barcodeArray.put(productJson)
+                    }
+                }
+
+                body.put("desc", "حواله بین انباری با RFID")
+                body.put("createDate", sdf.format(Date()))
+                body.put("fromWarehouseId", source)
+                body.put("toWarehouseId", destinations[destination])
+                body.put("kbarcodes", barcodeArray)
+                body.put("epcs", epcArray)
+
+                return body.toString().toByteArray()
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            apiTimeout,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
     }
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
             scannedBarcodeTable.add(barcode)
-            numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -268,12 +418,13 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         val edit = memory.edit()
 
         edit.putString(
-            "CheckOutEPCTable",
-            JSONArray(scannedEpcTable).toString()
-        )
-        edit.putString(
             "CheckOutBarcodeTable",
             JSONArray(scannedBarcodeTable).toString()
+        )
+
+        edit.putString(
+            "CheckOutProducts",
+            Gson().toJson(products).toString()
         )
 
         edit.apply()
@@ -283,40 +434,45 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        scannedEpcTable = Gson().fromJson(
-            memory.getString("CheckOutEPCTable", ""),
-            scannedEpcTable.javaClass
-        ) ?: mutableListOf()
+        val type = object : TypeToken<List<Product>>() {}.type
 
-        epcTablePreviousSize = scannedEpcTable.size
+        source = memory.getInt("userWarehouseCode", 0)
 
         scannedBarcodeTable = Gson().fromJson(
             memory.getString("CheckOutBarcodeTable", ""),
             scannedBarcodeTable.javaClass
         ) ?: mutableListOf()
 
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
+        products = Gson().fromJson(
+            memory.getString("CheckOutProducts", ""),
+            type
+        ) ?: ArrayList()
     }
 
     fun clear(product: Product) {
 
         val removedRefillProducts = mutableListOf<Product>()
 
-        scannedProducts.forEach {
+        products.forEach {
             if (it.KBarCode == product.KBarCode) {
 
-                scannedEpcTable.removeAll(it.scannedEPCs)
                 scannedBarcodeTable.removeAll { it1 ->
                     it1 == it.scannedBarcode
                 }
                 removedRefillProducts.add(it)
             }
         }
-        scannedProducts.removeAll(removedRefillProducts)
+        products.removeAll(removedRefillProducts)
+        removedRefillProducts.clear()
 
-        numberOfScanned = scannedEpcTable.size + scannedBarcodeTable.size
         uiList.clear()
-        uiList.addAll(scannedProducts)
+        uiList.addAll(products)
+        uiList.sortBy { it1 ->
+            it1.productCode
+        }
+        uiList.sortBy { it1 ->
+            it1.name
+        }
         saveToMemory()
     }
 
@@ -334,53 +490,35 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun back() {
-        saveToMemory()
-        stopRFScan()
-        stopBarcodeScan()
-        queue.stop()
-        beep.release()
-        finish()
-    }
 
-    private fun openSendToStoreActivity() {
-
-        Intent(this, SendToDestinationActivity::class.java).also {
-            it.putExtra("CheckOutProducts", Gson().toJson(scannedProducts).toString())
-            it.putExtra("CheckOutValidScannedProductsNumber", numberOfScanned)
-            startActivity(it)
+        if (scanMode) {
+            saveToMemory()
+            stopBarcodeScan()
+            beep.release()
+            queue.stop()
+            finish()
+        } else {
+            saveToMemory()
+            scanMode = true
         }
     }
 
     private fun openSearchActivity(product: Product) {
 
-        val searchResultProduct = Product(
-            name = product.name,
-            KBarCode = product.KBarCode,
-            imageUrl = product.imageUrl,
-            color = product.color,
-            size = product.size,
-            productCode = product.productCode,
-            rfidKey = product.rfidKey,
-            primaryKey = product.primaryKey,
-            originalPrice = product.originalPrice,
-            salePrice = product.salePrice,
-        )
-
         val intent = Intent(this, SearchSubActivity::class.java)
-        intent.putExtra("product", Gson().toJson(searchResultProduct).toString())
+        intent.putExtra("product", Gson().toJson(product).toString())
         startActivity(intent)
     }
 
-    @ExperimentalCoilApi
-    @ExperimentalFoundationApi
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
                     topBar = { AppBar() },
-                    bottomBar = { BottomBar() },
-                    content = { Content() },
+                    content = { if (scanMode) Content() else Content2() },
+                    bottomBar = { if (scanMode) BottomBar() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -403,21 +541,35 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
 
-                    ScanTypeDropDownList(
-                        Modifier.align(Alignment.CenterVertically), scanTypeValue
-                    ) {
-                        scanTypeValue = it
-                    }
+                    CategoryFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
 
-                    Text(
-                        text = "اسکن شده: $numberOfScanned",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                    )
+                    Button(onClick = {
 
-                    Button(onClick = { openSendToStoreActivity() }) {
-                        Text(text = "ارسال")
+                        if (destination == "انتخاب مقصد") {
+
+                            CoroutineScope(Dispatchers.Default).launch {
+                                state.showSnackbar(
+                                    "لطفا مقصد را انتخاب کنید",
+                                    null,
+                                    SnackbarDuration.Long
+                                )
+                            }
+                        } else if (products.filter { it1 ->
+                                it1.scannedNumber > 0
+                            }.toMutableStateList().isEmpty()) {
+                            CoroutineScope(Dispatchers.Default).launch {
+                                state.showSnackbar(
+                                    "هنوز کالایی برای ارسال اسکن نکرده اید",
+                                    null,
+                                    SnackbarDuration.Long
+                                )
+                            }
+                        } else {
+                            scanMode = false
+                        }
+
+                    }) {
+                        Text(text = "ارسال اسکن شده ها")
                     }
                 }
             }
@@ -451,28 +603,64 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         )
     }
 
-    @ExperimentalCoilApi
     @ExperimentalFoundationApi
     @Composable
     fun Content() {
 
         Column {
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .background(JeanswestBackground, Shapes.small)
-                    .fillMaxWidth()
-            ) {
+            if (isDataLoading) {
+                Column(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .background(JeanswestBackground, Shapes.small)
+                        .fillMaxWidth()
+                ) {
+                    LoadingCircularProgressIndicator(false, isDataLoading)
+                }
+            } else {
 
-                PowerSlider(scanTypeValue == "RFID", rfPower) { rfPower = it }
-                LoadingCircularProgressIndicator(isScanning, isDataLoading)
-            }
+                if (uiList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 56.dp)
+                            .fillMaxSize()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .width(256.dp)
+                        ) {
+                            Box(
 
-            LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+                                modifier = Modifier
+                                    .background(color = Color.White, shape = Shapes.medium)
+                                    .size(256.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_empty_box),
+                                    contentDescription = "",
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
 
-                items(uiList.size) { i ->
-                    LazyColumnItem(i)
+                            Text(
+                                "هنوز کالایی برای ثبت حواله اسکن نکرده اید",
+                                style = Typography.h1,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                            )
+                        }
+                    }
+                } else {
+
+                    LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+
+                        items(uiList.size) { i ->
+                            LazyColumnItem(i)
+                        }
+                    }
                 }
             }
         }
@@ -488,7 +676,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             Item(
                 i, uiList, true,
                 text1 = "اسکن: " + uiList[i].scannedNumber,
-                text2 = "انبار: " + uiList[i].wareHouseNumber.toString()
+                text2 = "انبار: " + uiList[i].wareHouseNumber,
+                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNumber,
+                enableWarehouseNumberCheck = true,
             ) {
                 openSearchActivity(uiList[i])
             }
@@ -502,6 +692,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     )
                     .size(30.dp)
                     .align(Alignment.TopEnd)
+                    .testTag("clear")
                     .clickable {
                         clear(uiList[i])
                     }
@@ -514,6 +705,154 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                         .align(Alignment.Center)
                         .size(20.dp)
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun Content2() {
+
+        Column {
+
+            if (uiList.filter {
+                    it.scannedBarcodeNumber > 0
+                }.toMutableList().isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 56.dp)
+                        .fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(256.dp)
+                    ) {
+                        Box(
+
+                            modifier = Modifier
+                                .background(color = Color.White, shape = Shapes.medium)
+                                .size(256.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_empty_box),
+                                contentDescription = "",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+
+                        Text(
+                            "هنوز کالایی برای ثبت حواله اسکن نکرده اید",
+                            style = Typography.h1,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                        )
+                    }
+                }
+            } else {
+
+                LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
+
+                    items(uiList.filter {
+                        it.scannedBarcodeNumber > 0
+                    }.size) { i ->
+                        Item(
+                            i,
+                            uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList(),
+                            text1 = "اسکن: " + uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList()[i].scannedNumber,
+                            text2 = "انبار: " + uiList.filter {
+                                it.scannedBarcodeNumber > 0
+                            }.toMutableList()[i].wareHouseNumber.toString(),
+                            enableWarehouseNumberCheck = true,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (uiList.filter {
+                it.scannedBarcodeNumber > 0
+            }.toMutableList().isNotEmpty()) {
+            SendRequestButton()
+        }
+    }
+
+    @Composable
+    fun SendRequestButton() {
+
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            Box(
+                modifier = Modifier
+                    .shadow(6.dp, RoundedCornerShape(0.dp))
+                    .background(Color.White, RoundedCornerShape(0.dp))
+                    .height(100.dp)
+                    .align(Alignment.BottomCenter),
+            ) {
+
+                Button(modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp)
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                    enabled = !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Jeanswest,
+                        disabledBackgroundColor = DisableButtonColor,
+                        disabledContentColor = Color.White
+                    ),
+                    onClick = {
+                        if (!isSubmitting) {
+                            sendToDestination()
+                        }
+                    }) {
+                    Text(
+                        text = if (isSubmitting) "در حال ثبت ..." else "ثبت نهایی حواله",
+                        style = Typography.body1,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun CategoryFilterDropDownList(modifier: Modifier) {
+
+        var expanded by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        Box(modifier = modifier) {
+            Row(modifier = modifier.clickable { expanded = true }) {
+                Text(
+                    text = destination, Modifier
+                        .align(Alignment.CenterVertically)
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown, "", Modifier
+                        .align(Alignment.CenterVertically)
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+
+                destinations.forEach {
+                    DropdownMenuItem(onClick = {
+                        expanded = false
+                        destination = it.key
+                    }) {
+                        Text(text = it.key)
+                    }
+                }
             }
         }
     }

@@ -9,8 +9,8 @@ import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
+import com.jeanwest.reader.shared.Product
+import com.jeanwest.reader.shared.test.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,7 +22,7 @@ class ManualRefillActivityTest {
 
     //send all stuffs after test
     @Test
-    fun manualRefillActivityTest1() {
+    fun test() {
 
         start()
         clearUserData()
@@ -36,18 +36,16 @@ class ManualRefillActivityTest {
             type
         ) ?: mutableListOf()
 
-        Log.e("refillProductsForTest", products.toString())
+        assert(products.size > 30)
 
-        assert(products.size > 50)
-
-        manualRefillActivity.onAllNodesWithText("هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید")
+        manualRefillActivity.onAllNodesWithText("هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید")[0].assertExists()
 
         val scannedProducts = mutableListOf<Product>()
         products.forEach {
             scannedProducts.add(it)
         }
 
-        barcodeArrayScan(50, scannedProducts)
+        barcodeArrayScan(20, scannedProducts)
 
         restart()
 
@@ -56,7 +54,7 @@ class ManualRefillActivityTest {
 
         assert(ManualRefillActivity.products.filter {
             it.scannedBarcodeNumber > 0
-        }.size == 50)
+        }.size == 20)
 
         ManualRefillActivity.products.filter {
             it.scannedBarcodeNumber > 0
@@ -71,10 +69,10 @@ class ManualRefillActivityTest {
         for (i in 0 until 3) {
 
             manualRefillActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(scannedProducts[i].KBarCode)
-                assertTextContains(scannedProducts[i].name)
-                assertTextContains("انبار: " + scannedProducts[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (scannedProducts[i].wareHouseNumber > 1) 2 else 1)
+                assertTextContains(manualRefillActivity.activity.uiList[i].KBarCode)
+                assertTextContains(manualRefillActivity.activity.uiList[i].name)
+                assertTextContains("انبار: " + manualRefillActivity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("اسکن: " + if (manualRefillActivity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
             }
         }
     }
@@ -108,10 +106,16 @@ class ManualRefillActivityTest {
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
         manualRefillActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        waitForFinishLoading()
+    }
+
+    private fun waitForFinishLoading() {
         manualRefillActivity.waitForIdle()
-        Thread.sleep(600)
-        manualRefillActivity.waitForIdle()
-        Thread.sleep(600)
+
+        while (manualRefillActivity.activity.isDataLoading) {
+            Thread.sleep(200)
+            manualRefillActivity.waitForIdle()
+        }
         manualRefillActivity.waitForIdle()
     }
 

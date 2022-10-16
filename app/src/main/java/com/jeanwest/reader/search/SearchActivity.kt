@@ -28,10 +28,10 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
 //import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
+import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

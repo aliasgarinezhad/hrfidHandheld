@@ -4,14 +4,13 @@ import android.view.KeyEvent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.Product
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.shared.Product
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -30,29 +29,22 @@ class CountActivityTest {
     @Test
     fun test1() {
 
-        val inputProductsNumber = 1062
+        var inputProductsNumber = 0
 
         start()
         clear()
         clear()
 
-        val memory = PreferenceManager.getDefaultSharedPreferences(countActivity.activity)
         val type = object : TypeToken<MutableList<Product>>() {}.type
         val products: MutableList<Product> = Gson().fromJson(
-            memory.getString("inputProductsForTest", ""),
+            productsJsonObject,
             type
         )
 
-        products.sortBy {
-            it.productCode
-        }
-        products.sortBy {
-            it.name
-        }
-
         products.forEach {
-            repeat(it.desiredNumber) { _ ->
-                countActivity.activity.inputBarcodes.add(it.scannedBarcode)
+            repeat(it.draftNumber) { _ ->
+                countActivity.activity.inputBarcodes.add(it.KBarCode)
+                inputProductsNumber ++
             }
         }
         countActivity.activity.saveToMemory()
@@ -71,7 +63,16 @@ class CountActivityTest {
         countActivity.onNodeWithText("اسکن: 0").assertExists()
 
         products.forEach {
-            assert(countActivity.activity.inputProducts[it.KBarCode] == it)
+            assert(countActivity.activity.inputProducts[it.KBarCode]!!.draftNumber == it.draftNumber)
+        }
+
+        products.clear()
+        products.addAll(countActivity.activity.inputProducts.values)
+        products.sortBy {
+            it.productCode
+        }
+        products.sortBy {
+            it.name
         }
 
         for (i in 0 until 3) {
@@ -79,17 +80,17 @@ class CountActivityTest {
             countActivity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(products[i].KBarCode)
                 assertTextContains(products[i].name)
-                assertTextContains("موجودی: " + products[i].desiredNumber)
-                assertTextContains("کسری: " + products[i].desiredNumber)
+                assertTextContains("موجودی: " + products[i].draftNumber)
+                assertTextContains("کسری: " + products[i].draftNumber)
             }
         }
 
         epcScan(false, products)
 
         countActivity.waitForIdle()
-        Thread.sleep(4000)
+        Thread.sleep(5000)
         countActivity.waitForIdle()
-        Thread.sleep(2000)
+        Thread.sleep(5000)
         countActivity.waitForIdle()
 
         countActivity.onNodeWithText("کسری: 0").assertExists()
@@ -98,16 +99,11 @@ class CountActivityTest {
 
         val productMapRFID = mutableListOf<Product>()
         val productMapBarcode = mutableListOf<Product>()
-        products.forEach { it1 ->
-            if ((it1.brandName == "JeansWest" || it1.brandName == "JootiJeans" || it1.brandName == "Baleno")
-                && !it1.name.contains("جوراب")
-                && !it1.name.contains("عينك")
-                && !it1.name.contains("شاپينگ")
-            ) {
-                productMapRFID.add(it1)
-            } else {
-                productMapBarcode.add(it1)
-            }
+        products.subList(0,20).forEach { it1 ->
+            productMapBarcode.add(it1)
+        }
+        products.subList(20, products.size).forEach { it1 ->
+            productMapRFID.add(it1)
         }
 
         clear()
@@ -126,6 +122,11 @@ class CountActivityTest {
         countActivity.waitForIdle()
         countActivity.onNodeWithText("بارکد").performClick()
         countActivity.waitForIdle()
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+        countActivity.waitForIdle()
         barcodeArrayScan(productMapBarcode)
         countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
         countActivity.waitForIdle()
@@ -137,25 +138,53 @@ class CountActivityTest {
     @Test
     fun test2() {
 
-        val inputProductsNumber = 1062
+        var inputProductsNumber = 0
 
         start()
+
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+        countActivity.waitForIdle()
+
         clear()
         clear()
 
-        val memory = PreferenceManager.getDefaultSharedPreferences(countActivity.activity)
         val type = object : TypeToken<MutableList<Product>>() {}.type
         val products: MutableList<Product> = Gson().fromJson(
-            memory.getString("inputProductsForTest", ""),
+            productsJsonObject,
             type
         )
 
+        products.forEach {
+            repeat(it.draftNumber) { _ ->
+                countActivity.activity.inputBarcodes.add(it.KBarCode)
+                inputProductsNumber ++
+            }
+        }
+        countActivity.activity.saveToMemory()
+
+        restart()
+
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+
+        countActivity.waitForIdle()
+        Thread.sleep(5000)
+        countActivity.waitForIdle()
+
+        products.clear()
+        products.addAll(countActivity.activity.inputProducts.values)
         products.sortBy {
             it.productCode
         }
         products.sortBy {
             it.name
         }
+        clear()
+        clear()
 
         countActivity.waitForIdle()
         Thread.sleep(5000)
@@ -164,9 +193,9 @@ class CountActivityTest {
         epcScan(false, products)
 
         countActivity.waitForIdle()
-        Thread.sleep(4000)
+        Thread.sleep(5000)
         countActivity.waitForIdle()
-        Thread.sleep(2000)
+        Thread.sleep(5000)
         countActivity.waitForIdle()
 
         countActivity.onNodeWithText("کسری: 0").assertDoesNotExist()
@@ -179,21 +208,21 @@ class CountActivityTest {
                 assertTextContains(products[i].KBarCode)
                 assertTextContains(products[i].name)
                 assertTextContains("رنگ: " + products[i].color)
-                assertTextContains("اسکن: " + products[i].desiredNumber)
+                assertTextContains("اسکن: " + products[i].draftNumber)
             }
         }
 
         products.forEach {
-            assert(countActivity.activity.uiList[it.KBarCode]!!.matchedNumber == it.desiredNumber)
-            assert(countActivity.activity.uiList[it.KBarCode]!!.scan == "اضافی")
+            assert(countActivity.activity.uiList[it.KBarCode]!!.conflictNumber == it.draftNumber)
+            assert(countActivity.activity.uiList[it.KBarCode]!!.conflictType == "اضافی")
         }
     }
 
     private fun checkResults() {
 
-        val shortagesNumber = 351
-        val additionalNumber = 243
-        val scannedNumber = 954
+        //val shortagesNumber = 351
+        //val additionalNumber = 243
+        //val scannedNumber = 954
 
         countActivity.waitForIdle()
         Thread.sleep(5000)
@@ -201,26 +230,26 @@ class CountActivityTest {
         Thread.sleep(5000)
         countActivity.waitForIdle()
 
-        countActivity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
+        /*countActivity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
         countActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
-        countActivity.onNodeWithText("اسکن: $scannedNumber").assertExists()
+        countActivity.onNodeWithText("اسکن: $scannedNumber").assertExists()*/
 
         countActivity.activity.inputProducts.forEach {
 
-            if (it.value.desiredNumber >= 3) {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.matchedNumber == 3)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.scan == "کسری")
-            } else if (it.value.desiredNumber == 2) {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.matchedNumber == 3)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.scan == "اضافی")
+            if (it.value.draftNumber >= 3) {
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "کسری")
+            } else if (it.value.draftNumber == 2) {
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
             } else {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.matchedNumber == 1)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.scan == "اضافی")
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 1)
+                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
             }
         }
 
         val shortageProductList = countActivity.activity.uiList.values.filter {
-            it.scan == "کسری"
+            it.conflictType == "کسری"
         }.toMutableList()
 
         shortageProductList.sortBy {
@@ -236,13 +265,13 @@ class CountActivityTest {
             countActivity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(shortageProductList[i].KBarCode)
                 assertTextContains(shortageProductList[i].name)
-                assertTextContains("موجودی: " + shortageProductList[i].desiredNumber)
-                assertTextContains("کسری: " + shortageProductList[i].matchedNumber)
+                assertTextContains("موجودی: " + shortageProductList[i].draftNumber)
+                assertTextContains("کسری: " + shortageProductList[i].conflictNumber)
             }
         }
 
         val additionalProductList = countActivity.activity.uiList.values.filter {
-            it.scan == "اضافی"
+            it.conflictType == "اضافی"
         }.toMutableList()
 
         additionalProductList.sortBy {
@@ -262,8 +291,8 @@ class CountActivityTest {
             countActivity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(additionalProductList[i].KBarCode)
                 assertTextContains(additionalProductList[i].name)
-                assertTextContains("موجودی: " + additionalProductList[i].desiredNumber)
-                assertTextContains("اضافی: " + additionalProductList[i].matchedNumber)
+                assertTextContains("موجودی: " + additionalProductList[i].draftNumber)
+                assertTextContains("اضافی: " + additionalProductList[i].conflictNumber)
             }
         }
     }
@@ -277,27 +306,27 @@ class CountActivityTest {
         rfidProducts.forEach {
 
             if (withDifference) {
-                if (it.desiredNumber >= 3) {
-                    for (i in 0 until it.desiredNumber - 3) {
+                if (it.draftNumber >= 3) {
+                    for (i in 0 until it.draftNumber - 3) {
                         val uhfTagInfo = UHFTAGInfo()
                         uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
                         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
                     }
-                } else if (it.desiredNumber == 2) {
-                    for (i in 0 until it.desiredNumber + 3) {
+                } else if (it.draftNumber == 2) {
+                    for (i in 0 until it.draftNumber + 3) {
                         val uhfTagInfo = UHFTAGInfo()
                         uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
                         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
                     }
                 } else {
-                    for (i in 0 until it.desiredNumber + 1) {
+                    for (i in 0 until it.draftNumber + 1) {
                         val uhfTagInfo = UHFTAGInfo()
                         uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
                         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
                     }
                 }
             } else {
-                for (i in 0 until it.desiredNumber) {
+                for (i in 0 until it.draftNumber) {
                     val uhfTagInfo = UHFTAGInfo()
                     uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
                     RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
@@ -322,16 +351,16 @@ class CountActivityTest {
     private fun barcodeArrayScan(productMapBarcode: MutableList<Product>) {
         productMapBarcode.forEach {
 
-            if (it.desiredNumber >= 3) {
-                for (i in 0 until it.desiredNumber - 3) {
+            if (it.draftNumber >= 3) {
+                for (i in 0 until it.draftNumber - 3) {
                     barcodeScan(it.KBarCode)
                 }
-            } else if (it.desiredNumber == 2) {
-                for (i in 0 until it.desiredNumber + 3) {
+            } else if (it.draftNumber == 2) {
+                for (i in 0 until it.draftNumber + 3) {
                     barcodeScan(it.KBarCode)
                 }
             } else {
-                for (i in 0 until it.desiredNumber + 1) {
+                for (i in 0 until it.draftNumber + 1) {
                     barcodeScan(it.KBarCode)
                 }
             }

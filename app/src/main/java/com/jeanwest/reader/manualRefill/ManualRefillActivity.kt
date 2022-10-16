@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import coil.annotation.ExperimentalCoilApi
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
@@ -41,14 +40,10 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.entity.UHFTAGInfo
-import com.rscja.deviceapi.exception.ConfigurationException
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -63,7 +58,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     val inputBarcodes = ArrayList<String>()
 
     //ui parameters
-    private var isDataLoading by mutableStateOf(false)
+    var isDataLoading by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
@@ -206,7 +201,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         isDataLoading = true
 
-        getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes, _, _ ->
 
             barcodes.forEach {
 
@@ -215,7 +210,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 run forEach1@{
                     products.forEach { it1 ->
                         if (it1.KBarCode == it.KBarCode) {
-                            it1.requestedNum += 1
+                            it1.requestedNumber += 1
                             isInRefillProductList = true
                             return@forEach1
                         }
@@ -223,7 +218,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
                 if (!isInRefillProductList) {
                     it.scannedBarcodeNumber = 0
-                    it.scannedEPCNumber = 0
                     it.scannedBarcode = ""
                     it.scannedEPCs.clear()
                     products.add(it)
@@ -300,7 +294,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes, _, _ ->
 
             barcodes.forEach {
                 var isInRefillProductList = false
@@ -316,6 +310,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 if (!isInRefillProductList) {
+                    it.scannedBarcodeNumber = 1
                     products.add(it)
                 }
             }
@@ -401,7 +396,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         isSubmitting = true
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
+        val url = "https://rfid-api.avakatan.ir/stock-draft/refill/v2"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -696,54 +691,57 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .background(JeanswestBackground, Shapes.small)
-                    .fillMaxWidth()
-            ) {
-                LoadingCircularProgressIndicator(false, isDataLoading)
-            }
-
-            if (uiList.isEmpty()) {
-                Box(
+            if(isDataLoading) {
+                Column(
                     modifier = Modifier
-                        .padding(bottom = 56.dp)
-                        .fillMaxSize()
+                        .padding(start = 8.dp, end = 8.dp)
+                        .background(JeanswestBackground, Shapes.small)
+                        .fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .width(256.dp)
-                    ) {
-                        Box(
-
-                            modifier = Modifier
-                                .background(color = Color.White, shape = Shapes.medium)
-                                .size(256.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_empty_box),
-                                contentDescription = "",
-                                tint = Color.Unspecified,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
-
-                        Text(
-                            "هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید",
-                            style = Typography.h1,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
-                        )
-                    }
+                    LoadingCircularProgressIndicator(false, isDataLoading)
                 }
             } else {
 
-                LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+                if (uiList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 56.dp)
+                            .fillMaxSize()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .width(256.dp)
+                        ) {
+                            Box(
 
-                    items(uiList.size) { i ->
-                        LazyColumnItem(i)
+                                modifier = Modifier
+                                    .background(color = Color.White, shape = Shapes.medium)
+                                    .size(256.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_empty_box),
+                                    contentDescription = "",
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
+
+                            Text(
+                                "هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید",
+                                style = Typography.h1,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                            )
+                        }
+                    }
+                } else {
+
+                    LazyColumn(modifier = Modifier.padding(bottom = 56.dp)) {
+
+                        items(uiList.size) { i ->
+                            LazyColumnItem(i)
+                        }
                     }
                 }
             }
@@ -761,7 +759,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 i, uiList, true,
                 text1 = "اسکن: " + uiList[i].scannedNumber,
                 text2 = "انبار: " + uiList[i].wareHouseNumber,
-                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNum,
+                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNumber,
                 enableWarehouseNumberCheck = true,
             ) {
                 openSearchActivity(uiList[i])

@@ -1,13 +1,16 @@
 package com.jeanwest.reader.checkOut
 
+import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.rscja.deviceapi.RFIDWithUHFUART
-import com.rscja.deviceapi.entity.UHFTAGInfo
+import com.jeanwest.reader.shared.Product
+import com.jeanwest.reader.shared.test.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,168 +18,133 @@ import org.junit.Test
 class CheckOutActivityTest {
 
     @get:Rule
-    var checkOutActivity = createAndroidComposeRule<CheckOutActivity>()
+    val checkOutActivity = createAndroidComposeRule<CheckOutActivity>()
 
+    //send all stuffs after test
     @Test
-    fun checkOutActivityTest1() {
+    fun test() {
 
-        MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        start()
+        clearUserData()
+        restart()
 
-        //clearUserData()
+        val memory = PreferenceManager.getDefaultSharedPreferences(checkOutActivity.activity)
 
-        checkOutActivity.onNodeWithTag("scanTypeDropDownList").performClick()
+        val type = object : TypeToken<MutableList<Product>>() {}.type
+        val products: MutableList<Product> = Gson().fromJson(
+            memory.getString("refillProductsForTest", ""),
+            type
+        ) ?: mutableListOf()
+
+        Log.e("refillProductsForTest", products.toString())
+
+        assert(products.size > 20)
+
+        checkOutActivity.onAllNodesWithText("هنوز کالایی برای ثبت حواله اسکن نکرده اید")[0].assertExists()
+
+        val scannedProducts = mutableListOf<Product>()
+        products.forEach {
+            scannedProducts.add(it)
+        }
+
+        barcodeArrayScan(20, scannedProducts)
+
+        restart()
+
+        checkOutActivity.onNodeWithText("انتخاب مقصد").performClick()
         checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText("RFID").performClick()
+        checkOutActivity.onNodeWithText("انبار VM").performClick()
         checkOutActivity.waitForIdle()
-        epcScan()
 
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[0].KBarCode)
-            .assertExists()
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[1].KBarCode)
-            .assertExists()
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[2].KBarCode)
-            .assertExists()
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[3].KBarCode)
-            .assertExists()
+        checkOutActivity.onNodeWithText("ارسال اسکن شده ها").performClick()
+        checkOutActivity.waitForIdle()
 
-        checkOutActivity.activity.scannedProducts.forEach {
-            if (it.KBarCode == "11852002J-2430-F") {
-                if (!(it.scannedNumber == 1 && it.scannedEPCs[0] == "30C0194000DC20C000017A1C")) {
-                    assert(false)
-                }
+        assert(checkOutActivity.activity.products.filter {
+            it.scannedBarcodeNumber > 0
+        }.size == 20)
+
+        checkOutActivity.activity.products.filter {
+            it.scannedBarcodeNumber > 0
+        }.toMutableList().forEach {
+            if (it.wareHouseNumber > 1) {
+                assert(it.scannedBarcodeNumber == 2)
+            } else {
+                assert(it.scannedBarcodeNumber == 1)
             }
         }
 
-        checkOutActivity.onNodeWithTag("scanTypeDropDownList").performClick()
-        checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText("بارکد").performClick()
-        checkOutActivity.waitForIdle()
-        barcodeScan()
+        for (i in 0 until 3) {
 
-        checkOutActivity.onNodeWithText("اسکن شده: ${barcodes.size + epcs.size}").assertExists()
-
-        checkOutActivity.activity.scannedProducts.forEach {
-            if (it.KBarCode == "11852002J-2430-F") {
-                if (!(it.scannedNumber == 3 && it.scannedEPCs[0] == "30C0194000DC20C000017A1C")) {
-                    assert(false)
-                }
+            checkOutActivity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains(checkOutActivity.activity.uiList[i].KBarCode)
+                assertTextContains(checkOutActivity.activity.uiList[i].name)
+                assertTextContains("انبار: " + checkOutActivity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("اسکن: " + if (checkOutActivity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
             }
         }
-
-        checkOutActivity.activity.scannedProducts.forEach {
-            if (it.KBarCode == "54822102J-8010-L") {
-                if (!(it.scannedNumber == 1 && it.scannedEPCs.isEmpty())) {
-                    assert(false)
-                }
-            }
-        }
-
-        val removeItem1 = checkOutActivity.activity.scannedProducts[0].KBarCode
-        val removeItem2 = checkOutActivity.activity.scannedProducts[1].KBarCode
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[0].KBarCode)
-            .performTouchInput {
-                longClick()
-            }
-        checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText(checkOutActivity.activity.scannedProducts[1].KBarCode)
-            .performClick()
-        checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText("پاک کردن").performClick()
-        checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText("بله").performClick()
-        checkOutActivity.waitForIdle()
-
-        Thread.sleep(5000)
-        checkOutActivity.waitForIdle()
-
-        checkOutActivity.onNodeWithText(removeItem1).assertDoesNotExist()
-        checkOutActivity.onNodeWithText(removeItem2).assertDoesNotExist()
     }
 
-    private fun barcodeScan() {
+    //test output apk file
 
-        for (i in 0 until barcodes.size) {
-            Barcode2D.barcode = barcodes[i]
-
-            checkOutActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-            checkOutActivity.waitForIdle()
-            Thread.sleep(2000)
-            checkOutActivity.waitForIdle()
-        }
-        Thread.sleep(10000)
-        checkOutActivity.waitForIdle()
-    }
-
-    private fun epcScan() {
-
-        RFIDWithUHFUART.uhfTagInfo.clear()
-        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
-        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
-
-        epcs.forEach {
-            val scannedUhfTagInfo = UHFTAGInfo()
-            scannedUhfTagInfo.epc = it
-            RFIDWithUHFUART.uhfTagInfo.add(scannedUhfTagInfo)
-        }
-
-        checkOutActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        checkOutActivity.waitForIdle()
-        Thread.sleep(2000)
-        checkOutActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-
-        Thread.sleep(10000)
-        checkOutActivity.waitForIdle()
-
-    }
-
-    /*private fun clearUserData() {
-
-        checkOutActivity.activity.scannedProducts.forEach {
-            checkOutActivity.activity.signedProductCodes.add(it.KBarCode)
-        }
-        checkOutActivity.activity.clear()
-
+    private fun restart() {
         checkOutActivity.activity.runOnUiThread {
             checkOutActivity.activity.recreate()
         }
-        checkOutActivity.waitForIdle()
-        Thread.sleep(1000)
-        checkOutActivity.waitForIdle()
-    }*/
 
-    private val barcodes = mutableListOf(
-        "11581831J-2520-36",
-        "54822101J-8030-XL",
-        "54822102J-8010-M",
-        "54822102J-8580-L",
-        "62822105J-8730-L",
-        "11852002J-2430-F",
-        "64822109J-8010-F",
-        "64822109J-8010-F",
-        "64822109J-8010-F",
-        "91273501-8420-S-1",
-        "91273501-8420-S-1",
-        "91273501-8420-S-1",
-        "11852002J-2430-F",
-        "01551701J-2530-XL",
-        "54822102J-8010-L",
-    )
+        checkOutActivity.waitForIdle()
+        Thread.sleep(4000)
+        checkOutActivity.waitForIdle()
+        Thread.sleep(4000)
+    }
 
-    private val epcs = mutableListOf(
-        "30C01901C99103C000003D22",
-        "30C019400055A140000ABF29",
-        "30C01940005D6980000ABF28",
-        "30C01940005D6A00000ABF24",
-        "30C01940006310C0000ABF26",
-        "30C01940007F3C80000ABF22",
-        "30C01940007F3C80000ABF27",
-        "30C01940009D7D8000000004",
-        "30C01940009D7D8000000007",
-        "30C01940009D7D8000000008",
-        "30C01940009D7D8000000009",
-        "30C0194000DC20C000017A1C",
-        "30C41901C97349C0000003B1",
-        "30C41901C99378000000B19C"
-    )
+    private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
+
+        for (i in 0 until number) {
+
+            if (scannedProducts[i].wareHouseNumber > 1) {
+                barcodeScan(scannedProducts[i].KBarCode)
+                barcodeScan(scannedProducts[i].KBarCode)
+            } else {
+                barcodeScan(scannedProducts[i].KBarCode)
+            }
+        }
+    }
+
+    private fun barcodeScan(barcode: String) {
+        Barcode2D.barcode = barcode
+        checkOutActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        waitForFinishLoading()
+    }
+    private fun waitForFinishLoading() {
+        checkOutActivity.waitForIdle()
+
+        while (checkOutActivity.activity.isDataLoading) {
+            Thread.sleep(200)
+            checkOutActivity.waitForIdle()
+        }
+        checkOutActivity.waitForIdle()
+    }
+
+    private fun start() {
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        checkOutActivity.waitForIdle()
+        Thread.sleep(4000)
+        checkOutActivity.waitForIdle()
+        Thread.sleep(4000)
+    }
+
+    private fun clearUserData() {
+
+        val products = mutableListOf<Product>()
+        products.addAll(checkOutActivity.activity.products)
+
+        products.forEach {
+            if (it.scannedBarcodeNumber > 0) {
+                checkOutActivity.activity.clear(it)
+                checkOutActivity.waitForIdle()
+            }
+        }
+    }
 }

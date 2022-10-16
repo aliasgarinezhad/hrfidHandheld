@@ -2,14 +2,17 @@
     <string name="app_name">RFID</string>
     <string name="transferText">ثبت حواله</string>
     <string name="manualRefill">شارژ</string>
-    <string name="checkOut">ثبت حواله</string>
-    <string name="checkInText">تروفالس</string>
-    <string name="centralCheckInCheckInText">تروفالس انبار مرکزی</string>
+    <string name="checkOut">ارسال حواله</string>
+    <string name="checkInText">دریافت حواله</string>
+    <string name="centralCheckInCheckInText">ارسال حواله انبار مرکزی</string>
     <string name="inventoryText">انبارگردانی</string>
     <string name="refill">خطی</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
     <string name="xls">application/vnd.ms-excel</string>
     <string name="EXARK">EXARKXK650</string>
     <string name="chainway">c72</string>
+    <string name="search">جستجو</string>
+    <string name="count">شمارش</string>
+    <string name="tagProgramming">رایت</string>
 
 </resources>

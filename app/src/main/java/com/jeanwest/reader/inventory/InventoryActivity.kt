@@ -37,15 +37,16 @@ import coil.annotation.ExperimentalCoilApi
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
+import com.android.volley.TimeoutError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
-import com.rscja.deviceapi.RFIDWithUHFUART
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.theme.*
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -70,8 +71,8 @@ class InventoryActivity : ComponentActivity() {
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
     private var epcTablePreviousSize = 0
-    private var inputBarcodesTable = mutableListOf<String>()
-    private val inputProducts = mutableMapOf<String, Product>()
+    private var inputBarcodes = mutableListOf<String>()
+    val inputProducts = mutableMapOf<String, Product>()
     private val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
@@ -81,16 +82,16 @@ class InventoryActivity : ComponentActivity() {
     private var locations = mutableMapOf<String, String>()
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var currentScannedProductProductCodes = mutableListOf<String>()
-    private var currentScannedEpcTable = mutableListOf<String>()
+    private var currentScannedEpcs = mutableListOf<String>()
     private var isInProgress = false
 
     //ui parameters
     private var openFinishDialog by mutableStateOf(false)
-    private var uiList = mutableStateListOf<Product>()
-    private var inventoryResult = mutableStateMapOf<String, Product>()
-    private var syncScannedProductsRunning by mutableStateOf(false)
-    private var syncInputProductsRunning by mutableStateOf(false)
-    private var saveToServerInProgress by mutableStateOf(false)
+    var uiList = mutableStateListOf<Product>()
+    var inventoryResult = mutableStateMapOf<String, Product>()
+    var syncScannedProductsRunning by mutableStateOf(false)
+    var syncInputProductsRunning by mutableStateOf(false)
+    var saveToServerInProgress by mutableStateOf(false)
     private var isScanning by mutableStateOf(false)
     private var number by mutableStateOf(0)
     private var fileName by mutableStateOf("خروجی")
@@ -99,7 +100,7 @@ class InventoryActivity : ComponentActivity() {
     private var openStartOrContinueDialog by mutableStateOf(false)
     private var state = SnackbarHostState()
     private var inventoryProgress by mutableStateOf(0F)
-    private var inventoryStarted by mutableStateOf(false)
+    var inventoryStarted by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
     private var numberOfScanned by mutableStateOf(0)
@@ -108,11 +109,11 @@ class InventoryActivity : ComponentActivity() {
     private var signedKBarCode = mutableStateListOf<String>()
     private var scanFilter by mutableStateOf("کسری")
 
-    private val apiTimeout = 30000
+    private val apiTimeout = 60000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     companion object {
-        var scannedEpcTable = mutableListOf<String>()
+        var scannedEpcs = mutableListOf<String>()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -139,7 +140,7 @@ class InventoryActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (!syncInputProductsRunning) {
-            number = scannedEpcTable.size
+            number = scannedEpcs.size
             syncScannedItemsToServer()
         }
     }
@@ -157,11 +158,11 @@ class InventoryActivity : ComponentActivity() {
 
             isInProgress = mojodiReviewPackage.getBoolean("IsInProgress")
 
-            inputBarcodesTable.clear()
+            inputBarcodes.clear()
             inputBarcodeMapWithProperties.clear()
             inputProducts.clear()
             for (i in 0 until products.length()) {
-                inputBarcodesTable.add(products.getJSONObject(i).getString("KBarCode"))
+                inputBarcodes.add(products.getJSONObject(i).getString("KBarCode"))
             }
             syncInputProductsRunning = false
             syncInputItemsToServer()
@@ -210,171 +211,37 @@ class InventoryActivity : ComponentActivity() {
         queue.add(request)
     }
 
-    private fun getConflicts() {
+    private fun calculateConflicts() {
 
         syncScannedProductsRunning = true
 
-        val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
+        val conflicts = mutableStateMapOf<String, Product>()
 
-        val result = mutableStateMapOf<String, Product>()
+        conflicts.putAll(inputProducts.filter {
+            it.key !in scannedProducts.keys
+        })
 
-        inputProducts.forEach {
+        conflicts.putAll(scannedProducts.filter {
+            it.key !in inputProducts.keys
+        })
 
-            val diff = if (isInDepo) it.value.rfidWareHouseNumber else it.value.rfidStoreNumber
+        inputProducts.filter {
+            it.key in scannedProducts.keys
+        }.forEach {
 
-            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno")
-                && !it.value.name.contains("جوراب")
-                && !it.value.name.contains("عينك")
-                && !it.value.name.contains("شاپينگ")
-            ) {
-
-                if (it.value.KBarCode in scannedProducts) {
-
-                    val resultData = Product(
-                        name = it.value.name,
-                        KBarCode = it.value.KBarCode,
-                        storeNumber = it.value.storeNumber,
-                        wareHouseNumber = it.value.wareHouseNumber,
-                        imageUrl = it.value.imageUrl,
-                        matchedNumber = when {
-                            diff == 0 -> {
-                                diff
-                            }
-                            diff < 0 -> {
-                                abs(scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber)
-                            }
-                            else -> {
-                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
-                                    0
-                                } else if ((scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber) > diff) {
-                                    scannedProducts[it.value.KBarCode]!!.scannedNumber - it.value.desiredNumber
-                                } else {
-                                    diff
-                                }
-                            }
-                        },
-                        scannedEPCNumber = scannedProducts[it.value.KBarCode]!!.scannedNumber,
-                        desiredNumber = it.value.desiredNumber,
-                        scan = when {
-
-                            diff == 0 -> {
-                                "تایید شده"
-                            }
-                            diff < 0 -> {
-                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber > it.value.desiredNumber) {
-                                    "اضافی"
-                                } else if (scannedProducts[it.value.KBarCode]!!.scannedNumber < it.value.desiredNumber) {
-                                    "کسری"
-                                } else {
-                                    "تایید شده"
-                                }
-                            }
-                            diff > 0 -> {
-                                if (scannedProducts[it.value.KBarCode]!!.scannedNumber == it.value.desiredNumber) {
-                                    "تایید شده"
-                                } else {
-                                    "اضافی"
-                                }
-                            }
-                            else -> {
-                                "تایید شده"
-                            }
-                        },
-                        productCode = it.value.productCode,
-                        size = it.value.size,
-                        color = it.value.color,
-                        originalPrice = it.value.originalPrice,
-                        salePrice = it.value.salePrice,
-                        rfidKey = it.value.rfidKey,
-                        primaryKey = it.value.primaryKey,
-                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
-                        rfidStoreNumber = it.value.rfidStoreNumber,
-                    )
-                    result[it.value.KBarCode] = resultData
-
-                } else {
-                    val resultData = Product(
-                        name = it.value.name,
-                        KBarCode = it.value.KBarCode,
-                        imageUrl = it.value.imageUrl,
-                        storeNumber = it.value.storeNumber,
-                        wareHouseNumber = it.value.wareHouseNumber,
-                        matchedNumber = when {
-                            diff >= 0 -> {
-                                diff
-                            }
-                            else -> {
-                                it.value.desiredNumber
-                            }
-                        },
-                        scannedEPCNumber = 0,
-                        scan = when {
-                            diff == 0 -> {
-                                "تایید شده"
-                            }
-                            diff < 0 -> {
-                                "کسری"
-                            }
-                            else -> {
-                                "اضافی"
-                            }
-                        },
-                        productCode = it.value.productCode,
-                        size = it.value.size,
-                        color = it.value.color,
-                        originalPrice = it.value.originalPrice,
-                        salePrice = it.value.salePrice,
-                        rfidKey = it.value.rfidKey,
-                        primaryKey = it.value.primaryKey,
-                        desiredNumber = it.value.desiredNumber,
-                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
-                        rfidStoreNumber = it.value.rfidStoreNumber,
-                    )
-                    result[it.value.KBarCode] = resultData
-                }
-            }
-        }
-
-        scannedProducts.forEach {
-            if ((it.value.brandName == "JeansWest" || it.value.brandName == "JootiJeans" || it.value.brandName == "Baleno")
-                && !it.value.name.contains("جوراب")
-                && !it.value.name.contains("عينك")
-                && !it.value.name.contains("شاپينگ")
-            ) {
-                if (it.key !in result.keys) {
-                    val resultData = Product(
-                        name = it.value.name,
-                        KBarCode = it.value.KBarCode,
-                        storeNumber = it.value.storeNumber,
-                        wareHouseNumber = it.value.wareHouseNumber,
-                        imageUrl = it.value.imageUrl,
-                        matchedNumber = it.value.scannedNumber,
-                        scannedEPCNumber = it.value.scannedNumber,
-                        scan = "اضافی",
-                        productCode = it.value.productCode,
-                        size = it.value.size,
-                        color = it.value.color,
-                        originalPrice = it.value.originalPrice,
-                        salePrice = it.value.salePrice,
-                        rfidKey = it.value.rfidKey,
-                        primaryKey = it.value.primaryKey,
-                        desiredNumber = 0,
-                        rfidWareHouseNumber = it.value.rfidWareHouseNumber,
-                        rfidStoreNumber = it.value.rfidStoreNumber,
-                    )
-                    result[it.key] = resultData
-                }
-            }
+            val product: Product = it.value.copy()
+            product.scannedEPCs = scannedProducts[it.key]!!.scannedEPCs
+            conflicts[it.key] = product
         }
 
         inventoryResult.clear()
-        inventoryResult.putAll(result)
+        inventoryResult.putAll(conflicts)
 
         inventoryProgress = if (inputProducts.isEmpty()) {
             0F
         } else {
             (inventoryResult.filter {
-                it.value.scan == "تایید شده"
+                it.value.inventoryConflictType == "تایید شده"
             }.size.toFloat()) / inventoryResult.size.toFloat()
         }
 
@@ -388,16 +255,16 @@ class InventoryActivity : ComponentActivity() {
         numberOfScanned = 0
 
         inventoryResult.values.toMutableStateList().forEach {
-            if (it.scan == "کسری") {
-                shortagesNumber += it.matchedNumber
-            } else if (it.scan == "اضافی") {
-                additionalNumber += it.matchedNumber
+            if (it.inventoryConflictType == "کسری") {
+                shortagesNumber += it.inventoryConflictAbs
+            } else if (it.inventoryConflictType == "اضافی") {
+                additionalNumber += it.inventoryConflictAbs
             }
             numberOfScanned += it.scannedNumber
         }
 
         val shortageAndAdditional = inventoryResult.filter { it1 ->
-            it1.value.scan == "کسری" || it1.value.scan == "اضافی"
+            it1.value.inventoryConflictType == "کسری" || it1.value.inventoryConflictType == "اضافی"
         }.toMutableMap()
 
         val uiListTemp = mutableListOf<Product>()
@@ -432,7 +299,7 @@ class InventoryActivity : ComponentActivity() {
     private fun filterUiList() {
 
         val uiListParameters = uiList.filter {
-            it.scan== scanFilter
+            it.inventoryConflictType == scanFilter
         } as MutableList<Product>
 
         uiList.clear()
@@ -452,9 +319,9 @@ class InventoryActivity : ComponentActivity() {
 
         inventoryResult.values.forEach {
 
-            if(it.scan != "تایید شده") {
+            if (it.inventoryConflictType != "تایید شده") {
 
-                val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
+                val diff = if (isInDepo) it.countedWarehouseNumber else it.countedStoreNumber
 
                 val row = sheet.createRow(sheet.physicalNumberOfRows)
                 row.createCell(0).setCellValue(it.KBarCode)
@@ -539,7 +406,7 @@ class InventoryActivity : ComponentActivity() {
         }
 
         if (rfPower < 10) {
-            currentScannedEpcTable.clear()
+            currentScannedEpcs.clear()
         }
 
         rf.startInventoryTag(0, 0, 0)
@@ -551,9 +418,9 @@ class InventoryActivity : ComponentActivity() {
                 uhfTagInfo = rf.readTagFromBuffer()
                 if (uhfTagInfo != null) {
                     if (uhfTagInfo.epc.startsWith("30")) {
-                        scannedEpcTable.add(uhfTagInfo.epc)
+                        scannedEpcs.add(uhfTagInfo.epc)
                         if (rfPower < 10) {
-                            currentScannedEpcTable.add(uhfTagInfo.epc)
+                            currentScannedEpcs.add(uhfTagInfo.epc)
                         }
                     }
                 } else {
@@ -561,11 +428,11 @@ class InventoryActivity : ComponentActivity() {
                 }
             }
 
-            scannedEpcTable = scannedEpcTable.distinct().toMutableList()
+            scannedEpcs = scannedEpcs.distinct().toMutableList()
 
-            number = scannedEpcTable.size
+            number = scannedEpcs.size
 
-            val speed = scannedEpcTable.size - epcTablePreviousSize
+            val speed = scannedEpcs.size - epcTablePreviousSize
             when {
                 speed > 100 -> {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 700)
@@ -580,7 +447,7 @@ class InventoryActivity : ComponentActivity() {
                     beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                 }
             }
-            epcTablePreviousSize = scannedEpcTable.size
+            epcTablePreviousSize = scannedEpcs.size
 
             saveToMemory()
 
@@ -588,7 +455,7 @@ class InventoryActivity : ComponentActivity() {
         }
 
         rf.stopInventory()
-        number = scannedEpcTable.size
+        number = scannedEpcs.size
         saveToMemory()
     }
 
@@ -600,7 +467,7 @@ class InventoryActivity : ComponentActivity() {
         inputProductsBiggerThan1000 = false
 
         run breakForEach@{
-            inputBarcodesTable.forEach {
+            inputBarcodes.forEach {
                 if (it !in inputBarcodeMapWithProperties.keys) {
                     if (barcodeTableForV4.size < 1000) {
                         barcodeTableForV4.add(it)
@@ -620,18 +487,18 @@ class InventoryActivity : ComponentActivity() {
 
         syncInputProductsRunning = true
 
-        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes ->
+        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes, _, _ ->
 
             barcodes.forEach { product ->
                 inputBarcodeMapWithProperties[product.scannedBarcode] = product
             }
 
             syncInputProductsRunning = false
-            makeInputProductMap()
 
             if (inputProductsBiggerThan1000) {
                 syncInputItemsToServer()
             } else {
+                makeInputProductMap()
                 syncScannedItemsToServer()
             }
 
@@ -642,28 +509,32 @@ class InventoryActivity : ComponentActivity() {
 
     private fun makeInputProductMap() {
 
-        Log.e("error", "makeInputProductMap")
-
         syncInputProductsRunning = true
 
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
-        inputBarcodeMapWithProperties.forEach { it1 ->
+        inputBarcodes.distinct().forEach {
 
-            if (it1.value.KBarCode !in inputProducts.keys) {
-                inputProducts[it1.value.KBarCode] = it1.value
-                inputProducts[it1.value.KBarCode]!!.desiredNumber = if (isInDepo) {
-                    inputProducts[it1.value.KBarCode]!!.wareHouseNumber
-                } else {
-                    inputProducts[it1.value.KBarCode]!!.storeNumber
-                }
-                if (!isInProgress) {
-                    if (isInDepo) {
-                        inputProducts[it1.value.KBarCode]!!.rfidWareHouseNumber =
-                            -1 * inputProducts[it1.value.KBarCode]!!.wareHouseNumber
-                    } else {
-                        inputProducts[it1.value.KBarCode]!!.rfidStoreNumber =
-                            -1 * inputProducts[it1.value.KBarCode]!!.storeNumber
+            val product = inputBarcodeMapWithProperties[it]!!
+            product.inventoryOnDepo = isInDepo
+
+            if ((product.brandName == "JeansWest" || product.brandName == "JootiJeans" || product.brandName == "Baleno")
+                && !product.name.contains("جوراب")
+                && !product.name.contains("عينك")
+                && !product.name.contains("شاپينگ")
+            ) {
+
+                if (product.KBarCode !in inputProducts.keys) {
+                    inputProducts[product.KBarCode] = product.copy()
+
+                    if (!isInProgress) {
+                        if (isInDepo) {
+                            inputProducts[product.KBarCode]!!.countedWarehouseNumber =
+                                -1 * inputProducts[product.KBarCode]!!.wareHouseNumber
+                        } else {
+                            inputProducts[product.KBarCode]!!.countedStoreNumber =
+                                -1 * inputProducts[product.KBarCode]!!.storeNumber
+                        }
                     }
                 }
             }
@@ -675,7 +546,7 @@ class InventoryActivity : ComponentActivity() {
     private fun syncScannedItemsToServer() {
 
         if (number == 0) {
-            getConflicts()
+            calculateConflicts()
             return
         }
 
@@ -685,7 +556,7 @@ class InventoryActivity : ComponentActivity() {
         scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
-            scannedEpcTable.forEach {
+            scannedEpcs.forEach {
                 if (it !in scannedEpcMapWithProperties.keys) {
                     if (epcTableForV4.size < 1000) {
                         epcTableForV4.add(it)
@@ -700,34 +571,32 @@ class InventoryActivity : ComponentActivity() {
         if (epcTableForV4.size == 0) {
 
             syncScannedProductsRunning = false
-            getConflicts()
+            calculateConflicts()
             return
         }
 
-        getProductsV4(queue, state, epcTableForV4, mutableListOf(), { epcs, _ ->
+        getProductsV4(queue, state, epcTableForV4, mutableListOf(), { epcs, _, _, _ ->
 
             epcs.forEach { product ->
                 scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
             }
 
             syncScannedProductsRunning = false
-            makeScannedProductMap()
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
             } else {
-                getConflicts()
+                makeScannedProductMap()
+                calculateConflicts()
             }
 
         }, {
-            getConflicts()
+            calculateConflicts()
             syncScannedProductsRunning = false
         })
     }
 
     private fun makeScannedProductMap() {
-
-        Log.e("error", "makeScannedProductMap")
 
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
@@ -738,26 +607,39 @@ class InventoryActivity : ComponentActivity() {
 
         scannedEpcMapWithProperties.forEach { it1 ->
 
-            currentScannedEpcTable.forEach {
+            currentScannedEpcs.forEach {
                 if (it == it1.key) {
                     currentScannedProductProductCodes.add(it1.value.productCode)
                 }
             }
+        }
 
-            if (it1.value.KBarCode in scannedProducts.keys) {
-                if (it1.value.scannedEPCs[0] !in scannedProducts[it1.value.KBarCode]!!.scannedEPCs) {
-                    scannedProducts[it1.value.KBarCode]!!.scannedEPCNumber += 1
-                    scannedProducts[it1.value.KBarCode]!!.scannedEPCs.add(it1.value.scannedEPCs[0])
-                }
-            } else {
-                scannedProducts[it1.value.KBarCode] = it1.value
-                if (!isInProgress) {
-                    if (isInDepo) {
-                        scannedProducts[it1.value.KBarCode]!!.rfidWareHouseNumber =
-                            -1 * scannedProducts[it1.value.KBarCode]!!.wareHouseNumber
-                    } else {
-                        scannedProducts[it1.value.KBarCode]!!.rfidStoreNumber =
-                            -1 * scannedProducts[it1.value.KBarCode]!!.storeNumber
+        scannedEpcs.forEach {
+
+            val product = scannedEpcMapWithProperties[it]!!
+            product.inventoryOnDepo = isInDepo
+
+            if ((product.brandName == "JeansWest" || product.brandName == "JootiJeans" || product.brandName == "Baleno")
+                && !product.name.contains("جوراب")
+                && !product.name.contains("عينك")
+                && !product.name.contains("شاپينگ")
+            ) {
+
+                if (product.KBarCode in scannedProducts.keys) {
+                    if (product.scannedEPCs[0] !in scannedProducts[product.KBarCode]!!.scannedEPCs) {
+                        scannedProducts[product.KBarCode]!!.scannedEPCs.add(product.scannedEPCs[0])
+                    }
+                } else {
+                    scannedProducts[product.KBarCode] =
+                        product.copy(scannedEPCs = mutableListOf(it))
+                    if (!isInProgress) {
+                        if (isInDepo) {
+                            scannedProducts[product.KBarCode]!!.countedWarehouseNumber =
+                                -1 * scannedProducts[product.KBarCode]!!.wareHouseNumber
+                        } else {
+                            scannedProducts[product.KBarCode]!!.countedStoreNumber =
+                                -1 * scannedProducts[product.KBarCode]!!.storeNumber
+                        }
                     }
                 }
             }
@@ -768,7 +650,7 @@ class InventoryActivity : ComponentActivity() {
     private fun saveResultsToServer() {
         saveToServerInProgress = true
 
-        val url = "http://rfid-api.avakatan.ir/mojodi-review/header"
+        val url = "https://rfid-api.avakatan.ir/mojodi-review/header"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             saveToServerId = it.getString("MojodiReviewInfo_ID")
@@ -832,9 +714,12 @@ class InventoryActivity : ComponentActivity() {
     }
 
     private fun saveApi2() {
+
+        Log.e("saveApi2 called", "")
+
         saveToServerInProgress = true
 
-        val url = "http://rfid-api.avakatan.ir/mojodi-review/products"
+        val url = "https://rfid-api.avakatan.ir/mojodi-review/products"
         val request = object : StringRequest(Method.POST, url, {
 
             saveToServerInProgress = false
@@ -854,13 +739,9 @@ class InventoryActivity : ComponentActivity() {
                     )
                 }
             } else {
-
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        error.getString("message"),
+                        it.networkResponse.data.decodeToString(),
                         null,
                         SnackbarDuration.Long
                     )
@@ -881,7 +762,6 @@ class InventoryActivity : ComponentActivity() {
 
                 val body = JSONObject()
                 val products = JSONArray()
-                val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
                 resultsBiggerThan500 = false
 
@@ -889,16 +769,10 @@ class InventoryActivity : ComponentActivity() {
                     val it = inventoryResult.values.toMutableList()[i]
                     val productJson = JSONObject()
 
-                    val diff = if (isInDepo) it.rfidWareHouseNumber else it.rfidStoreNumber
-                    val newDiff = if(it.scan == "کسری") it.matchedNumber * -1 else it.matchedNumber
-
                     productJson.put("BarcodeMain_ID", it.primaryKey)
                     productJson.put("kbarcode", it.KBarCode)
                     productJson.put("K_Name", it.kName)
-                    productJson.put(
-                        "diffCount",
-                        if (diff > newDiff) diff else newDiff
-                    )
+                    productJson.put("diffCount", it.inventoryConflictNumber)
                     products.put(productJson)
 
                     if (products.length() > 500) {
@@ -926,7 +800,7 @@ class InventoryActivity : ComponentActivity() {
     private fun saveApi3() {
         saveToServerInProgress = true
 
-        val url = "http://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/submit"
+        val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/submit"
         val request = object : StringRequest(Method.POST, url, {
 
             CoroutineScope(Dispatchers.Default).launch {
@@ -938,11 +812,90 @@ class InventoryActivity : ComponentActivity() {
             }
             saveToServerInProgress = false
             inventoryStarted = false
-            inputBarcodesTable.clear()
+            inputBarcodes.clear()
             inputProducts.clear()
             inputBarcodeMapWithProperties.clear()
             clear()
-            Log.e("error", "3 passed")
+            Log.e("error", "3 passed without waiting")
+
+        }, {
+            when (it) {
+                is NoConnectionError -> {
+                    saveToServerInProgress = false
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+                is TimeoutError -> {
+                    Log.e("error", "3 passed with waiting")
+                    saveToServerInProgress = false
+                    saveApi4()
+                }
+                else -> {
+                    saveToServerInProgress = false
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.networkResponse.data.decodeToString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+            }
+
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = mutableMapOf<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] =
+                    "Bearer " + MainActivity.token
+                return params
+            }
+        }
+
+        request.retryPolicy = DefaultRetryPolicy(
+            10000,
+            0,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+
+        queue.add(request)
+    }
+
+    private fun saveApi4() {
+
+        saveToServerInProgress = true
+
+        val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/report"
+        val request = object : JsonObjectRequest(Method.GET, url, null, {
+
+            if (it.getBoolean("IsInProgress")) {
+                Log.e("error", "4 waiting")
+                CoroutineScope(IO).launch {
+                    delay(10000)
+                    saveToServerInProgress = false
+                    saveApi4()
+                }
+            } else {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اطلاعات انبارگردانی با موفقیت ثبت شدند",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                saveToServerInProgress = false
+                inventoryStarted = false
+                inputBarcodes.clear()
+                inputProducts.clear()
+                inputBarcodeMapWithProperties.clear()
+                clear()
+                Log.e("error", "4 passed")
+            }
 
         }, {
             if (it is NoConnectionError) {
@@ -955,21 +908,20 @@ class InventoryActivity : ComponentActivity() {
                 }
             } else {
 
+                val error =
+                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        "اطلاعات انبارگردانی با موفقیت ثبت شدند",
+                        error.getString("message"),
                         null,
                         SnackbarDuration.Long
                     )
                 }
-                saveToServerInProgress = false
-                inventoryStarted = false
-                inputBarcodesTable.clear()
-                inputProducts.clear()
-                inputBarcodeMapWithProperties.clear()
-                clear()
-                Log.e("error", "3 passed")
             }
+
+            saveToServerInProgress = false
+            resultIndexForApi2 = 0
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -995,7 +947,7 @@ class InventoryActivity : ComponentActivity() {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
 
-        edit.putString("InventoryEPCTable", JSONArray(scannedEpcTable).toString())
+        edit.putString("InventoryEPCTable", JSONArray(scannedEpcs).toString())
         edit.putString("InventorySignedProductCodes", JSONArray(signedKBarCode).toString())
         edit.putString("warehouseCodeForInventory", warehouseCode)
         edit.putBoolean("inventoryStarted", inventoryStarted)
@@ -1027,9 +979,9 @@ class InventoryActivity : ComponentActivity() {
             }
         }
 
-        scannedEpcTable = Gson().fromJson(
+        scannedEpcs = Gson().fromJson(
             memory.getString("InventoryEPCTable", ""),
-            scannedEpcTable.javaClass
+            scannedEpcs.javaClass
         ) ?: mutableListOf()
 
         signedKBarCode = Gson().fromJson(
@@ -1038,9 +990,9 @@ class InventoryActivity : ComponentActivity() {
         ) ?: mutableStateListOf()
 
 
-        epcTablePreviousSize = scannedEpcTable.size
+        epcTablePreviousSize = scannedEpcs.size
 
-        number = scannedEpcTable.size
+        number = scannedEpcs.size
     }
 
     private fun finishPackage() {
@@ -1050,16 +1002,12 @@ class InventoryActivity : ComponentActivity() {
         val url = "http://rfid-api.avakatan.ir/mojodi-review/package/submit"
         val request = object : StringRequest(Method.POST, url, {
 
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "انبارگردانی دوره ای با موفقیت به پایان رسید",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
             signedKBarCode.clear()
             saveToMemory()
             saveToServerInProgress = false
+
+            inventoryStarted = true
+            getWarehouseBarcodes()
 
         }, {
             if (it is NoConnectionError) {
@@ -1071,12 +1019,9 @@ class InventoryActivity : ComponentActivity() {
                     )
                 }
             } else {
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        error.getString("message"),
+                        it.networkResponse?.data?.decodeToString() ?: "خطای نامشخص",
                         null,
                         SnackbarDuration.Long
                     )
@@ -1097,6 +1042,7 @@ class InventoryActivity : ComponentActivity() {
 
                 val body = JSONObject()
 
+                Log.e("error", "started")
                 body.put("Warehouse_ID", warehouseCode.toInt())
 
                 return body.toString().toByteArray()
@@ -1114,13 +1060,13 @@ class InventoryActivity : ComponentActivity() {
 
     private fun clear() {
 
-        scannedEpcTable.clear()
+        scannedEpcs.clear()
         epcTablePreviousSize = 0
         number = 0
         scannedProducts.clear()
         scannedEpcMapWithProperties.clear()
         inventoryResult.clear()
-        getConflicts()
+        calculateConflicts()
         saveToMemory()
         openDialog = false
     }
@@ -1165,7 +1111,7 @@ class InventoryActivity : ComponentActivity() {
         TopAppBar(
 
             navigationIcon = {
-                IconButton(onClick = { back() }) {
+                IconButton(modifier = Modifier.testTag("back"), onClick = { back() }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
                         contentDescription = ""
@@ -1174,14 +1120,22 @@ class InventoryActivity : ComponentActivity() {
             },
 
             actions = {
-                IconButton(onClick = { openDialog = true }) {
+                IconButton(onClick = {
+                    if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+                        openDialog = true
+                    }
+                }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_share_24),
                         contentDescription = ""
                     )
                 }
-                IconButton(modifier = Modifier.testTag("InventoryClearButton"),
-                    onClick = { openClearDialog = true }) {
+                IconButton(modifier = Modifier.testTag("clear"),
+                    onClick = {
+                        if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+                            openClearDialog = true
+                        }
+                    }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_delete_24),
                         contentDescription = ""
@@ -1219,139 +1173,144 @@ class InventoryActivity : ComponentActivity() {
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .shadow(1.dp, shape = Shapes.small)
-                    .size(200.dp)
-                    .align(
-                        Alignment.Center
-                    )
-                    .background(color = Color.White, shape = Shapes.medium),
-            ) {
+            if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
 
-                CircularProgressIndicator(
-                    inventoryProgress,
+
+                Box(
                     modifier = Modifier
-                        .size(150.dp)
+                        .shadow(1.dp, shape = Shapes.small)
+                        .size(200.dp)
                         .align(
                             Alignment.Center
-                        ),
-                    Jeanswest,
-                    8.dp
-                )
-            }
-
-            Box(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "${inventoryProgress * 100}%", modifier = Modifier
-                        .fillMaxWidth()
-                        .align(
-                            Alignment.Center
-                        ),
-                    textAlign = TextAlign.Center,
-                    style = Typography.h5
-                )
-            }
-
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Bottom
-        ) {
-
-            if (openDialog) {
-                FileAlertDialog()
-            }
-            if (openClearDialog) {
-                ClearAlertDialog()
-            }
-            if (openFinishDialog) {
-                FinishAlertDialog()
-            }
-            if (openStartOrContinueDialog) {
-                StartOrContinueAlertDialog()
-            }
-
-            Column(
-                modifier = Modifier
-                    .shadow(1.dp)
-                    .fillMaxWidth()
-                    .background(color = Color.White)
-            ) {
-
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
+                        )
+                        .background(color = Color.White, shape = Shapes.medium),
                 ) {
 
-                    FilterDropDownList(
-                        modifier = Modifier.wrapContentWidth(),
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_baseline_location_city_24),
-                                contentDescription = "",
-                                tint = iconColor,
-                                modifier = Modifier
-                                    .align(Alignment.CenterVertically)
-                                    .padding(start = 4.dp)
-                            )
-                        },
-                        text = {
-                            Text(
-                                style = MaterialTheme.typography.body2,
-                                text = locations[warehouseCode] ?: "",
-                                modifier = Modifier
-                                    .align(Alignment.CenterVertically)
-                                    .padding(start = 4.dp)
-                            )
-                        },
-                        values = locations.values.toMutableList(),
-                        onClick = {
-                            if (inventoryStarted) {
-                                CoroutineScope(Main).launch {
-                                    state.showSnackbar(
-                                        "در هنگام انبارگردانی امکان تغییر مکان وجود ندارد. بعد از پایان انبارگردانی فعلی، می توانید مکان جدیدی را برای انبارگردانی انتخاب کنید",
-                                        null,
-                                        SnackbarDuration.Long
-                                    )
-                                }
-                            } else {
-                                warehouseCode = locations.filter { it1 ->
-                                    it1.value == it
-                                }.keys.toMutableList()[0]
-                                saveToMemory()
-                            }
-                        }
+                    CircularProgressIndicator(
+                        inventoryProgress,
+                        modifier = Modifier
+                            .size(150.dp)
+                            .align(
+                                Alignment.Center
+                            ),
+                        Jeanswest,
+                        8.dp
                     )
+                }
 
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = "${inventoryProgress * 100}%", modifier = Modifier
+                            .fillMaxWidth()
+                            .align(
+                                Alignment.Center
+                            ),
+                        textAlign = TextAlign.Center,
+                        style = Typography.h5
+                    )
+                }
+            }
+        }
+
+        if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Bottom
+            ) {
+
+                if (openDialog) {
+                    FileAlertDialog()
+                }
+                if (openClearDialog) {
+                    ClearAlertDialog()
+                }
+                if (openFinishDialog) {
+                    FinishAlertDialog()
+                }
+                if (openStartOrContinueDialog) {
+                    StartOrContinueAlertDialog()
+                }
+
+                Column(
+                    modifier = Modifier
+                        .shadow(1.dp)
+                        .fillMaxWidth()
+                        .background(color = Color.White)
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
+                    ) {
+
+                        FilterDropDownList(
+                            modifier = Modifier.wrapContentWidth(),
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_baseline_location_city_24),
+                                    contentDescription = "",
+                                    tint = iconColor,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 4.dp)
+                                )
+                            },
+                            text = {
+                                Text(
+                                    style = MaterialTheme.typography.body2,
+                                    text = locations[warehouseCode] ?: "",
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 4.dp)
+                                )
+                            },
+                            values = locations.values.toMutableList(),
+                            onClick = {
+                                if (inventoryStarted) {
+                                    CoroutineScope(Main).launch {
+                                        state.showSnackbar(
+                                            "در هنگام انبارگردانی امکان تغییر مکان وجود ندارد. بعد از پایان انبارگردانی فعلی، می توانید مکان جدیدی را برای انبارگردانی انتخاب کنید",
+                                            null,
+                                            SnackbarDuration.Long
+                                        )
+                                    }
+                                } else {
+                                    warehouseCode = locations.filter { it1 ->
+                                        it1.value == it
+                                    }.keys.toMutableList()[0]
+                                    saveToMemory()
+                                }
+                            }
+                        )
+
+                        Button(modifier = Modifier
+                            .padding(start = 24.dp)
+                            .fillMaxWidth()
+                            .height(48.dp),
+                            onClick = {
+                                isInShortageAdditionalPage = true
+                            }) {
+                            Text(text = "مغایرت ها", style = Typography.h2)
+                        }
+                    }
                     Button(modifier = Modifier
-                        .padding(start = 24.dp)
+                        .padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
                         .fillMaxWidth()
                         .height(48.dp),
                         onClick = {
-                            isInShortageAdditionalPage = true
+                            if (!inventoryStarted) {
+                                openStartOrContinueDialog = true
+                            } else {
+                                openFinishDialog = true
+                            }
                         }) {
-                        Text(text = "مغایرت ها", style = Typography.h2)
+                        Text(
+                            text = if (inventoryStarted) "پایان انبارگردانی" else "شروع انبارگردانی",
+                            style = Typography.h2
+                        )
                     }
-                }
-                Button(modifier = Modifier
-                    .padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
-                    .fillMaxWidth()
-                    .height(48.dp),
-                    onClick = {
-                        if (!inventoryStarted) {
-                            openStartOrContinueDialog = true
-                        } else {
-                            openFinishDialog = true
-                        }
-                    }) {
-                    Text(
-                        text = if (inventoryStarted) "پایان انبارگردانی" else "شروع انبارگردانی",
-                        style = Typography.h2
-                    )
                 }
             }
         }
@@ -1370,7 +1329,7 @@ class InventoryActivity : ComponentActivity() {
 
                 Text(
                     text = "کسری: " + inventoryResult.values.toMutableStateList().filter {
-                        it.scan == "کسری"
+                        it.inventoryConflictType == "کسری"
                     }.size,
                     textAlign = TextAlign.Right,
                     modifier = Modifier
@@ -1379,22 +1338,12 @@ class InventoryActivity : ComponentActivity() {
 
                 Text(
                     text = "اضافی: " + inventoryResult.values.toMutableStateList().filter {
-                        it.scan == "اضافی"
+                        it.inventoryConflictType == "اضافی"
                     }.size,
                     textAlign = TextAlign.Right,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                 )
-
-                Text(
-                    text = "پیدا نشده: " + (inventoryResult.values.toMutableStateList().filter {
-                        it.scan == "اضافی" || it.scan == "کسری"
-                    }.size - signedKBarCode.size).toString(),
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                )
-
                 ScanFilterDropDownList()
             }
         }
@@ -1406,7 +1355,9 @@ class InventoryActivity : ComponentActivity() {
         TopAppBar(
 
             navigationIcon = {
-                IconButton(onClick = { isInShortageAdditionalPage = false }) {
+                IconButton(
+                    modifier = Modifier.testTag("back"),
+                    onClick = { isInShortageAdditionalPage = false }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
                         contentDescription = ""
@@ -1439,57 +1390,58 @@ class InventoryActivity : ComponentActivity() {
                     isScanning,
                     syncInputProductsRunning || syncScannedProductsRunning
                 )
-            }
+            } else {
 
-            Button(
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .align(Alignment.CenterHorizontally),
-                onClick = {
+                Button(
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .align(Alignment.CenterHorizontally),
+                    onClick = {
 
-                    if (inventoryStarted) {
-                        stopRFScan()
-                        rfPower = 5
-                        scanningJob = CoroutineScope(IO).launch {
-                            startRFScan()
+                        if (inventoryStarted) {
+                            stopRFScan()
+                            rfPower = 5
+                            scanningJob = CoroutineScope(IO).launch {
+                                startRFScan()
+                            }
                         }
+                    }) {
+                    Text(text = "تعریف ناحیه جستجو")
+                }
+
+                LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
+
+                    items(uiList.size) { i ->
+
+                        Item(
+                            i,
+                            uiList,
+                            text1 = "موجودی: " + uiList[i].inventoryNumber,
+                            text2 = uiList[i].inventoryConflictType + ":" + " " + uiList[i].inventoryConflictAbs,
+                            clickable = true,
+                            onClick = {
+                                Intent(
+                                    this@InventoryActivity,
+                                    SearchSpecialProductActivity::class.java
+                                ).apply {
+                                    this.putExtra(
+                                        "product",
+                                        Gson().toJson(uiList[i]).toString()
+                                    )
+                                    startActivity(this)
+                                }
+                            },
+                            colorFull = uiList[i].KBarCode in signedKBarCode,
+                            onLongClick = {
+                                if (uiList[i].KBarCode !in signedKBarCode) {
+                                    signedKBarCode.add(uiList[i].KBarCode)
+                                } else {
+                                    signedKBarCode.remove(uiList[i].KBarCode)
+                                }
+                                saveToMemory()
+                            }
+                        )
                     }
-                }) {
-                Text(text = "تعریف ناحیه جست و جو")
-            }
-
-            LazyColumn(modifier = Modifier.padding(top = 8.dp, bottom = 56.dp)) {
-
-                items(uiList.size) { i ->
-
-                    Item(
-                        i,
-                        uiList,
-                        text1 = "موجودی: " + uiList[i].desiredNumber,
-                        text2 = uiList[i].scan + ":" + " " + uiList[i].matchedNumber,
-                        clickable = true,
-                        onClick = {
-                            Intent(
-                                this@InventoryActivity,
-                                SearchSpecialProductActivity::class.java
-                            ).apply {
-                                this.putExtra(
-                                    "product",
-                                    Gson().toJson(uiList[i]).toString()
-                                )
-                                startActivity(this)
-                            }
-                        },
-                        colorFull = uiList[i].KBarCode in signedKBarCode,
-                        onLongClick = {
-                            if (uiList[i].KBarCode !in signedKBarCode) {
-                                signedKBarCode.add(uiList[i].KBarCode)
-                            } else {
-                                signedKBarCode.remove(uiList[i].KBarCode)
-                            }
-                            saveToMemory()
-                        }
-                    )
                 }
             }
         }
@@ -1616,10 +1568,9 @@ class InventoryActivity : ComponentActivity() {
                             onClick = {
                                 openFinishDialog = false
                                 inventoryStarted = false
-                                queue.stop()
                                 syncInputProductsRunning = false
                                 syncScannedProductsRunning = false
-                                inputBarcodesTable.clear()
+                                inputBarcodes.clear()
                                 inputProducts.clear()
                                 inputBarcodeMapWithProperties.clear()
                                 clear()
@@ -1665,9 +1616,6 @@ class InventoryActivity : ComponentActivity() {
                         onClick = {
                             openStartOrContinueDialog = false
                             finishPackage()
-                            inventoryStarted = true
-                            clear()
-                            getWarehouseBarcodes()
                         },
                         modifier = Modifier.padding(top = 10.dp)
                     ) {
@@ -1677,6 +1625,7 @@ class InventoryActivity : ComponentActivity() {
             }
         )
     }
+
     @Composable
     fun ScanFilterDropDownList() {
 
@@ -1690,7 +1639,7 @@ class InventoryActivity : ComponentActivity() {
         Box {
             Row(modifier = Modifier
                 .clickable { expanded = true }
-                .testTag("CountActivityFilterDropDownList")
+                .testTag("scanFilterDropDownList")
             ) {
                 Text(text = scanFilter)
                 Icon(imageVector = Icons.Filled.ArrowDropDown, "")
@@ -1706,7 +1655,7 @@ class InventoryActivity : ComponentActivity() {
                     DropdownMenuItem(onClick = {
                         expanded = false
                         scanFilter = it
-                        getConflicts()
+                        calculateConflicts()
                     }) {
                         Text(text = it)
                     }

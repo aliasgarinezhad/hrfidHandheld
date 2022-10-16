@@ -30,9 +30,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
-import com.jeanwest.reader.sharedClassesAndFiles.*
-import com.jeanwest.reader.sharedClassesAndFiles.hardware.Barcode2D
-import com.jeanwest.reader.sharedClassesAndFiles.theme.*
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
@@ -119,12 +119,12 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
             var isRequested = false
             products.forEach { it1 ->
                 if (it.KBarCode == it1.KBarCode) {
-                    it.requestedNum = it1.requestedNum
+                    it.requestedNumber = it1.requestedNumber
                     isRequested = true
                 }
             }
             if (!isRequested) {
-                it.requestedNum = 0
+                it.requestedNumber = 0
             }
         }
 
@@ -258,10 +258,9 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                     rfidKey = json.getLong("RFID"),
                     scannedEPCs = mutableListOf(),
                     scannedBarcode = "",
-                    scannedEPCNumber = 0,
                     scannedBarcodeNumber = 0,
                     kName = json.getString("K_Name"),
-                    requestedNum = 0,
+                    requestedNumber = 0,
                     storeNumber = json.getInt("dbCountStore"),
                 )
             )
@@ -312,7 +311,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
 
         products.forEach {
             if (filteredUiList[productIndexInUiList].KBarCode == it.KBarCode) {
-                if (it.requestedNum >= it.wareHouseNumber) {
+                if (it.requestedNumber >= it.wareHouseNumber) {
                     CoroutineScope(Main).launch {
                         state.showSnackbar(
                             "تعداد درخواستی از موجودی انبار بیشتر است.",
@@ -322,7 +321,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                     }
                     return
                 } else {
-                    it.requestedNum++
+                    it.requestedNumber++
                     filterUiList()
                     saveToMemory()
                     return
@@ -332,7 +331,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
         products.add(filteredUiList[productIndexInUiList])
         products[products.indexOfLast {
             it.KBarCode == KBarCode
-        }].requestedNum++
+        }].requestedNumber++
 
         filterUiList()
         saveToMemory()
