@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.jeanwest.reader">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
@@ -12,52 +16,38 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Handheld">
-        <activity
-            android:name=".readingResultSubSubActivity"
-            android:parentActivityName=".readingResultSubActivity"/>
+        <activity android:name=".findingResultSubActivity"
+            android:parentActivityName=".findingActivity"/>
+        <activity android:name=".findingActivity"
+            android:parentActivityName=".MainActivity"/>
         <activity
             android:name=".readingResultSubActivity"
-            android:parentActivityName=".readingResultActivity" />
+            android:parentActivityName=".ReadingResultActivity" />
         <activity
-            android:name=".readingResultActivity"
+            android:name=".addNewSetting"
+            android:parentActivityName=".settingActivity" />
+        <activity
+            android:name=".ReadingResultActivity"
             android:parentActivityName=".reading" />
         <activity
             android:name=".userSpecActivity"
             android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".filterChangingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".findingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".readingSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".addNewSetting"
-            android:parentActivityName=".advanceSetting" />
-        <activity
-            android:name=".advanceSetting"
-            android:parentActivityName=".loginActivity" />
         <activity
             android:name=".loginActivity"
             android:parentActivityName=".settingActivity" />
         <activity
             android:name=".settingActivity"
             android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".filterChanging"
-            android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".finding"
-            android:parentActivityName=".MainActivity" />
+        <activity android:name=".readingResultSubSubActivity"
+            android:parentActivityName=".readingResultSubActivity"/>
         <activity
             android:name=".reading"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".userSpecActivity" />
         <activity
             android:name=".addNew"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

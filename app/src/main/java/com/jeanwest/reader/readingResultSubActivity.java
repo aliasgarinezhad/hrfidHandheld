@@ -1,22 +1,16 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.List;
 
 public class readingResultSubActivity extends AppCompatActivity {
 
@@ -31,14 +25,26 @@ public class readingResultSubActivity extends AppCompatActivity {
     int numberOfStatusAll = 0;
     Intent intent;
 
+    public static Integer indexNumberSub;
+
     int[] index;
     public static int subIndex;
+
+    ArrayList<String> titles;
+    ArrayList<String> specs;
+    ArrayList<String> scanned;
+    ArrayList<String> notScanned;
+    ArrayList<String> all;
+    ArrayList<String> pictureURL;
+
+    MyListAdapterSub listAdapter;
+    JSONObject stuff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_result_sub);
-        subResult = (ListView) findViewById(R.id.subResultView);
+        subResult = findViewById(R.id.subResultView);
         intent = new Intent(this, readingResultSubSubActivity.class);
     }
 
@@ -46,10 +52,6 @@ public class readingResultSubActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        if(reading.API2.stuffs == null) {
-            return;
-        }
 
         numberOfNotStatusNotScanned = 0;
         numberOfStatusExtras = 0;
@@ -59,59 +61,66 @@ public class readingResultSubActivity extends AppCompatActivity {
         numberOfStatusAll = 0;
         j = 0;
 
-        ArrayList<String> items = new ArrayList<>();
-
-        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1 ,items);
+        titles = new ArrayList<>();
+        specs = new ArrayList<>();
+        scanned = new ArrayList<>();
+        notScanned = new ArrayList<>();
+        all = new ArrayList<>();
+        pictureURL = new ArrayList<>();
 
         try {
-            subStuffs = reading.API2.conflicts.getJSONArray(reading.API2.stuffs.getString(readingResultActivity.index));
+            subStuffs = reading.API2.conflicts.getJSONArray(ReadingResultActivity.index);
         } catch (JSONException e) {
             e.printStackTrace();
+            return;
         }
 
-        int max = subStuffs.length();
-
-        if (max > 200) {
-            max = 200;
-        }
         index = new int[subStuffs.length() + 100];
 
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
 
-                if (!temp.getBoolean("status")) {
-                    numberOfNotStatusNotScanned += temp.getInt("diffCount");
-                    numberOfNotStatusScanned += temp.getInt("handheldCount");
-                    numberOfNotStatusAll += temp.getInt("dbCount");
+                if (!stuff.getBoolean("status")) {
+                    numberOfNotStatusNotScanned += stuff.getInt("diffCount");
+                    numberOfNotStatusScanned += stuff.getInt("handheldCount");
+                    numberOfNotStatusAll += stuff.getInt("dbCount");
                 }
 
             } catch (JSONException e) {
                 e.printStackTrace();
+                return;
             }
         }
 
-        items.add("کالاهای اسکن نشده " + "\n"
-                + "تعداد اسکن نشده " + numberOfNotStatusNotScanned + "\n"
-                + "تعداد اسکن شده " + numberOfNotStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfNotStatusAll);
+        titles.add("کالاهای اسکن نشده");
+        specs.add("ناموجود در انبار، موجود در سرور");
+        notScanned.add("تعداد اسکن نشده: " + numberOfNotStatusNotScanned);
+        scanned.add("تعداد اسکن شده: " + numberOfNotStatusScanned);
+        all.add("تعداد کل: " + numberOfNotStatusAll);
+        pictureURL.add("a");
+
 
         index[j] = -1;
         j++;
 
-        for (int i = 0; i<max; i++) {
+        for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
-                if (!temp.getBoolean("status") && temp.getInt("diffCount") > 0) {
+                stuff = subStuffs.getJSONObject(i);
+                if (!stuff.getBoolean("status") && stuff.getInt("diffCount") != 0) {
                     index[j] = i;
                     j++;
-                    items.add(temp.getString("productName") + "\n" +
-                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                    "تعداد اسکن نشده: " + temp.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + temp.getString("dbCount"));
+
+                    titles.add(stuff.getString("productName"));
+                    specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                            "بارکد: " + stuff.getString("KBarCode"));
+                    notScanned.add("تعداد اسکن نشده: " + stuff.getString("diffCount"));
+                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
+                    all.add("تعداد کل: " + stuff.getString("dbCount"));
+                    pictureURL.add(stuff.getString("ImgUrl"));
+
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -122,12 +131,12 @@ public class readingResultSubActivity extends AppCompatActivity {
         for (int i = 0; i < subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
+                stuff = subStuffs.getJSONObject(i);
 
-                if (temp.getBoolean("status")) {
-                    numberOfStatusExtras += temp.getInt("diffCount");
-                    numberOfStatusScanned += temp.getInt("handheldCount");
-                    numberOfStatusAll += temp.getInt("dbCount");
+                if (stuff.getBoolean("status")) {
+                    numberOfStatusExtras += stuff.getInt("diffCount");
+                    numberOfStatusScanned += stuff.getInt("handheldCount");
+                    numberOfStatusAll += stuff.getInt("dbCount");
                 }
 
             } catch (JSONException e) {
@@ -135,26 +144,32 @@ public class readingResultSubActivity extends AppCompatActivity {
             }
         }
 
-        items.add("کالاهای اضافی " + "\n"
-                + "تعداد اضافی " + numberOfStatusExtras + "\n"
-                + "تعداد اسکن شده " + numberOfStatusScanned + "\n"
-                + "تعداد کل کالاها " + numberOfStatusAll);
+        titles.add("کالاهای اضافی");
+        specs.add("ناموجود در سرور، موجود در انبار");
+        notScanned.add("تعداد اسکن نشده: " + numberOfStatusExtras);
+        scanned.add("تعداد اسکن شده: " + numberOfStatusScanned);
+        all.add("تعداد کل: " + numberOfStatusAll);
+        pictureURL.add("a");
 
         index[j] = -1;
         j++;
 
-        for (int i = 0; i<max; i++) {
+        for (int i = 0; i<subStuffs.length(); i++) {
 
             try {
-                JSONObject temp = subStuffs.getJSONObject(i);
-                if (temp.getBoolean("status")) {
+                stuff = subStuffs.getJSONObject(i);
+                if (stuff.getBoolean("status")) {
                     index[j] = i;
                     j++;
-                    items.add(temp.getString("productName") + "\n" +
-                    "کد محصول: " + temp.getString("K_Bar_Code") + "\n" +
-                    "تعداد اضافی: " + temp.getString("diffCount") + "\n" +
-                    "تعداد اسکن شده: " + temp.getString("handheldCount") + "\n" +
-                    "تعداد کل: " + temp.getString("dbCount"));
+
+                    titles.add(stuff.getString("productName"));
+                    specs.add("کد محصول: " + stuff.getString("K_Bar_Code") + "\n" +
+                            "بارکد: " + stuff.getString("KBarCode"));
+                    notScanned.add("تعداد اضافی: " + stuff.getString("diffCount"));
+                    scanned.add("تعداد اسکن شده: " + stuff.getString("handheldCount"));
+                    all.add("تعداد کل: " + stuff.getString("dbCount"));
+                    pictureURL.add(stuff.getString("ImgUrl"));
+
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -162,12 +177,17 @@ public class readingResultSubActivity extends AppCompatActivity {
 
         }
 
+        listAdapter = new MyListAdapterSub(this, titles, specs, scanned, all, notScanned, pictureURL);
+
         subResult.setAdapter(listAdapter);
+
+        subResult.setSelection(indexNumberSub);
 
         subResult.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 if(index[i] != -1) {
+                    indexNumberSub = i;
                     subIndex = index[i];
                     startActivity(intent);
                 }

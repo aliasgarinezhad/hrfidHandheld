@@ -1,34 +1,39 @@
 package com.jeanwest.reader;
 
+import android.app.admin.DevicePolicyManager;
+import android.content.Context;
+import android.telephony.TelephonyManager;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
+import java.net.NetworkInterface;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
-public class APIReading extends Thread {
+import static androidx.core.content.ContextCompat.getSystemService;
+
+public class APIReadingInformation extends Thread {
 
     Integer departmentInfoID = 68;
     Integer wareHouseID = 1706;
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
-    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations";
+    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/informations/v2";
+    public boolean stop = false;
+    public Context context;
 
-    public void run(){
+    public void run() {
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 
@@ -38,9 +43,15 @@ public class APIReading extends Thread {
 
                     JSONObject body = new JSONObject();
                     body.put("DepartmentInfo_ID", departmentInfoID);
-                    body.put("WareHouse_ID", wareHouseID);
-                    body.put("ReviewControlDate", "2021-05-02T16:04:39.0Z");
-                    body.put("StartDate", "2021-05-02T16:04:39.0Z");
+                    body.put("WareHouseTypes_ID", wareHouseID);
+
+                    body.put("CreateUserID", System.currentTimeMillis());
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.UK);
+                    String formattedDate = sdf.format(new Date());
+
+                    body.put("ReviewControlDate", formattedDate);
+                    body.put("StartDate", formattedDate);
 
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();

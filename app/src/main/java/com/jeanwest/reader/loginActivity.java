@@ -1,7 +1,6 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -18,13 +17,13 @@ public class loginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        password = (EditText) findViewById(R.id.passwordText);
-        feedback = (TextView) findViewById(R.id.feedback);
+        password = findViewById(R.id.passwordText);
+        feedback = findViewById(R.id.feedback);
     }
 
     public void loginButton(View view) {
         if(password.getText().toString().equals("123456")) {
-            Intent intent = new Intent(this, advanceSetting.class);
+            Intent intent = new Intent(this, addNewSetting.class);
             startActivity(intent);
         }
         else{

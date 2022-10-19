@@ -1,7 +1,10 @@
 package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentValues;
@@ -13,6 +16,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
@@ -21,26 +25,47 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.Map;
 
 public class settingActivity extends AppCompatActivity {
 
-    Spinner filterSpinner;
-    databaseHelperClass2 databaseHelper2;
-    SQLiteDatabase counter;
-    private boolean dataExist;
     Toast response;
     TextView versionName;
+    Toast debug;
+    AlertDialog alert;
+    APIUpdate API = new APIUpdate();
+    Handler handler = new Handler();
+    Runnable thread = new Runnable() {
+
+        @Override
+        public void run() {
+
+            if (API.status) {
+
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.fromFile(API.outputFile), "application/vnd.android.package-archive");
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+            else {
+
+                if(!alert.isShowing()) {
+
+                    alert.show();
+                }
+                handler.postDelayed(thread, 500);
+            }
+        }
+    };
 
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
-        filterSpinner = (Spinner) findViewById(R.id.filterSpinner2);
         response = Toast.makeText(this, " ", Toast.LENGTH_LONG);
-        versionName = (TextView) findViewById(R.id.versionNameView);
-        databaseHelper2 = new databaseHelperClass2(this);
+        versionName = findViewById(R.id.versionNameView);
 
         try {
             versionName.setText("ورژن: " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
@@ -48,48 +73,26 @@ public class settingActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        counter = databaseHelper2.getWritableDatabase();
-        Cursor counterCursor = counter.rawQuery("select * from counterDatabase", null);
-        if(counterCursor.getCount() <= 0) {
-            response.setText("دیتای برنامه پاک شده است. جهت استفاده از دستگاه، پارامتر های این صفحه را تنظیم کنید");
-            response.show();
-            dataExist = false;
-        }
-        else {
-            counterCursor.moveToFirst();
-            addNew.filterNumber = counterCursor.getInt(4);
-            dataExist = true;
-        }
-        counterCursor.close();
+        debug = Toast.makeText(this, "", Toast.LENGTH_LONG);
 
-        if(addNew.filterNumber > 1) {
-            return;
+        API.context = this;
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
         }
 
-        String[] items = {"انبار (0)", "فروشگاه (1)"};
+        AlertDialog.Builder AlertBuilder = new AlertDialog.Builder(API.context);
+        AlertBuilder.setMessage("لطفا منتظر بمانید ...");
+        AlertBuilder.setTitle("در حال دانلود نسخه به روز");
 
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items);
-        filterSpinner.setAdapter(spinnerAdapter);
-        filterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        alert = AlertBuilder.create();
+        alert.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-
-                addNew.filterNumber = position;
-                ContentValues val = new ContentValues();
-                val.put("filter", addNew.filterNumber);
-
-                if(dataExist) {
-                    counter.update("counterDatabase", val, null, null);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
+            public void onShow(DialogInterface dlg) {
+                alert.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
             }
         });
-
-        filterSpinner.setSelection(addNew.filterNumber);
     }
 
     public void update(View view) {
@@ -100,9 +103,9 @@ public class settingActivity extends AppCompatActivity {
         AlertBuilder.setPositiveButton("بله", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Uri uri = Uri.parse("https://avakatan-my.sharepoint.com/:u:/p/a_askarinejad/EbX316y3o3lMuPHNNrGPEcwBQX5hzSYE-9-oYyMhxViyxw?e=ZzXMBu");
-                Intent browser = new Intent(Intent.ACTION_VIEW, uri);
-                startActivity(browser);
+
+                API.start();
+                handler.postDelayed(thread, 1000);
             }
         });
         AlertBuilder.setNegativeButton("خیر", new DialogInterface.OnClickListener() {
@@ -112,23 +115,13 @@ public class settingActivity extends AppCompatActivity {
             }
         });
 
-        AlertDialog alert = AlertBuilder.create();
-        alert.setOnShowListener(new DialogInterface.OnShowListener() {
+        AlertDialog alertUpdatePermit = AlertBuilder.create();
+        alertUpdatePermit.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dlg) {
-                alert.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
+                alertUpdatePermit.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
             }
         });
-        alert.show();
-    }
-
-    public void advanceSettingButton(View view) {
-        Intent intent = new Intent(this, loginActivity.class);
-        startActivity(intent);
-    }
-    @Override
-    protected void onPause() {
-        super.onPause();
-        counter.close();
+        alertUpdatePermit.show();
     }
 }

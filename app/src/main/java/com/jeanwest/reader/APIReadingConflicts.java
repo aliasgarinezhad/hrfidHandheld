@@ -11,19 +11,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-public class APIReadingResult extends Thread {
+public class APIReadingConflicts extends Thread {
 
     public String Response;
     public boolean status = false;
     public volatile boolean run = false;
     public JSONArray stuffs;
     public JSONObject conflicts;
+    public boolean stop = false;
 
     public void run(){
 
-        while (true) {
+        while (!stop) {
 
             if(run) {
 
@@ -32,13 +34,14 @@ public class APIReadingResult extends Thread {
                 try {
 
                     stuffs = null;
-                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/conflicts";
+                    String GetCommand = "http://rfid-api-0-1.avakatan.ir/stock-taking/" + reading.ID + "/conflicts/v2";
                     URL server = new URL(GetCommand);
                     HttpURLConnection Connection = (HttpURLConnection) server.openConnection();
 
                     if (Connection.getResponseCode() == 200) {
                         InputStream input = new BufferedInputStream(Connection.getInputStream());
-                        InputStreamReader isr = new InputStreamReader(input, "UTF-8");
+                        InputStreamReader isr = new InputStreamReader(input, StandardCharsets.UTF_8);
+
                         BufferedReader reader = new BufferedReader(isr);
                         String Receive = reader.readLine();
 
@@ -46,7 +49,6 @@ public class APIReadingResult extends Thread {
                         conflicts = Json.getJSONObject("conflicts");
                         stuffs = conflicts.names();
 
-                        //Response = Json.getString("productName") + Json.getString("K_Bar_Code");
                         status = true;
                     }
                     else {
