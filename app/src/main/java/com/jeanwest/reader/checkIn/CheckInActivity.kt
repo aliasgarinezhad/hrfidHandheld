@@ -54,7 +54,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
@@ -73,14 +72,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    private var scannedProductsBiggerThan1000 = false
-    private var inputProductsBiggerThan1000 = false
     var draftProperties = DraftProperties(number = 0L, numberOfItems = 0)
 
     //ui parameters
     var productConflicts = mutableStateListOf<Product>()
-    private var isScanning by mutableStateOf(false)
-    private var syncScannedProductsRunning by mutableStateOf(false)
+    private var rfidScan by mutableStateOf(false)
+    var scanning by mutableStateOf(false)
+    var loading by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
     private var shortageCodesNumber by mutableStateOf(0)
@@ -93,7 +91,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     var scanTypeValue by mutableStateOf("RFID")
     private var state = SnackbarHostState()
     private lateinit var queue: RequestQueue
-    private var syncInputProductsRunning by mutableStateOf(false)
     private var stockDraftNumber by mutableStateOf("")
     var scanningMode by mutableStateOf(false)
     private var openFinishDialog by mutableStateOf(false)
@@ -139,7 +136,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                         stopRFScan()
                         startBarcodeScan()
                     } else {
-                        if (!isScanning) {
+                        if (!rfidScan) {
 
                             scanningJob = CoroutineScope(IO).launch {
                                 startRFScan()
@@ -168,7 +165,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         scanningJob?.let {
             if (it.isActive) {
-                isScanning = false // cause scanning routine loop to stop
+                rfidScan = false // cause scanning routine loop to stop
                 runBlocking { it.join() }
             }
         }
@@ -176,9 +173,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private suspend fun startRFScan() {
 
-        isScanning = true
+        scanning = true
+        rfidScan = true
         if (!setRFPower(state, rf, rfPower)) {
-            isScanning = false
+            rfidScan = false
             return
         }
 
@@ -186,7 +184,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         rf.startInventoryTag(0, 0, 0)
 
-        while (isScanning) {
+        while (rfidScan) {
 
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
@@ -228,6 +226,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         rf.stopInventory()
         numberOfScanned = scannedEpcs.size + scannedBarcodes.size
         saveToMemory()
+        scanning = false
     }
 
     private fun calculateConflicts() {
@@ -306,10 +305,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncInputItemsToServer() {
 
-        val barcodeTableForV4 = mutableListOf<String>()
+        loading = true
 
-        syncInputProductsRunning = true
-        inputProductsBiggerThan1000 = false
+        val barcodeTableForV4 = mutableListOf<String>()
+        var inputProductsBiggerThan1000 = false
 
         Log.e("draftBarcodes", draftProperties.barcodeTable.toString())
 
@@ -328,30 +327,16 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
         if (barcodeTableForV4.size == 0) {
             syncScannedItemsToServer()
-            syncInputProductsRunning = false
+            loading = false
             return
         }
-
-        syncInputProductsRunning = true
 
         getProductsV4(
             queue,
             state,
             mutableListOf(),
             barcodeTableForV4,
-            { _, barcodes, _, invalidBarcodes ->
-
-                if (invalidBarcodes.length() > 0) {
-                    CoroutineScope(Main).launch {
-                        state.showSnackbar(
-                            "دسترسی یه اطلاعات حواله با این اکانت امکان پذیر نیست",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                    syncInputProductsRunning = false
-                    return@getProductsV4
-                }
+            { _, barcodes, _, _ ->
 
                 barcodes.forEach { product ->
                     inputBarcodeMapWithProperties[product.scannedBarcode] = product
@@ -360,21 +345,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 if (inputProductsBiggerThan1000) {
                     syncInputItemsToServer()
                 } else {
-                    syncInputProductsRunning = false
                     makeInputProductMap()
                     syncScannedItemsToServer()
                 }
 
             },
             {
-                CoroutineScope(Main).launch {
-                    state.showSnackbar(
-                        "مشکلی در دریافت اطلاعات حواله به وجود آمده است",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                syncInputProductsRunning = false
+                loading = false
             })
     }
 
@@ -397,17 +374,18 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
+        loading = true
+
         if (numberOfScanned == 0) {
             calculateConflicts()
             filterResult(productConflicts)
+            loading = false
             return
         }
 
-        syncScannedProductsRunning = true
-
         val epcArray = mutableListOf<String>()
         val barcodeArray = mutableListOf<String>()
-        scannedProductsBiggerThan1000 = false
+        var scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
             scannedEpcs.forEach {
@@ -440,11 +418,9 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             makeScannedProductMap()
             calculateConflicts()
             filterResult(productConflicts)
-            syncScannedProductsRunning = false
+            loading = false
             return
         }
-
-        syncScannedProductsRunning = true
 
         getProductsV4(queue, state, epcArray, barcodeArray, { epcs, barcodes, _, _ ->
 
@@ -462,46 +438,13 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 makeScannedProductMap()
                 calculateConflicts()
                 filterResult(productConflicts)
-                syncScannedProductsRunning = false
+                loading = false
             }
 
         }, {
-            if ((scannedEpcs.size + scannedBarcodes.size) == 0) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "کالایی جهت بررسی وجود ندارد",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                when (it) {
-                    is NoConnectionError -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                it.toString(),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                }
-            }
             calculateConflicts()
             filterResult(productConflicts)
-
-            syncScannedProductsRunning = false
-
+            loading = false
         })
     }
 
@@ -552,6 +495,10 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 )
             }
 
+            clear()
+            scanningMode = false
+            saveToMemory()
+
         }, {
             if (it is NoConnectionError) {
 
@@ -564,7 +511,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 }
             } else {
 
-                val error = it.networkResponse?.data?.decodeToString()?.let {it1 ->
+                val error = it.networkResponse?.data?.decodeToString()?.let { it1 ->
                     JSONObject(it1).getJSONObject("error").getString("message")
                 } ?: "ارتباط با سرور امکان پذیر نیست."
 
@@ -724,6 +671,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getWarehouseDetails(code: String) {
 
+        loading = true
+
         if (code.isEmpty()) {
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
@@ -732,6 +681,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     SnackbarDuration.Long
                 )
             }
+            loading = false
             return
         }
 
@@ -758,7 +708,6 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             )
 
             saveToMemory()
-            stopBarcodeScan()
             clear()
             scanningMode = true
             saveToMemory()
@@ -789,6 +738,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -837,7 +787,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 IconButton(
                     modifier = Modifier.testTag("CheckInTestTag"),
                     onClick = {
-                        if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning) {
+                        if (!loading && !loading && !rfidScan) {
                             openClearDialog = true
                         }
                     }) {
@@ -907,11 +857,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                 FinishAlertDialog()
             }
 
-            if (isScanning || syncScannedProductsRunning || syncInputProductsRunning) {
-                LoadingCircularProgressIndicator(
-                    isScanning,
-                    syncScannedProductsRunning || syncInputProductsRunning
-                )
+            if (scanning || loading) {
+                LoadingCircularProgressIndicator(scanning, loading)
             } else {
 
                 Column(

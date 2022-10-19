@@ -75,15 +75,13 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     private var scanningJob: Job? = null
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    private var scannedProductsBiggerThan1000 = false
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    private var inputProductsBiggerThan1000 = false
 
     //ui parameters
     var uiList = mutableStateMapOf<String, Product>()
-    private var syncScannedProductsRunning by mutableStateOf(false)
-    private var syncFileProductsRunning by mutableStateOf(false)
-    private var isScanning by mutableStateOf(false)
+    var loading by mutableStateOf(false)
+    private var rfidScan by mutableStateOf(false)
+    var scanning by mutableStateOf(false)
     private var shortagesNumber by mutableStateOf(0)
     private var additionalNumber by mutableStateOf(0)
     private var scannedNumber by mutableStateOf(0)
@@ -324,7 +322,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     stopRFScan()
                     startBarcodeScan()
                 } else {
-                    if (!isScanning) {
+                    if (!rfidScan) {
 
                         scanningJob = CoroutineScope(IO).launch {
                             startRFScan()
@@ -349,7 +347,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         scanningJob?.let {
             if (it.isActive) {
-                isScanning = false // cause scanning routine loop to stop
+                rfidScan = false // cause scanning routine loop to stop
                 runBlocking { it.join() }
             }
         }
@@ -357,9 +355,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private suspend fun startRFScan() {
 
-        isScanning = true
+        scanning = true
+        rfidScan = true
         if (!setRFPower(state, rf, rfPower)) {
-            isScanning = false
+            rfidScan = false
             return
         }
 
@@ -369,7 +368,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         rf.startInventoryTag(0, 0, 0)
 
-        while (isScanning) {
+        while (rfidScan) {
 
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
@@ -420,6 +419,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         }
         scannedNumber = scannedEpcs.size + scannedBarcodes.size
         saveToMemory()
+        scanning = false
     }
 
     private fun filterUiList() {
@@ -484,10 +484,10 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncInputItemsToServer() {
 
-        val barcodeTableForV4 = mutableListOf<String>()
+        loading = true
 
-        syncFileProductsRunning = true
-        inputProductsBiggerThan1000 = false
+        val barcodeTableForV4 = mutableListOf<String>()
+        var inputProductsBiggerThan1000 = false
 
         run breakForEach@{
             inputBarcodes.distinct().forEach {
@@ -505,13 +505,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
         if (barcodeTableForV4.size == 0) {
             makeInputProductMap()
             syncScannedItemsToServer()
-            syncFileProductsRunning = false
+            loading = false
             return
         }
 
         scanFilter = "کسری"
-
-        syncFileProductsRunning = true
 
         getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes, _, _ ->
 
@@ -522,14 +520,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             if (inputProductsBiggerThan1000) {
                 syncInputItemsToServer()
             } else {
-                syncFileProductsRunning = false
                 makeInputProductMap()
                 syncScannedItemsToServer()
             }
 
         }, {
             syncScannedItemsToServer()
-            syncFileProductsRunning = false
         })
     }
 
@@ -537,7 +533,6 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
         inputProducts.clear()
         inputBarcodes.distinct().forEach {
-            Log.e("my log", it)
             val product = inputBarcodeMapWithProperties[it]!!.copy()
             product.draftNumber = inputBarcodes.count { it1 ->
                 it == it1
@@ -553,16 +548,16 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
+        loading = true
         if (scannedNumber == 0) {
             calculateConflicts()
+            loading = false
             return
         }
 
-        syncScannedProductsRunning = true
-
         val epcTableForV4 = mutableListOf<String>()
         val barcodeTableForV4 = mutableListOf<String>()
-        scannedProductsBiggerThan1000 = false
+        var scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
             scannedEpcs.forEach {
@@ -594,7 +589,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             makeScannedProductMap()
             calculateConflicts()
-            syncScannedProductsRunning = false
+            loading = false
             return
         }
 
@@ -613,12 +608,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             } else {
                 makeScannedProductMap()
                 calculateConflicts()
-                syncScannedProductsRunning = false
+                loading = false
             }
 
         }, {
             calculateConflicts()
-            syncScannedProductsRunning = false
+            loading = false
         })
     }
 
@@ -653,6 +648,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun getSearchModeProductsProperties() {
+
+        if (searchModeEpcTable.size == 0) {
+            return
+        }
+
         val url = "https://rfid-api.avakatan.ir/products/v3"
 
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -674,37 +674,27 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             }
 
         }, {
-            if (searchModeEpcTable.size == 0) {
+            when (it) {
+                is NoConnectionError -> {
 
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "کالایی جهت بررسی وجود ندارد",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                when (it) {
-                    is NoConnectionError -> {
-
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                it.toString(),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                            null,
+                            SnackbarDuration.Long
+                        )
                     }
                 }
+                else -> {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            it.toString(),
+                            null,
+                            SnackbarDuration.Long
+                        )
+                    }
+                }
+
             }
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -1039,7 +1029,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
 
             actions = {
                 IconButton(onClick = {
-                    if (!isScanning && !syncScannedProductsRunning && !syncFileProductsRunning) {
+                    if (!scanning && !loading) {
                         openDialog = true
                     }
                 }
@@ -1051,7 +1041,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 }
                 IconButton(modifier = Modifier.testTag("CountActivityClearButton"),
                     onClick = {
-                        if (!isScanning && !syncScannedProductsRunning && !syncFileProductsRunning) {
+                        if (!scanning && !loading) {
                             openClearDialog = true
                         }
                     }) {
@@ -1089,11 +1079,8 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                 ClearAlertDialog()
             }
 
-            if (isScanning || syncScannedProductsRunning || syncFileProductsRunning) {
-                LoadingCircularProgressIndicator(
-                    isScanning,
-                    syncScannedProductsRunning || syncFileProductsRunning
-                )
+            if (scanning || loading) {
+                LoadingCircularProgressIndicator(scanning, loading)
             } else {
 
                 Column(

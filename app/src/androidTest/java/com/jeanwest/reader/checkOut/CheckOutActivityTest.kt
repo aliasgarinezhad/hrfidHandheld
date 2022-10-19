@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.Product
 import com.jeanwest.reader.shared.test.Barcode2D
+import okhttp3.internal.wait
 import org.junit.Rule
 import org.junit.Test
 
@@ -18,7 +19,7 @@ import org.junit.Test
 class CheckOutActivityTest {
 
     @get:Rule
-    val checkOutActivity = createAndroidComposeRule<CheckOutActivity>()
+    val activity = createAndroidComposeRule<CheckOutActivity>()
 
     //send all stuffs after test
     @Test
@@ -28,7 +29,7 @@ class CheckOutActivityTest {
         clearUserData()
         restart()
 
-        val memory = PreferenceManager.getDefaultSharedPreferences(checkOutActivity.activity)
+        val memory = PreferenceManager.getDefaultSharedPreferences(activity.activity)
 
         val type = object : TypeToken<MutableList<Product>>() {}.type
         val products: MutableList<Product> = Gson().fromJson(
@@ -36,11 +37,9 @@ class CheckOutActivityTest {
             type
         ) ?: mutableListOf()
 
-        Log.e("refillProductsForTest", products.toString())
-
         assert(products.size > 20)
 
-        checkOutActivity.onAllNodesWithText("هنوز کالایی برای ثبت حواله اسکن نکرده اید")[0].assertExists()
+        activity.onAllNodesWithText("هنوز کالایی برای ثبت حواله اسکن نکرده اید")[0].assertExists()
 
         val scannedProducts = mutableListOf<Product>()
         products.forEach {
@@ -51,19 +50,19 @@ class CheckOutActivityTest {
 
         restart()
 
-        checkOutActivity.onNodeWithText("انتخاب مقصد").performClick()
-        checkOutActivity.waitForIdle()
-        checkOutActivity.onNodeWithText("انبار VM").performClick()
-        checkOutActivity.waitForIdle()
+        activity.onNodeWithText("انتخاب مقصد").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("انبار VM").performClick()
+        activity.waitForIdle()
 
-        checkOutActivity.onNodeWithText("ارسال اسکن شده ها").performClick()
-        checkOutActivity.waitForIdle()
+        activity.onNodeWithText("ارسال اسکن شده ها").performClick()
+        activity.waitForIdle()
 
-        assert(checkOutActivity.activity.products.filter {
+        assert(activity.activity.products.filter {
             it.scannedBarcodeNumber > 0
         }.size == 20)
 
-        checkOutActivity.activity.products.filter {
+        activity.activity.products.filter {
             it.scannedBarcodeNumber > 0
         }.toMutableList().forEach {
             if (it.wareHouseNumber > 1) {
@@ -75,26 +74,20 @@ class CheckOutActivityTest {
 
         for (i in 0 until 3) {
 
-            checkOutActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(checkOutActivity.activity.uiList[i].KBarCode)
-                assertTextContains(checkOutActivity.activity.uiList[i].name)
-                assertTextContains("انبار: " + checkOutActivity.activity.uiList[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (checkOutActivity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains(activity.activity.uiList[i].KBarCode)
+                assertTextContains(activity.activity.uiList[i].name)
+                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("اسکن: " + if (activity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
             }
         }
     }
 
-    //test output apk file
-
     private fun restart() {
-        checkOutActivity.activity.runOnUiThread {
-            checkOutActivity.activity.recreate()
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
         }
-
-        checkOutActivity.waitForIdle()
-        Thread.sleep(4000)
-        checkOutActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
@@ -112,38 +105,33 @@ class CheckOutActivityTest {
 
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
-        checkOutActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
         waitForFinishLoading()
     }
     private fun waitForFinishLoading() {
-        checkOutActivity.waitForIdle()
 
-        while (checkOutActivity.activity.isDataLoading) {
+        activity.waitForIdle()
+        while (activity.activity.loading) {
             Thread.sleep(200)
-            checkOutActivity.waitForIdle()
+            activity.waitForIdle()
         }
-        checkOutActivity.waitForIdle()
     }
 
     private fun start() {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
-
-        checkOutActivity.waitForIdle()
-        Thread.sleep(4000)
-        checkOutActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun clearUserData() {
 
         val products = mutableListOf<Product>()
-        products.addAll(checkOutActivity.activity.products)
+        products.addAll(activity.activity.products)
 
         products.forEach {
             if (it.scannedBarcodeNumber > 0) {
-                checkOutActivity.activity.clear(it)
-                checkOutActivity.waitForIdle()
+                activity.activity.clear(it)
+                activity.waitForIdle()
             }
         }
     }

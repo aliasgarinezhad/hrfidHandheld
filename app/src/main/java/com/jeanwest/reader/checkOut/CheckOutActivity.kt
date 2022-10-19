@@ -58,15 +58,15 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private val barcode2D = Barcode2D(this)
 
     //ui parameters
-    var isDataLoading by mutableStateOf(false)
+    var loading by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
     private lateinit var queue: RequestQueue
-    private var isSubmitting by mutableStateOf(false)
+    private var creatingStockDraft by mutableStateOf(false)
     private var scanMode by mutableStateOf(true)
-    var scannedBarcodeTable = mutableListOf<String>()
+    var scannedBarcodes = mutableListOf<String>()
     private var destination by mutableStateOf("انتخاب مقصد")
     private var destinations = mutableStateMapOf<String, Int>()
     private var source = 0
@@ -163,7 +163,20 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     private fun syncScannedItemsToServer() {
 
-        isDataLoading = true
+        loading = true
+
+        if (scannedBarcodes.size == 0) {
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            loading = false
+            return
+        }
 
         val barcodeArray = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
@@ -174,7 +187,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        scannedBarcodeTable.forEach {
+        scannedBarcodes.forEach {
             if (it !in alreadySyncedBarcodes) {
                 barcodeArray.add(it)
             } else {
@@ -182,7 +195,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     it1.scannedBarcode == it
                 })
                 products[productIndex].scannedBarcodeNumber =
-                    scannedBarcodeTable.count { it1 ->
+                    scannedBarcodes.count { it1 ->
                         it1 == it
                     }
             }
@@ -197,7 +210,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy {
                 it.name
             }
-            isDataLoading = false
+            loading = false
             return
         }
 
@@ -230,30 +243,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy {
                 it.name
             }
-            isDataLoading = false
+            loading = false
 
         }, {
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
 
             uiList.clear()
             uiList.addAll(products)
@@ -263,11 +255,11 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.name
             }
-            isDataLoading = false
+            loading = false
         })
     }
 
-    private fun sendToDestination() {
+    private fun createStockDraft() {
 
         if (destination == "انتخاب مقصد") {
 
@@ -305,7 +297,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        isSubmitting = true
+        creatingStockDraft = true
 
         val url = "https://rfid-api.avakatan.ir/stock-draft"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -317,8 +309,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     SnackbarDuration.Long
                 )
             }
-            isSubmitting = false
-            scannedBarcodeTable.clear()
+            creatingStockDraft = false
+            scannedBarcodes.clear()
             products.removeAll {
                 it.scannedBarcodeNumber > 0
             }
@@ -347,7 +339,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     )
                 }
             }
-            isSubmitting = false
+            creatingStockDraft = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = java.util.HashMap<String, String>()
@@ -405,7 +397,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
-            scannedBarcodeTable.add(barcode)
+            scannedBarcodes.add(barcode)
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -419,7 +411,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString(
             "CheckOutBarcodeTable",
-            JSONArray(scannedBarcodeTable).toString()
+            JSONArray(scannedBarcodes).toString()
         )
 
         edit.putString(
@@ -438,9 +430,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         source = memory.getInt("userWarehouseCode", 0)
 
-        scannedBarcodeTable = Gson().fromJson(
+        scannedBarcodes = Gson().fromJson(
             memory.getString("CheckOutBarcodeTable", ""),
-            scannedBarcodeTable.javaClass
+            scannedBarcodes.javaClass
         ) ?: mutableListOf()
 
         products = Gson().fromJson(
@@ -456,7 +448,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         products.forEach {
             if (it.KBarCode == product.KBarCode) {
 
-                scannedBarcodeTable.removeAll { it1 ->
+                scannedBarcodes.removeAll { it1 ->
                     it1 == it.scannedBarcode
                 }
                 removedRefillProducts.add(it)
@@ -609,14 +601,14 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            if (isDataLoading) {
+            if (loading) {
                 Column(
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp)
                         .background(JeanswestBackground, Shapes.small)
                         .fillMaxWidth()
                 ) {
-                    LoadingCircularProgressIndicator(false, isDataLoading)
+                    LoadingCircularProgressIndicator(false, loading)
                 }
             } else {
 
@@ -799,19 +791,19 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .align(Alignment.Center),
-                    enabled = !isSubmitting,
+                    enabled = !creatingStockDraft,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = Jeanswest,
                         disabledBackgroundColor = DisableButtonColor,
                         disabledContentColor = Color.White
                     ),
                     onClick = {
-                        if (!isSubmitting) {
-                            sendToDestination()
+                        if (!creatingStockDraft) {
+                            createStockDraft()
                         }
                     }) {
                     Text(
-                        text = if (isSubmitting) "در حال ثبت ..." else "ثبت نهایی حواله",
+                        text = if (creatingStockDraft) "در حال ثبت ..." else "ثبت نهایی حواله",
                         style = Typography.body1,
                         modifier = Modifier.padding(8.dp)
                     )

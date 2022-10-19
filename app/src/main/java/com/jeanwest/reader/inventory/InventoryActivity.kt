@@ -616,6 +616,8 @@ class InventoryActivity : ComponentActivity() {
 
         scannedEpcs.forEach {
 
+            Log.e("error", it)
+
             val product = scannedEpcMapWithProperties[it]!!
             product.inventoryOnDepo = isInDepo
 

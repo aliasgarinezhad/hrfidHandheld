@@ -1,6 +1,5 @@
 package com.jeanwest.reader.manualRefill
 
-import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -9,6 +8,7 @@ import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.shared.Product
 import com.jeanwest.reader.shared.test.Barcode2D
 import org.junit.Rule
@@ -18,7 +18,7 @@ import org.junit.Test
 class ManualRefillActivityTest {
 
     @get:Rule
-    val manualRefillActivity = createAndroidComposeRule<ManualRefillActivity>()
+    val activity = createAndroidComposeRule<ManualRefillActivity>()
 
     //send all stuffs after test
     @Test
@@ -28,7 +28,7 @@ class ManualRefillActivityTest {
         clearUserData()
         restart()
 
-        val memory = PreferenceManager.getDefaultSharedPreferences(manualRefillActivity.activity)
+        val memory = PreferenceManager.getDefaultSharedPreferences(activity.activity)
 
         val type = object : TypeToken<MutableList<Product>>() {}.type
         val products: MutableList<Product> = Gson().fromJson(
@@ -36,9 +36,9 @@ class ManualRefillActivityTest {
             type
         ) ?: mutableListOf()
 
-        assert(products.size > 30)
+        assert(products.size > 20)
 
-        manualRefillActivity.onAllNodesWithText("هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید")[0].assertExists()
+        activity.onAllNodesWithText("هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید")[0].assertExists()
 
         val scannedProducts = mutableListOf<Product>()
         products.forEach {
@@ -49,8 +49,8 @@ class ManualRefillActivityTest {
 
         restart()
 
-        manualRefillActivity.onNodeWithText("ارسال اسکن شده ها").performClick()
-        manualRefillActivity.waitForIdle()
+        activity.onNodeWithText("ارسال اسکن شده ها").performClick()
+        activity.waitForIdle()
 
         assert(ManualRefillActivity.products.filter {
             it.scannedBarcodeNumber > 0
@@ -68,26 +68,20 @@ class ManualRefillActivityTest {
 
         for (i in 0 until 3) {
 
-            manualRefillActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(manualRefillActivity.activity.uiList[i].KBarCode)
-                assertTextContains(manualRefillActivity.activity.uiList[i].name)
-                assertTextContains("انبار: " + manualRefillActivity.activity.uiList[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (manualRefillActivity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains(activity.activity.uiList[i].KBarCode)
+                assertTextContains(activity.activity.uiList[i].name)
+                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("اسکن: " + if (activity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
             }
         }
     }
 
-    //test output apk file
-
     private fun restart() {
-        manualRefillActivity.activity.runOnUiThread {
-            manualRefillActivity.activity.recreate()
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
         }
-
-        manualRefillActivity.waitForIdle()
-        Thread.sleep(4000)
-        manualRefillActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
@@ -105,28 +99,22 @@ class ManualRefillActivityTest {
 
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
-        manualRefillActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
         waitForFinishLoading()
     }
-
     private fun waitForFinishLoading() {
-        manualRefillActivity.waitForIdle()
 
-        while (manualRefillActivity.activity.isDataLoading) {
+        activity.waitForIdle()
+        while (activity.activity.loading) {
             Thread.sleep(200)
-            manualRefillActivity.waitForIdle()
+            activity.waitForIdle()
         }
-        manualRefillActivity.waitForIdle()
     }
 
     private fun start() {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
-
-        manualRefillActivity.waitForIdle()
-        Thread.sleep(4000)
-        manualRefillActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun clearUserData() {
@@ -136,8 +124,8 @@ class ManualRefillActivityTest {
 
         products.forEach {
             if (it.scannedBarcodeNumber > 0) {
-                manualRefillActivity.activity.clear(it)
-                manualRefillActivity.waitForIdle()
+                activity.activity.clear(it)
+                activity.waitForIdle()
             }
         }
     }

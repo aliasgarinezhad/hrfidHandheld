@@ -61,12 +61,12 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
-    var isDataLoading by mutableStateOf(false)
+    var loading by mutableStateOf(false)
     private lateinit var queue: RequestQueue
     private var scanMode by mutableStateOf(true)
-    private var isSubmitting by mutableStateOf(false)
+    private var creatingStockDraft by mutableStateOf(false)
     var refillProducts = mutableListOf<Product>()
-    var scannedBarcodeTable = mutableListOf<String>()
+    var scannedBarcodes = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +102,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillBarcodes() {
 
-        isDataLoading = true
+        loading = true
 
         val url = "https://rfid-api.avakatan.ir/refill"
 
@@ -114,7 +114,6 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
                 inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
             }
-            isDataLoading = false
 
             if (inputBarcodes.isEmpty()) {
 
@@ -125,6 +124,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         SnackbarDuration.Long
                     )
                 }
+                loading = false
+
             } else {
                 getRefillItems()
             }
@@ -151,7 +152,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
-            isDataLoading = false
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -172,7 +173,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillItems() {
 
-        isDataLoading = true
+        loading = true
 
         getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes, _, _ ->
 
@@ -183,38 +184,30 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 it.scannedEPCs.clear()
                 refillProducts.add(it)
             }
-
-            isDataLoading = false
-
-            if (scannedBarcodeTable.size != 0) {
-                syncScannedItemsToServer()
-            } else {
-
-                refillProducts.sortBy {
-                    it.productCode
-                }
-                refillProducts.sortBy {
-                    it.name
-                }
-                refillProducts.sortBy { refillProduct ->
-                    refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
-                }
-                uiList.clear()
-                uiList.addAll(refillProducts)
-                foundProductsNumber = 0
-            }
-
-        }, {
-
-            isDataLoading = false
-
-            if (scannedBarcodeTable.size != 0) {
-                syncScannedItemsToServer()
-            }
-        })
+            syncScannedItemsToServer()
+        }, {})
     }
 
     private fun syncScannedItemsToServer() {
+
+        loading = true
+
+        if (scannedBarcodes.size == 0) {
+
+            refillProducts.sortBy {
+                it.productCode
+            }
+            refillProducts.sortBy {
+                it.name
+            }
+            refillProducts.sortBy { refillProduct ->
+                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
+            }
+            uiList.clear()
+            uiList.addAll(refillProducts)
+            loading = false
+            return
+        }
 
         val barcodeTableForV4 = mutableListOf<String>()
 
@@ -225,7 +218,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        scannedBarcodeTable.forEach {
+        scannedBarcodes.forEach {
             if (it !in alreadySyncedBarcodes) {
                 barcodeTableForV4.add(it)
             } else {
@@ -233,7 +226,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     refillProduct.scannedBarcode == it
                 })
                 refillProducts[productIndex].scannedBarcodeNumber =
-                    scannedBarcodeTable.count { it1 ->
+                    scannedBarcodes.count { it1 ->
                         it1 == it
                     }
             }
@@ -252,6 +245,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
             uiList.clear()
             uiList.addAll(refillProducts)
+            loading = false
             return
         }
 
@@ -271,7 +265,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     })
 
                     refillProducts[productIndex].scannedBarcodeNumber =
-                        scannedBarcodeTable.count { it1 ->
+                        scannedBarcodes.count { it1 ->
                             it1 == barcodes[i].scannedBarcode
                         }
 
@@ -280,7 +274,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     junkBarcodes.add(barcodes[i].scannedBarcode)
                 }
             }
-            scannedBarcodeTable.removeAll(junkBarcodes)
+            scannedBarcodes.removeAll(junkBarcodes)
 
             refillProducts.sortBy {
                 it.productCode
@@ -296,17 +290,19 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             foundProductsNumber = uiList.filter { refillProduct ->
                 refillProduct.scannedBarcodeNumber > 0
             }.size
+            loading = false
 
         }, {
             uiList.clear()
             uiList.addAll(refillProducts)
+            loading = false
         })
     }
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
-            scannedBarcodeTable.add(barcode)
+            scannedBarcodes.add(barcode)
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -324,7 +320,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             Gson().toJson(refillProducts).toString()
         )
 
-        edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodeTable).toString())
+        edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodes).toString())
         edit.apply()
     }
 
@@ -332,9 +328,9 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        scannedBarcodeTable = Gson().fromJson(
+        scannedBarcodes = Gson().fromJson(
             memory.getString("RefillBarcodeTable", ""),
-            scannedBarcodeTable.javaClass
+            scannedBarcodes.javaClass
         ) ?: mutableListOf()
     }
 
@@ -343,7 +339,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
         refillProducts.forEach {
             if (it.KBarCode == product.KBarCode) {
                 it.scannedBarcodeNumber = 0
-                scannedBarcodeTable.removeAll { it1 ->
+                scannedBarcodes.removeAll { it1 ->
                     it1 == it.scannedBarcode
                 }
                 it.scannedBarcode = ""
@@ -383,7 +379,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        isSubmitting = true
+        creatingStockDraft = true
 
         val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -395,8 +391,8 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     SnackbarDuration.Long
                 )
             }
-            isSubmitting = false
-            scannedBarcodeTable.clear()
+            creatingStockDraft = false
+            scannedBarcodes.clear()
             refillProducts.removeAll {
                 it.scannedBarcodeNumber > 0
             }
@@ -424,7 +420,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            isSubmitting = false
+            creatingStockDraft = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = java.util.HashMap<String, String>()
@@ -605,7 +601,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            if(isDataLoading) {
+            if(loading) {
 
                 Column(
                     modifier = Modifier
@@ -613,7 +609,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                         .background(JeanswestBackground, Shapes.small)
                         .fillMaxWidth()
                 ) {
-                    LoadingCircularProgressIndicator(false, isDataLoading)
+                    LoadingCircularProgressIndicator(false, loading)
                 }
             } else {
                 LazyColumn(
@@ -764,19 +760,19 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .align(Alignment.Center),
-                    enabled = !isSubmitting,
+                    enabled = !creatingStockDraft,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = Jeanswest,
                         disabledBackgroundColor = DisableButtonColor,
                         disabledContentColor = Color.White
                     ),
                     onClick = {
-                        if (!isSubmitting) {
+                        if (!creatingStockDraft) {
                             sendToStore()
                         }
                     }) {
                     Text(
-                        text = if (isSubmitting) "در حال ارسال ..." else "ارسال به فروشگاه",
+                        text = if (creatingStockDraft) "در حال ارسال ..." else "ارسال به فروشگاه",
                         style = Typography.body1,
                         modifier = Modifier.padding(8.dp)
                     )

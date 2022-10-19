@@ -1,5 +1,6 @@
 package com.jeanwest.reader.count
 
+import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.test.*
@@ -23,15 +24,17 @@ import org.junit.Test
 class CountActivityTest {
 
     @get:Rule
-    var countActivity = createAndroidComposeRule<CountActivity>()
+    var activity = createAndroidComposeRule<CountActivity>()
 
-    //open an excel file, scan some epcs, check filters
     @Test
     fun test1() {
 
         var inputProductsNumber = 0
 
-        start()
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        waitForFinishLoading()
+
         clear()
         clear()
 
@@ -43,31 +46,23 @@ class CountActivityTest {
 
         products.forEach {
             repeat(it.draftNumber) { _ ->
-                countActivity.activity.inputBarcodes.add(it.KBarCode)
+                activity.activity.inputBarcodes.add(it.KBarCode)
                 inputProductsNumber ++
             }
         }
-        countActivity.activity.saveToMemory()
-
+        activity.activity.saveToMemory()
         restart()
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-
-        countActivity.onNodeWithText("کسری: $inputProductsNumber").assertExists()
-        countActivity.onNodeWithText("اضافی: 0").assertExists()
-        countActivity.onNodeWithText("اسکن: 0").assertExists()
+        activity.onNodeWithText("کسری: $inputProductsNumber").assertExists()
+        activity.onNodeWithText("اضافی: 0").assertExists()
+        activity.onNodeWithText("اسکن: 0").assertExists()
 
         products.forEach {
-            assert(countActivity.activity.inputProducts[it.KBarCode]!!.draftNumber == it.draftNumber)
+            assert(activity.activity.inputProducts[it.KBarCode]!!.draftNumber == it.draftNumber)
         }
 
         products.clear()
-        products.addAll(countActivity.activity.inputProducts.values)
+        products.addAll(activity.activity.inputProducts.values)
         products.sortBy {
             it.productCode
         }
@@ -77,7 +72,7 @@ class CountActivityTest {
 
         for (i in 0 until 3) {
 
-            countActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(products[i].KBarCode)
                 assertTextContains(products[i].name)
                 assertTextContains("موجودی: " + products[i].draftNumber)
@@ -86,16 +81,11 @@ class CountActivityTest {
         }
 
         epcScan(false, products)
+        waitForFinishLoading()
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-
-        countActivity.onNodeWithText("کسری: 0").assertExists()
-        countActivity.onNodeWithText("اضافی: 0").assertExists()
-        countActivity.onNodeWithText("اسکن: $inputProductsNumber").assertExists()
+        activity.onNodeWithText("کسری: 0").assertExists()
+        activity.onNodeWithText("اضافی: 0").assertExists()
+        activity.onNodeWithText("اسکن: $inputProductsNumber").assertExists()
 
         val productMapRFID = mutableListOf<Product>()
         val productMapBarcode = mutableListOf<Product>()
@@ -107,31 +97,23 @@ class CountActivityTest {
         }
 
         clear()
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
+        waitForFinishLoading()
         epcScan(true, products)
         checkResults()
 
         clear()
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
+        waitForFinishLoading()
         epcScan(true, productMapRFID)
-        countActivity.onNodeWithTag("scanTypeDropDownList").performClick()
-        countActivity.waitForIdle()
-        countActivity.onNodeWithText("بارکد").performClick()
-        countActivity.waitForIdle()
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
+        activity.onNodeWithTag("scanTypeDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("بارکد").performClick()
+        activity.waitForIdle()
+        waitForFinishLoading()
         barcodeArrayScan(productMapBarcode)
-        countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
-        countActivity.waitForIdle()
-        countActivity.onNodeWithText("کسری").performClick()
-        countActivity.waitForIdle()
+        activity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("کسری").performClick()
+        activity.waitForIdle()
         checkResults()
     }
 
@@ -140,14 +122,9 @@ class CountActivityTest {
 
         var inputProductsNumber = 0
 
-        start()
-
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        waitForFinishLoading()
 
         clear()
         clear()
@@ -160,23 +137,16 @@ class CountActivityTest {
 
         products.forEach {
             repeat(it.draftNumber) { _ ->
-                countActivity.activity.inputBarcodes.add(it.KBarCode)
+                activity.activity.inputBarcodes.add(it.KBarCode)
                 inputProductsNumber ++
             }
         }
-        countActivity.activity.saveToMemory()
+        activity.activity.saveToMemory()
 
         restart()
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-
         products.clear()
-        products.addAll(countActivity.activity.inputProducts.values)
+        products.addAll(activity.activity.inputProducts.values)
         products.sortBy {
             it.productCode
         }
@@ -186,25 +156,17 @@ class CountActivityTest {
         clear()
         clear()
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-
+        waitForFinishLoading()
         epcScan(false, products)
+        waitForFinishLoading()
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-
-        countActivity.onNodeWithText("کسری: 0").assertDoesNotExist()
-        countActivity.onNodeWithText("اضافی: $inputProductsNumber").assertDoesNotExist()
-        countActivity.onNodeWithText("اسکن: $inputProductsNumber").assertExists()
+        activity.onNodeWithText("کسری: 0").assertDoesNotExist()
+        activity.onNodeWithText("اضافی: $inputProductsNumber").assertDoesNotExist()
+        activity.onNodeWithText("اسکن: $inputProductsNumber").assertExists()
 
         for (i in 0 until 3) {
 
-            countActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(products[i].KBarCode)
                 assertTextContains(products[i].name)
                 assertTextContains("رنگ: " + products[i].color)
@@ -213,42 +175,51 @@ class CountActivityTest {
         }
 
         products.forEach {
-            assert(countActivity.activity.uiList[it.KBarCode]!!.conflictNumber == it.draftNumber)
-            assert(countActivity.activity.uiList[it.KBarCode]!!.conflictType == "اضافی")
+            assert(activity.activity.uiList[it.KBarCode]!!.conflictNumber == it.draftNumber)
+            assert(activity.activity.uiList[it.KBarCode]!!.conflictType == "اضافی")
+        }
+    }
+
+    private fun waitForFinishLoading() {
+
+        activity.waitForIdle()
+        while (activity.activity.loading || activity.activity.scanning) {
+            Thread.sleep(200)
+            activity.waitForIdle()
         }
     }
 
     private fun checkResults() {
 
-        //val shortagesNumber = 351
-        //val additionalNumber = 243
-        //val scannedNumber = 954
+        var shortagesNumber = 0
+        var additionalNumber = 0
+        var scannedNumber = 0
 
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
-        Thread.sleep(5000)
-        countActivity.waitForIdle()
+        waitForFinishLoading()
 
-        /*countActivity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
-        countActivity.onNodeWithText("اضافی: $additionalNumber").assertExists()
-        countActivity.onNodeWithText("اسکن: $scannedNumber").assertExists()*/
+        activity.activity.inputProducts.forEach {
 
-        countActivity.activity.inputProducts.forEach {
-
+            scannedNumber += activity.activity.uiList[it.value.KBarCode]!!.scannedNumber
             if (it.value.draftNumber >= 3) {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "کسری")
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictType == "کسری")
+                shortagesNumber += 3
             } else if (it.value.draftNumber == 2) {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 3)
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
+                additionalNumber += 3
             } else {
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 1)
-                assert(countActivity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictNumber == 1)
+                assert(activity.activity.uiList[it.value.KBarCode]!!.conflictType == "اضافی")
+                additionalNumber += 1
             }
         }
 
-        val shortageProductList = countActivity.activity.uiList.values.filter {
+        activity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
+        activity.onNodeWithText("اضافی: $additionalNumber").assertExists()
+        activity.onNodeWithText("اسکن: $scannedNumber").assertExists()
+
+        val shortageProductList = activity.activity.uiList.values.filter {
             it.conflictType == "کسری"
         }.toMutableList()
 
@@ -262,7 +233,7 @@ class CountActivityTest {
         val forLoopMaxValue = if (shortageProductList.size > 3) 3 else shortageProductList.size
         for (i in 0 until forLoopMaxValue) {
 
-            countActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(shortageProductList[i].KBarCode)
                 assertTextContains(shortageProductList[i].name)
                 assertTextContains("موجودی: " + shortageProductList[i].draftNumber)
@@ -270,7 +241,7 @@ class CountActivityTest {
             }
         }
 
-        val additionalProductList = countActivity.activity.uiList.values.filter {
+        val additionalProductList = activity.activity.uiList.values.filter {
             it.conflictType == "اضافی"
         }.toMutableList()
 
@@ -281,14 +252,14 @@ class CountActivityTest {
             it.name
         }
 
-        countActivity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
-        countActivity.waitForIdle()
-        countActivity.onNodeWithText("اضافی").performClick()
-        countActivity.waitForIdle()
+        activity.onNodeWithTag("CountActivityFilterDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("اضافی").performClick()
+        activity.waitForIdle()
 
         for (i in 0 until 3) {
 
-            countActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(additionalProductList[i].KBarCode)
                 assertTextContains(additionalProductList[i].name)
                 assertTextContains("موجودی: " + additionalProductList[i].draftNumber)
@@ -334,18 +305,15 @@ class CountActivityTest {
             }
         }
 
-        countActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        countActivity.waitForIdle()
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
 
         Thread.sleep(1000)
-        countActivity.waitForIdle()
+        activity.waitForIdle()
 
-        countActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        countActivity.waitForIdle()
-
-        Thread.sleep(2000)
-        countActivity.waitForIdle()
-        Thread.sleep(2000)
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
+        waitForFinishLoading()
     }
 
     private fun barcodeArrayScan(productMapBarcode: MutableList<Product>) {
@@ -369,38 +337,22 @@ class CountActivityTest {
 
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
-        countActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        countActivity.waitForIdle()
-        Thread.sleep(1000)
-        countActivity.waitForIdle()
-        Thread.sleep(1000)
-        countActivity.waitForIdle()
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        waitForFinishLoading()
     }
 
     private fun restart() {
-        countActivity.activity.runOnUiThread {
-            countActivity.activity.recreate()
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
         }
-
-        countActivity.waitForIdle()
-        Thread.sleep(4000)
-        countActivity.waitForIdle()
-    }
-
-    private fun start() {
-        MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
-
-        countActivity.waitForIdle()
-        Thread.sleep(4000)
-        countActivity.waitForIdle()
+        waitForFinishLoading()
     }
 
     private fun clear() {
-        countActivity.onNodeWithTag("CountActivityClearButton").performClick()
-        countActivity.waitForIdle()
-        countActivity.onNodeWithText("بله").performClick()
-        countActivity.waitForIdle()
+        activity.onNodeWithTag("CountActivityClearButton").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("بله").performClick()
+        activity.waitForIdle()
     }
 
     private fun epcGenerator(

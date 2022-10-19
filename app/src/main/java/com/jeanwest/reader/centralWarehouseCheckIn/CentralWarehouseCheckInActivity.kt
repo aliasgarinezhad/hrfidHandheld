@@ -338,7 +338,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             )
 
             saveToMemory()
-            stopBarcodeScan()
             clear()
             scanningMode = true
             saveToMemory()
@@ -413,19 +412,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             state,
             mutableListOf(),
             barcodeTableForV4,
-            { _, barcodes, _, invalidBarcodes ->
-
-                if (invalidBarcodes.length() > 0) {
-                    CoroutineScope(Main).launch {
-                        state.showSnackbar(
-                            "دسترسی یه اطلاعات حواله با این اکانت امکان پذیر نیست",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                    loading = false
-                    return@getProductsV4
-                }
+            { _, barcodes, _, _ ->
 
                 barcodes.forEach { product ->
                     inputBarcodeMapWithProperties[product.scannedBarcode] = product
@@ -440,13 +427,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
 
             },
             {
-                CoroutineScope(Main).launch {
-                    state.showSnackbar(
-                        "مشکلی در دریافت اطلاعات حواله به وجود آمده است",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
                 loading = false
             })
     }
@@ -538,37 +518,6 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             }
 
         }, {
-            if ((scannedEpcs.size + scannedBarcodes.size) == 0) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "کالایی جهت بررسی وجود ندارد",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                when (it) {
-                    is NoConnectionError -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                it.toString(),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                }
-            }
             calculateConflicts()
             filterResult(productConflicts)
             loading = false
@@ -931,12 +880,9 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                 FinishAlertDialog()
             }
 
-            if (rfidScan || loading) {
+            if (scanning || loading) {
 
-                LoadingCircularProgressIndicator(
-                    rfidScan,
-                    loading
-                )
+                LoadingCircularProgressIndicator(scanning, loading)
 
             } else {
 

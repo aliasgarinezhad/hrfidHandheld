@@ -14,7 +14,7 @@ import org.junit.Test
 class RefillActivityTest {
 
     @get:Rule
-    val refillActivity = createAndroidComposeRule<RefillActivity>()
+    val activity = createAndroidComposeRule<RefillActivity>()
 
     //send all stuffs after test
     @Test
@@ -24,25 +24,25 @@ class RefillActivityTest {
         clearUserData()
         restart()
 
-        assert(refillActivity.activity.inputBarcodes.size > 30)
+        assert(activity.activity.inputBarcodes.size > 20)
 
-        refillActivity.onNodeWithText("پیدا شده: " + 0)
+        activity.onNodeWithText("پیدا شده: " + 0)
             .assertExists()
-        refillActivity.onNodeWithText("خطی: " + refillActivity.activity.inputBarcodes.size)
+        activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
             .assertExists()
 
         for (i in 0 until 3) {
 
-            refillActivity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(refillActivity.activity.refillProducts[i].KBarCode)
-                assertTextContains(refillActivity.activity.refillProducts[i].name)
-                assertTextContains("انبار: " + refillActivity.activity.refillProducts[i].wareHouseNumber)
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains(activity.activity.refillProducts[i].KBarCode)
+                assertTextContains(activity.activity.refillProducts[i].name)
+                assertTextContains("انبار: " + activity.activity.refillProducts[i].wareHouseNumber)
                 assertTextContains("اسکن: " + 0)
             }
         }
 
         val scannedProducts = mutableListOf<Product>()
-        refillActivity.activity.refillProducts.forEach {
+        activity.activity.refillProducts.forEach {
             scannedProducts.add(it)
         }
 
@@ -50,21 +50,21 @@ class RefillActivityTest {
 
         restart()
 
-        refillActivity.onNodeWithText("پیدا شده: " + 20)
+        activity.onNodeWithText("پیدا شده: " + 20)
             .assertExists()
-        refillActivity.onNodeWithText("خطی: " + refillActivity.activity.inputBarcodes.size)
+        activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
             .assertExists()
 
         restart()
 
-        refillActivity.onNodeWithText("ارسال اسکن شده ها").performClick()
-        refillActivity.waitForIdle()
+        activity.onNodeWithText("ارسال اسکن شده ها").performClick()
+        activity.waitForIdle()
 
-        assert(refillActivity.activity.refillProducts.filter {
+        assert(activity.activity.refillProducts.filter {
             it.scannedBarcodeNumber > 0
         }.size == 20)
 
-        refillActivity.activity.refillProducts.filter {
+        activity.activity.refillProducts.filter {
             it.scannedBarcodeNumber > 0
         }.toMutableList().forEach {
             if (it.wareHouseNumber > 1) {
@@ -74,13 +74,13 @@ class RefillActivityTest {
             }
         }
 
-        val filteredUiList = refillActivity.activity.uiList.filter {
+        val filteredUiList = activity.activity.uiList.filter {
                 it.scannedBarcodeNumber > 0
         }
 
         for (i in 0 until 3) {
 
-            refillActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(filteredUiList[i].KBarCode)
                 assertTextContains(filteredUiList[i].name)
                 assertTextContains("انبار: " + filteredUiList[i].wareHouseNumber)
@@ -92,14 +92,10 @@ class RefillActivityTest {
     //test output apk file
 
     private fun restart() {
-        refillActivity.activity.runOnUiThread {
-            refillActivity.activity.recreate()
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
         }
-
-        refillActivity.waitForIdle()
-        Thread.sleep(4000)
-        refillActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
@@ -117,39 +113,35 @@ class RefillActivityTest {
 
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
-        refillActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
         waitForFinishLoading()
     }
 
     private fun waitForFinishLoading() {
-        refillActivity.waitForIdle()
 
-        while (refillActivity.activity.isDataLoading) {
+        activity.waitForIdle()
+        while (activity.activity.loading) {
             Thread.sleep(200)
-            refillActivity.waitForIdle()
+            activity.waitForIdle()
         }
-        refillActivity.waitForIdle()
     }
 
     private fun start() {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
-        refillActivity.waitForIdle()
-        Thread.sleep(4000)
-        refillActivity.waitForIdle()
-        Thread.sleep(4000)
+        waitForFinishLoading()
     }
 
     private fun clearUserData() {
 
         val products = mutableListOf<Product>()
-        products.addAll(refillActivity.activity.refillProducts)
+        products.addAll(activity.activity.refillProducts)
 
         products.forEach {
             if (it.scannedBarcodeNumber > 0) {
-                refillActivity.activity.clear(it)
-                refillActivity.waitForIdle()
+                activity.activity.clear(it)
+                activity.waitForIdle()
             }
         }
     }

@@ -17,13 +17,14 @@ import org.junit.Test
 class CheckInActivityTest {
 
     @get:Rule
-    val checkInActivity = createAndroidComposeRule<CheckInActivity>()
+    val activity = createAndroidComposeRule<CheckInActivity>()
 
     @Test
     fun test() {
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        waitForFinishLoading()
 
         val kbarcodes = mutableListOf<String>()
         val productJson = JSONArray(stockDraftProducts)
@@ -34,45 +35,30 @@ class CheckInActivityTest {
             )
         }
 
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
+        if (activity.activity.scanningMode) {
 
-        if (checkInActivity.activity.scanningMode) {
-
-            checkInActivity.onNodeWithText("تایید نهایی").performClick()
-            checkInActivity.waitForIdle()
-            checkInActivity.onNodeWithText("خیر، نتایج پاک شوند").performClick()
-            checkInActivity.waitForIdle()
-            checkInActivity.onNodeWithText("کسری").assertDoesNotExist()
+            activity.onNodeWithText("تایید نهایی").performClick()
+            activity.waitForIdle()
+            activity.onNodeWithText("خیر، نتایج پاک شوند").performClick()
+            activity.waitForIdle()
+            activity.onNodeWithText("کسری").assertDoesNotExist()
         }
 
         barcodeScan(checkInCode.number.toString())
+        waitForFinishLoading()
 
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
+        activity.onNodeWithText("کسری: ${checkInCode.numberOfItems}").assertExists()
+        activity.onNodeWithText("اضافی: 0").assertExists()
+        activity.onNodeWithText("اسکن: 0").assertExists()
 
-        Thread.sleep(2000)
-        checkInActivity.waitForIdle()
-
-        checkInActivity.onNodeWithText("کسری: ${checkInCode.numberOfItems}").assertExists()
-        checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن: 0").assertExists()
-
-        val appProductMap = mutableMapOf<Long, Int>()
-        checkInActivity.activity.inputProducts.forEach {
+        activity.activity.inputProducts.forEach {
             assert(it.value.draftNumber == kbarcodes.count { it1 ->
                 it.value.KBarCode == it1
             })
         }
 
         val products = mutableListOf<Product>()
-        products.addAll(checkInActivity.activity.inputProducts.values)
+        products.addAll(activity.activity.inputProducts.values)
         products.sortBy {
             it.productCode
         }
@@ -82,7 +68,7 @@ class CheckInActivityTest {
 
         for (i in 0 until 3) {
 
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(products[i].KBarCode)
                 assertTextContains(products[i].name)
                 assertTextContains("موجودی: " + products[i].draftNumber)
@@ -90,74 +76,65 @@ class CheckInActivityTest {
             }
         }
 
-        epcScan(false, appProductMap)
+        epcScan(activity.activity.draftProperties.epcTable)
+        waitForFinishLoading()
 
-        checkInActivity.waitForIdle()
-        Thread.sleep(4000)
-        checkInActivity.waitForIdle()
-        Thread.sleep(2000)
-        checkInActivity.waitForIdle()
-        restart()
-
-        checkInActivity.onNodeWithText("کسری: 0").assertExists()
-        checkInActivity.onNodeWithText("اضافی: 0").assertExists()
-        checkInActivity.onNodeWithText("اسکن: ${checkInCode.numberOfItems}").assertExists()
-        //checkInActivity.onNodeWithTag("items").assertDoesNotExist()
-
-        val productMapBarcode = mutableMapOf<String, Int>()
-        products.subList(0, 20).forEach { it1 ->
-            productMapBarcode[it1.KBarCode] = it1.draftNumber
-        }
+        activity.onNodeWithText("کسری: 0").assertExists()
+        activity.onNodeWithText("اضافی: 0").assertExists()
+        activity.onNodeWithText("اسکن: ${checkInCode.numberOfItems}").assertExists()
 
         clearUserData()
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithTag("scanTypeDropDownList").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("بارکد").performClick()
-        checkInActivity.waitForIdle()
-        barcodeArrayScan(productMapBarcode)
-        checkResults(productMapBarcode)
+        activity.onNodeWithTag("scanTypeDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("بارکد").performClick()
+        activity.waitForIdle()
+        barcodeArrayScan(products.subList(0, 20))
+        restart()
+        checkResults(products.subList(0, 20))
     }
 
-    private fun checkResults(productMapBarcode: MutableMap<String, Int>) {
 
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
-        Thread.sleep(5000)
-        checkInActivity.waitForIdle()
+    private fun checkResults(products: MutableList<Product>) {
 
-        checkInActivity.activity.inputProducts.filter {
-            it.key in productMapBarcode.keys
-        }.forEach {
+        var additionalNumber = 0
+        var scannedNumber = 0
 
-            if (it.value.draftNumber >= 3) {
+        products.forEach {
 
-                checkInActivity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
+            if (it.draftNumber >= 3) {
+
+                activity.activity.productConflicts.forEach { it1 ->
+                    if (it1.KBarCode == it.KBarCode) {
                         assert(it1.conflictNumber == 3 && it1.conflictType == "کسری")
+                        scannedNumber += it1.scannedNumber
                     }
                 }
-            } else if (it.value.draftNumber == 2) {
+            } else if (it.draftNumber == 2) {
 
-                checkInActivity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
+                activity.activity.productConflicts.forEach { it1 ->
+                    if (it1.KBarCode == it.KBarCode) {
                         assert(it1.conflictNumber == 3 && it1.conflictType == "اضافی")
+                        additionalNumber += 3
+                        scannedNumber += it1.scannedNumber
                     }
                 }
             } else {
 
-                checkInActivity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.value.KBarCode) {
+                activity.activity.productConflicts.forEach { it1 ->
+                    if (it1.KBarCode == it.KBarCode) {
                         assert(it1.conflictNumber == 1 && it1.conflictType == "اضافی")
+                        additionalNumber += 1
+                        scannedNumber += it1.scannedNumber
                     }
                 }
             }
         }
 
-        val shortageProductList = checkInActivity.activity.productConflicts.filter {
+        activity.onAllNodesWithText("کسری: ${checkInCode.numberOfItems - (scannedNumber - additionalNumber)}")[0].assertExists()
+        activity.onNodeWithText("اضافی: $additionalNumber").assertExists()
+        activity.onNodeWithText("اسکن: $scannedNumber").assertExists()
+
+        val shortageProductList = activity.activity.productConflicts.filter {
             it.conflictType == "کسری"
         }.toMutableList()
 
@@ -171,7 +148,7 @@ class CheckInActivityTest {
         val forLoopMaxValue = if (shortageProductList.size > 3) 3 else shortageProductList.size
         for (i in 0 until forLoopMaxValue) {
 
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(shortageProductList[i].KBarCode)
                 assertTextContains(shortageProductList[i].name)
                 assertTextContains("موجودی: " + shortageProductList[i].draftNumber)
@@ -179,7 +156,7 @@ class CheckInActivityTest {
             }
         }
 
-        val additionalProductList = checkInActivity.activity.productConflicts.filter {
+        val additionalProductList = activity.activity.productConflicts.filter {
             it.conflictType == "اضافی"
         }.toMutableList()
 
@@ -190,14 +167,14 @@ class CheckInActivityTest {
             it.name
         }
 
-        checkInActivity.onNodeWithTag("checkInFilterDropDownList").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("اضافی").performClick()
-        checkInActivity.waitForIdle()
+        activity.onNodeWithTag("checkInFilterDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("اضافی").performClick()
+        activity.waitForIdle()
 
         for (i in 0 until 3) {
 
-            checkInActivity.onAllNodesWithTag("items")[i].apply {
+            activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(additionalProductList[i].KBarCode)
                 assertTextContains(additionalProductList[i].name)
                 assertTextContains("موجودی: " + additionalProductList[i].draftNumber)
@@ -206,74 +183,51 @@ class CheckInActivityTest {
         }
     }
 
-    private fun epcScan(withDifference: Boolean, rfidMap: MutableMap<Long, Int>) {
+    private fun waitForFinishLoading() {
+
+        activity.waitForIdle()
+        while (activity.activity.loading || activity.activity.scanning) {
+            Thread.sleep(200)
+            activity.waitForIdle()
+        }
+    }
+
+    private fun epcScan(products : MutableList<String>) {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
         RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
 
-        if (withDifference) {
-
-            rfidMap.forEach {
-
-                if (it.value >= 3) {
-                    for (i in 0 until it.value - 3) {
-                        val uhfTagInfo = UHFTAGInfo()
-                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.key, i.toLong())
-                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-                    }
-                } else if (it.value == 2) {
-                    for (i in 0 until it.value + 3) {
-                        val uhfTagInfo = UHFTAGInfo()
-                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.key, i.toLong())
-                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-                    }
-                } else {
-                    for (i in 0 until it.value + 1) {
-                        val uhfTagInfo = UHFTAGInfo()
-                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.key, i.toLong())
-                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-                    }
-                }
-            }
-        } else {
-            checkInActivity.activity.draftProperties.epcTable.forEach {
-                val uhfTagInfo = UHFTAGInfo()
-                uhfTagInfo.epc = it
-                RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-            }
+        products.forEach {
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = it
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
         }
 
-        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        checkInActivity.waitForIdle()
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
 
         Thread.sleep(1000)
-        checkInActivity.waitForIdle()
+        activity.waitForIdle()
 
-        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        checkInActivity.waitForIdle()
-
-        Thread.sleep(2000)
-        checkInActivity.waitForIdle()
-        Thread.sleep(2000)
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
+        waitForFinishLoading()
     }
 
     private fun restart() {
-        checkInActivity.activity.runOnUiThread {
-            checkInActivity.activity.recreate()
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
         }
-
-        checkInActivity.waitForIdle()
-        Thread.sleep(4000)
-        checkInActivity.waitForIdle()
+        waitForFinishLoading()
     }
 
     private fun clearUserData() {
 
-        checkInActivity.onNodeWithTag("CheckInTestTag").performClick()
-        checkInActivity.waitForIdle()
-        checkInActivity.onNodeWithText("بله").performClick()
-        checkInActivity.waitForIdle()
+        activity.onNodeWithTag("CheckInTestTag").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("بله").performClick()
+        activity.waitForIdle()
     }
 
     private val checkInCode = DraftProperties(
@@ -284,53 +238,20 @@ class CheckInActivityTest {
         destination = 1707
     )
 
-    private fun epcGenerator(
-        header: Int,
-        filter: Int,
-        partition: Int,
-        company: Int,
-        item: Long,
-        serial: Long
-    ): String {
+    private fun barcodeArrayScan(products : MutableList<Product>) {
+        products.forEach {
 
-        var tempStr = java.lang.Long.toBinaryString(header.toLong())
-        val headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(filter.toLong())
-        val filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(partition.toLong())
-        val positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(company.toLong())
-        val companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(item)
-        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = java.lang.Long.toBinaryString(serial)
-        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
-        val epcStr =
-            headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
-
-        tempStr = epcStr.substring(0, 64).toULong(2).toString(16)
-        val epc0To64 = String.format("%16s", tempStr).replace(" ".toRegex(), "0")
-        tempStr = epcStr.substring(64, 96).toULong(2).toString(16)
-        val epc64To96 = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
-
-        return epc0To64 + epc64To96
-
-    }
-
-    private fun barcodeArrayScan(productMapBarcode: MutableMap<String, Int>) {
-        productMapBarcode.forEach {
-
-            if (it.value >= 3) {
-                for (i in 0 until it.value - 3) {
-                    barcodeScan(it.key)
+            if (it.draftNumber >= 3) {
+                for (i in 0 until it.draftNumber - 3) {
+                    barcodeScan(it.KBarCode)
                 }
-            } else if (it.value == 2) {
-                for (i in 0 until it.value + 3) {
-                    barcodeScan(it.key)
+            } else if (it.draftNumber == 2) {
+                for (i in 0 until it.draftNumber + 3) {
+                    barcodeScan(it.KBarCode)
                 }
             } else {
-                for (i in 0 until it.value + 1) {
-                    barcodeScan(it.key)
+                for (i in 0 until it.draftNumber + 1) {
+                    barcodeScan(it.KBarCode)
                 }
             }
         }
@@ -338,11 +259,7 @@ class CheckInActivityTest {
 
     private fun barcodeScan(barcode: String) {
         Barcode2D.barcode = barcode
-        checkInActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
-        Thread.sleep(500)
-        checkInActivity.waitForIdle()
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        waitForFinishLoading()
     }
 }

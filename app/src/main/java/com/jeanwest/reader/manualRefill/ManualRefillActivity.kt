@@ -58,15 +58,15 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     val inputBarcodes = ArrayList<String>()
 
     //ui parameters
-    var isDataLoading by mutableStateOf(false)
+    var loading by mutableStateOf(false)
     private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
     private lateinit var queue: RequestQueue
-    private var isSubmitting by mutableStateOf(false)
+    private var creatingStockDraft by mutableStateOf(false)
     private var scanMode by mutableStateOf(true)
-    var scannedBarcodeTable = mutableListOf<String>()
+    var scannedBarcodes = mutableListOf<String>()
 
     companion object {
         var products = mutableListOf<Product>()
@@ -130,7 +130,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillBarcodes() {
 
-        isDataLoading = true
+        loading = true
 
         val url = "https://rfid-api.avakatan.ir/charge-requests"
 
@@ -141,11 +141,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             for (i in 0 until it.length()) {
                 inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
             }
-            isDataLoading = false
 
             if (inputBarcodes.size > 0) {
                 getRefillItems()
-            } else if (scannedBarcodeTable.size != 0) {
+            } else {
                 syncScannedItemsToServer()
             }
         }, {
@@ -175,10 +174,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
             }
-            isDataLoading = false
-            if (scannedBarcodeTable.size != 0) {
-                syncScannedItemsToServer()
-            }
+            syncScannedItemsToServer()
+
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()
@@ -199,7 +196,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun getRefillItems() {
 
-        isDataLoading = true
+        loading = true
 
         getProductsV4(queue, state, mutableListOf(), inputBarcodes, { _, barcodes, _, _ ->
 
@@ -223,37 +220,30 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     products.add(it)
                 }
             }
+            syncScannedItemsToServer()
 
-            isDataLoading = false
-
-            if (scannedBarcodeTable.size != 0) {
-                syncScannedItemsToServer()
-            } else {
-                uiList.clear()
-                uiList.addAll(products)
-                uiList.sortBy {
-                    it.productCode
-                }
-                uiList.sortBy {
-                    it.name
-                }
-                uiList.sortBy { it1 ->
-                    it1.scannedBarcodeNumber > 0
-                }
-            }
-
-        }, {
-            isDataLoading = false
-
-            if (scannedBarcodeTable.size != 0) {
-                syncScannedItemsToServer()
-            }
-        })
+        }, {})
     }
 
     private fun syncScannedItemsToServer() {
 
-        isDataLoading = true
+        loading = true
+
+        if(scannedBarcodes.size == 0) {
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            uiList.sortBy { it1 ->
+                it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+            }
+            loading = false
+            return
+        }
 
         val barcodeArray = mutableListOf<String>()
         val alreadySyncedBarcodes = mutableListOf<String>()
@@ -264,7 +254,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        scannedBarcodeTable.forEach {
+        scannedBarcodes.forEach {
             if (it !in alreadySyncedBarcodes) {
                 barcodeArray.add(it)
             } else {
@@ -272,7 +262,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     it1.scannedBarcode == it
                 })
                 products[productIndex].scannedBarcodeNumber =
-                    scannedBarcodeTable.count { it1 ->
+                    scannedBarcodes.count { it1 ->
                         it1 == it
                     }
             }
@@ -290,7 +280,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
-            isDataLoading = false
+            loading = false
             return
         }
 
@@ -326,30 +316,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
-            isDataLoading = false
+            loading = false
 
         }, {
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
 
             uiList.clear()
             uiList.addAll(products)
@@ -362,11 +331,11 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
-            isDataLoading = false
+            loading = false
         })
     }
 
-    private fun sendToStore() {
+    private fun createStockDraft() {
 
         if (products.filter { it1 ->
                 it1.scannedNumber > 0
@@ -394,7 +363,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        isSubmitting = true
+        creatingStockDraft = true
 
         val url = "https://rfid-api.avakatan.ir/stock-draft/refill/v2"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -406,8 +375,8 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     SnackbarDuration.Long
                 )
             }
-            isSubmitting = false
-            scannedBarcodeTable.clear()
+            creatingStockDraft = false
+            scannedBarcodes.clear()
             products.removeAll {
                 it.scannedBarcodeNumber > 0
             }
@@ -435,7 +404,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
 
-            isSubmitting = false
+            creatingStockDraft = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = java.util.HashMap<String, String>()
@@ -485,7 +454,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
-            scannedBarcodeTable.add(barcode)
+            scannedBarcodes.add(barcode)
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
             syncScannedItemsToServer()
@@ -500,7 +469,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         edit.putString(
             "ManualRefillWarehouseManagerBarcodeTable",
-            JSONArray(scannedBarcodeTable).toString()
+            JSONArray(scannedBarcodes).toString()
         )
 
         edit.putString(
@@ -517,9 +486,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         val type = object : TypeToken<List<Product>>() {}.type
 
-        scannedBarcodeTable = Gson().fromJson(
+        scannedBarcodes = Gson().fromJson(
             memory.getString("ManualRefillWarehouseManagerBarcodeTable", ""),
-            scannedBarcodeTable.javaClass
+            scannedBarcodes.javaClass
         ) ?: mutableListOf()
 
         products = Gson().fromJson(
@@ -535,7 +504,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
         products.forEach {
             if (it.KBarCode == product.KBarCode) {
 
-                scannedBarcodeTable.removeAll { it1 ->
+                scannedBarcodes.removeAll { it1 ->
                     it1 == it.scannedBarcode
                 }
                 removedRefillProducts.add(it)
@@ -691,14 +660,14 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            if(isDataLoading) {
+            if(loading) {
                 Column(
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp)
                         .background(JeanswestBackground, Shapes.small)
                         .fillMaxWidth()
                 ) {
-                    LoadingCircularProgressIndicator(false, isDataLoading)
+                    LoadingCircularProgressIndicator(false, loading)
                 }
             } else {
 
@@ -881,19 +850,19 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .align(Alignment.Center),
-                    enabled = !isSubmitting,
+                    enabled = !creatingStockDraft,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = Jeanswest,
                         disabledBackgroundColor = DisableButtonColor,
                         disabledContentColor = Color.White
                     ),
                     onClick = {
-                        if (!isSubmitting) {
-                            sendToStore()
+                        if (!creatingStockDraft) {
+                            createStockDraft()
                         }
                     }) {
                     Text(
-                        text = if (isSubmitting) "در حال ارسال ..." else "ارسال به فروشگاه",
+                        text = if (creatingStockDraft) "در حال ارسال ..." else "ارسال به فروشگاه",
                         style = Typography.body1,
                         modifier = Modifier.padding(8.dp)
                     )

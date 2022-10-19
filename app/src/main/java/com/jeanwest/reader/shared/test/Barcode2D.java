@@ -11,7 +11,8 @@ import com.jeanwest.reader.shared.IBarcodeResult;
 public class Barcode2D {
     IBarcodeResult iBarcodeResult = null;
     Context context;
-    public static String barcode = "J64822109801099001";
+    public static String barcode = "";
+    public static Boolean on = false;
 
     public Barcode2D(Context context) {
         this.context = context;
@@ -19,12 +20,14 @@ public class Barcode2D {
 
     public void startScan(Context context) {
 
+        assert on;
         if (iBarcodeResult != null) {
             try {
                 iBarcodeResult.getBarcode(barcode);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
         }
     }
 
@@ -33,10 +36,11 @@ public class Barcode2D {
     }
 
     public void open(Context context, IBarcodeResult iBarcodeResult) {
+        on = true;
         this.iBarcodeResult = iBarcodeResult;
     }
 
     public void close(Context context) {
-
+        on = false;
     }
 }
