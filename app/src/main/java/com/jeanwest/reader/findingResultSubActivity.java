@@ -13,7 +13,8 @@ import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
+import com.rscja.deviceapi.entity.UHFTAGInfo;
 import com.rscja.deviceapi.exception.ConfigurationException;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,7 +23,7 @@ import java.util.Map;
 
 public class findingResultSubActivity extends AppCompatActivity {
 
-    public static RFIDWithUHF RF;
+    public RFIDWithUHFUART RF;
     public static Map<String, Integer> EPCTableFinding = new HashMap<>();
     ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     private int findingPower = 30;
@@ -31,7 +32,6 @@ public class findingResultSubActivity extends AppCompatActivity {
     SeekBar powerSeekBar;
     TextView numberOfFoundText;
     TextView stuffSpec;
-    findingSubThread findTask;
     private long stuffCode;
     WebView picture;
     CheckBox option;
@@ -44,7 +44,7 @@ public class findingResultSubActivity extends AppCompatActivity {
 
     boolean isChecked = false;
     boolean findingInProgress = false;
-    public static boolean isProcessing = false;
+    boolean readEnable = false;
 
     Handler databaseBackgroundTaskHandler = new Handler();
 
@@ -55,7 +55,18 @@ public class findingResultSubActivity extends AppCompatActivity {
 
             if(findingInProgress) {
 
-                isProcessing = true;
+                UHFTAGInfo uhftagInfo;
+
+                while (true) {
+
+                    uhftagInfo = RF.readTagFromBuffer();
+
+                    if (uhftagInfo != null) {
+                        EPCTableFinding.put(uhftagInfo.getEPC(), 1);
+                    } else {
+                        break;
+                    }
+                }
 
                 if(EPCTableFinding.size() > 0) {
 
@@ -87,12 +98,10 @@ public class findingResultSubActivity extends AppCompatActivity {
                             stuffCode = Long.parseLong(stuffRFIDCode);
                         }
                         if (header == 48 && itemNumber == stuffCode) {
-                            //status.setText(status.getText() + "\n" + EPCHexString);
                             EPCTableFindingMatched.put(EPCHexString, 1);
                             flag = true;
                         }
                     }
-                    isProcessing = false;
 
                     numberOfFoundText.setText(String.valueOf(EPCTableFindingMatched.size()));
                     status.setText("");
@@ -102,9 +111,7 @@ public class findingResultSubActivity extends AppCompatActivity {
                         status.setText(status.getText() + "\n" + valid.getKey());
                     }
 
-                    if (!flag) {
-                        //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    } else {
+                    if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                     }
 
@@ -112,9 +119,6 @@ public class findingResultSubActivity extends AppCompatActivity {
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
                 }
                 else {
-                    isProcessing = false;
-                    //numberOfFoundText.setText(String.valueOf(EPCTableFindingMatched.size()));
-                    //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                     databaseBackgroundTaskHandler.postDelayed(databaseBackgroundTask, 1000);
                 }
             }
@@ -138,7 +142,7 @@ public class findingResultSubActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 
-                if (!findTask.readEnable) {
+                if (!readEnable) {
 
                     switch(progress) {
                         case 0:
@@ -180,7 +184,7 @@ public class findingResultSubActivity extends AppCompatActivity {
                     }
                     powerText.setText("قدرت سیگنال(" + findingPower + ")");
                     while (!RF.setPower(findingPower)) {}
-                    RF.startInventoryTag(0,0);
+                    RF.startInventoryTag(0, 0, 0);
                 }
             }
 
@@ -196,7 +200,7 @@ public class findingResultSubActivity extends AppCompatActivity {
         });
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -206,10 +210,6 @@ public class findingResultSubActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        findTask = new findingSubThread();
-        findTask.stop = false;
-        findTask.start();
 
         while (!RF.setPower(findingPower)) {
         }
@@ -277,13 +277,13 @@ public class findingResultSubActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (keyCode == 280 || keyCode == 139) {
+        if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             if (event.getRepeatCount() == 0) {
 
                 status.setText("");
 
-                if (!findTask.readEnable) {
+                if (!readEnable) {
 
                     EPCTableFinding.clear();
                     if(!isChecked) {
@@ -292,7 +292,8 @@ public class findingResultSubActivity extends AppCompatActivity {
 
                     while (!RF.setPower(findingPower)) {
                     }
-                    findTask.readEnable = true;
+                    readEnable = true;
+                    RF.startInventoryTag(0,0 ,0);
 
                     status.setText("در حال جست و جو ...");
                     findingInProgress = true;
@@ -302,9 +303,8 @@ public class findingResultSubActivity extends AppCompatActivity {
 
                     databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
-                    findTask.readEnable = false;
-                    while (!findTask.finished) {
-                    }
+                    readEnable = false;
+                    RF.stopInventory();
 
                     findingInProgress = false;
 
@@ -348,9 +348,7 @@ public class findingResultSubActivity extends AppCompatActivity {
                         status.setText(status.getText() + "\n" + valid.getKey());
                     }
 
-                    if (!flag) {
-                        //beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
-                    } else {
+                    if (flag) {
                         beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500);
                     }
 
@@ -360,15 +358,14 @@ public class findingResultSubActivity extends AppCompatActivity {
 
         } else if (keyCode == 4) {
 
-            if(findTask.readEnable) {
+            if(readEnable) {
                 RF.stopInventory();
-                findTask.readEnable = false;
+                readEnable = false;
             }
 
             findingInProgress = false;
             databaseBackgroundTaskHandler.removeCallbacks(databaseBackgroundTask);
 
-            findTask.stop = true;
             finish();
         }
         return true;
@@ -377,9 +374,9 @@ public class findingResultSubActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(findTask.readEnable) {
+        if(readEnable) {
             RF.stopInventory();
-            findTask.readEnable = false;
+            readEnable = false;
         }
     }
 
@@ -388,6 +385,7 @@ public class findingResultSubActivity extends AppCompatActivity {
         EPCTableFinding.clear();
         EPCTableFindingMatched.clear();
         status.setText("");
+        numberOfFoundText.setText("0");
     }
 
     public void optionChange(View view) {

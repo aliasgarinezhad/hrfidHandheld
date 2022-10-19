@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 
 public class APIAddNew extends Thread {
 
@@ -19,17 +20,18 @@ public class APIAddNew extends Thread {
     public volatile boolean run = false;
     public boolean stop = false;
 
-    public void run(){
+    public void run() {
 
         while (!stop) {
 
-            if(run) {
+            if (run) {
 
                 status = false;
 
                 try {
 
                     String getCommand = "http://rfid-api-0-1.avakatan.ir/products/v2?KBarCode=" + Barcode;
+                    getCommand = getCommand.replace(" ", "%20");
                     URL server = new URL(getCommand);
                     HttpURLConnection connection = (HttpURLConnection) server.openConnection();
 
@@ -42,8 +44,7 @@ public class APIAddNew extends Thread {
                         JSONObject json = new JSONObject(receive);
                         Response = json.getString("RFID");
                         status = true;
-                    }
-                    else {
+                    } else {
 
                         Response = connection.getResponseCode() + "Error: " + connection.getResponseMessage();
                     }

@@ -2,15 +2,18 @@ package com.jeanwest.reader;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Toast;
 import com.rscja.deviceapi.RFIDWithUHF;
+import com.rscja.deviceapi.RFIDWithUHFUART;
 import com.rscja.deviceapi.exception.ConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
 
-    RFIDWithUHF RF;
+    RFIDWithUHFUART RF;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         try {
-            RF = RFIDWithUHF.getInstance();
+            RF = RFIDWithUHFUART.getInstance();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -26,9 +29,19 @@ public class MainActivity extends AppCompatActivity {
         while(!RF.init()) {
             RF.free();
         }
-        while(!RF.setFrequencyMode((byte) 4)) {
-            RF.free();
+
+        if(Build.MODEL.equals("EXARKXK650")) {
+
+            while(!RF.setFrequencyMode((byte) 0x08)) {
+                RF.free();
+            }
+        } else if(Build.MODEL.equals("c72")) {
+
+            while(!RF.setFrequencyMode((byte) 0x04)) {
+                RF.free();
+            }
         }
+
         while(!RF.setRFLink(2)) {
             RF.free();
         }

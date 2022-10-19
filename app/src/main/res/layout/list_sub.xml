@@ -16,7 +16,7 @@
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/specViewSub"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pictureWebView"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -24,12 +24,12 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:text="TextView"
+        android:text="TextView\n"
         android:textColor="@color/DimGray"
         android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@+id/scannedViewSub"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pictureWebView"
         app:layout_constraintTop_toBottomOf="@+id/titleViewSub" />
 
     <TextView
@@ -42,7 +42,7 @@
         android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@+id/notScannedViewSub"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pictureWebView"
         app:layout_constraintTop_toBottomOf="@+id/specViewSub" />
 
     <TextView
@@ -55,7 +55,7 @@
         android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@+id/extraViewSub"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pictureWebView"
         app:layout_constraintTop_toBottomOf="@+id/scannedViewSub" />
 
     <TextView
@@ -67,6 +67,16 @@
         android:textColor="@color/DarkGoldenrod"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pictureWebView"
         app:layout_constraintTop_toBottomOf="@+id/notScannedViewSub" />
+
+    <WebView
+        android:id="@+id/pictureWebView"
+        android:layout_width="97dp"
+        android:layout_height="144dp"
+        android:layout_marginStart="8dp"
+        app:layout_constraintEnd_toStartOf="@+id/titleViewSub"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

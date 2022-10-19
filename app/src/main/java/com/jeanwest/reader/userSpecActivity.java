@@ -1,8 +1,10 @@
 package com.jeanwest.reader;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -118,14 +120,38 @@ public class userSpecActivity extends AppCompatActivity {
     }
 
     public void sendFileWithClearing(View view) {
-        reading.EPCTable.clear();
-        reading.EPCTableValid.clear();
 
-        editor.putString("1", "");
-        editor.putString("2", "");
-        editor.commit();
+        AlertDialog alertDialog;
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+        alertBuilder.setTitle("تمام اطلاعات قبلی پاک می شود");
+        alertBuilder.setMessage("آیا ادامه می دهید؟");
+        alertBuilder.setPositiveButton("بله", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                reading.EPCTable.clear();
+                reading.EPCTableValid.clear();
 
-        startReading(view);
+                editor.putString("1", "");
+                editor.putString("2", "");
+                editor.commit();
+
+                startReading(view);
+            }
+        });
+        alertBuilder.setNegativeButton("خیر", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+        alertDialog = alertBuilder.create();
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dlg) {
+                alertDialog.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); // set title and message direction to RTL
+            }
+        });
+        alertDialog.show();
     }
 
     public void finishReading(View view) {

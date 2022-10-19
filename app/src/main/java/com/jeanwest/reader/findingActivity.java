@@ -23,6 +23,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     Toast result;
     ListView list;
     ArrayList<String> listString = new ArrayList<>();
+    ArrayList<String> pictureURLList = new ArrayList<>();
     EditText K_Bar_Code;
     public static int index = 0;
     Intent intent;
@@ -55,17 +56,17 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
         super.onResume();
         open();
 
-        ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+        MyListAdapterFind findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
 
         list.setAdapter(findingListAdapter);
     }
 
-    /*@Override
+    @Override
     protected void onPause() {
         super.onPause();
         close();
         API.stop = true;
-    }*/
+    }
 
     @Override
     public void getBarcode(String barcode) throws InterruptedException {
@@ -89,26 +90,27 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 
             listString.clear();
+            pictureURLList.clear();
+
+            try {
+                K_Bar_Code.setText(API.similar.getJSONObject(1).getString("K_Bar_Code"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
             for(int i=0; i< API.similar.length(); i++) {
                 try {
                     json = API.similar.getJSONObject(i);
-                    /*listString.add(json.getString("productName") + "\n" +
-                            "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
-                            "بارکد: " + json.getString("KBarCode") + "\n" +
-                            "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
-                            "قیمت مصرف کننده: " + json.getString("WareHouseTitle") + "\n" +
-                            "قیمت فروش: " + json.getString("WareHouseTitle") + "\n" +
-                            "موجودی: " + json.getString("dbCount"));*/
 
-                        listString.add(json.getString("KBarCode"));
+                    listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
+                    pictureURLList.add(json.getString("ImgUrl"));
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
 
-            ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+            MyListAdapterFind findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
 
             list.setAdapter(findingListAdapter);
 
@@ -118,7 +120,7 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if(keyCode == 280 || keyCode == 139) {
+        if(keyCode == 280 || keyCode == 139 || keyCode == 293) {
 
             start();
         }
@@ -149,6 +151,8 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
     public void receive(View view) {
 
         JSONObject json;
+        MyListAdapterFind findingListAdapter;
+
         API.barcode = "K_Bar_Code=" + K_Bar_Code.getEditableText().toString();
         API.run = true;
         while (API.run) {}
@@ -161,30 +165,56 @@ public class findingActivity extends AppCompatActivity implements IBarcodeResult
 
         InputMethodManager imm =(InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+
+        if(API.similar.length() > 0) {
+
+            listString.clear();
+            pictureURLList.clear();
+
+            for(int i=0; i< API.similar.length(); i++) {
+
+                try {
+                    json = API.similar.getJSONObject(i);
+                    listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
+                    pictureURLList.add(json.getString("ImgUrl"));
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
+
+            list.setAdapter(findingListAdapter);
+            return;
+        }
+
+        API.barcode = "kbarcode=" + K_Bar_Code.getEditableText().toString();
+        API.run = true;
+        while (API.run) {}
+
+        if(!API.status) {
+            result.setText(API.response);
+            result.show();
+            return;
+        }
+
         listString.clear();
+        pictureURLList.clear();
 
         for(int i=0; i< API.similar.length(); i++) {
 
             try {
                 json = API.similar.getJSONObject(i);
-                /*listString.add(json.getString("productName") + "\n" +
-                        "کد محصول: " + json.getString("K_Bar_Code") + "\n" +
-                        "بارکد: " + json.getString("KBarCode") + "\n" +
-                        "دپارتمان: " + json.getString("WareHouseTitle") + "\n" +
-                        "قیمت مصرف کننده: " + json.getString("OrigPrice").substring(0, json.getString("OrigPrice").length()-1) + " تومان" + "\n" +
-                        "تخفیف: " + json.getString("SalePercent") + " درصد" + "\n" +
-                        "قیمت فروش: " + json.getString("SalePrice").substring(0, json.getString("SalePrice").length()-1) + " تومان"+ "\n" +
-                        "موجودی: " + json.getString("dbCount"));*/
-                if(!listString.contains(json.getString("KBarCode"))) {
-                    listString.add(json.getString("KBarCode"));
-                }
+                listString.add("سایز: " + json.getString("Size") + "\n\n" + "رنگ: " + json.getString("Color"));
+                pictureURLList.add(json.getString("ImgUrl"));
 
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
 
-        ArrayAdapter<String> findingListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listString);
+        findingListAdapter = new MyListAdapterFind(this, listString, pictureURLList);
 
         list.setAdapter(findingListAdapter);
     }

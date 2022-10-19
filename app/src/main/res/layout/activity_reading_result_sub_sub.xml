@@ -148,6 +148,7 @@
         android:layout_marginTop="80dp"
         android:layout_marginEnd="68dp"
         android:layout_marginBottom="23dp"
+        android:checked="true"
         android:onClick="optionChange"
         android:text="پیوسته"
         app:layout_constraintBottom_toBottomOf="parent"
