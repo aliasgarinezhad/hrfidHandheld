@@ -31,8 +31,9 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
-import com.jeanwest.reader.shared.theme.*
+import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.theme.MyApplicationTheme
+import com.jeanwest.reader.shared.theme.iconColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
@@ -54,7 +55,7 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
     private var storeFilterValue = 0
     private var state = SnackbarHostState()
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-    private lateinit var queue : RequestQueue
+    private lateinit var queue: RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +67,12 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
         loadMemory()
         filterUiList()
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     private fun loadMemory() {
@@ -194,7 +200,10 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                             }
                         }
                         else -> {
-                            val error = JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject("error")
+                            val error =
+                                JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject(
+                                    "error"
+                                )
                             CoroutineScope(Dispatchers.Default).launch {
                                 state.showSnackbar(
                                     error.getString("message"),
@@ -219,7 +228,8 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
-                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    val error =
+                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             error.getString("message"),
@@ -483,9 +493,11 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
             LazyColumn {
 
                 items(filteredUiList.size) { i ->
-                    Item(i, filteredUiList, true,
+                    Item(
+                        i, filteredUiList, true,
                         text1 = "فروشگاه: " + filteredUiList[i].storeNumber,
-                        text2 = "انبار: " + filteredUiList[i].wareHouseNumber) {
+                        text2 = "انبار: " + filteredUiList[i].wareHouseNumber
+                    ) {
                         addToRefillList(filteredUiList[i].KBarCode)
                     }
                 }

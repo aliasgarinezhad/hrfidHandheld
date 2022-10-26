@@ -33,8 +33,6 @@ import com.jeanwest.reader.checkIn.CheckInActivity
 import com.jeanwest.reader.checkOut.CheckOutActivity
 import com.jeanwest.reader.count.CountActivity
 import com.jeanwest.reader.inventory.InventoryActivity
-import com.jeanwest.reader.shared.ExceptionHandler
-import com.jeanwest.reader.shared.rfInit
 import com.jeanwest.reader.iotHub.IotHub
 import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
@@ -42,10 +40,12 @@ import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.refill.RefillActivity
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.shared.ErrorSnackBar
+import com.jeanwest.reader.shared.ExceptionHandler
+import com.jeanwest.reader.shared.rfInit
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
 import com.jeanwest.reader.write.WriteActivity
-import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,7 +110,12 @@ class MainActivity : ComponentActivity() {
         rfInit(rf, this, state)
         loadMemory()
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     private fun loadMemory() {
@@ -162,7 +167,7 @@ class MainActivity : ComponentActivity() {
     private fun syncServerToLocalWarehouse() {
 
         val url = "https://rfid-api.avakatan.ir/department-infos/sync"
-        val request = object : StringRequest(Method.GET, url,  {
+        val request = object : StringRequest(Method.GET, url, {
 
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
@@ -174,23 +179,23 @@ class MainActivity : ComponentActivity() {
 
         }, {
 
-            if(it is NoConnectionError) {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                } else {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
+            if (it is NoConnectionError) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
                 }
+            } else {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        it.toString(),
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
         }) {
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -277,16 +282,28 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                OpenActivityButton(stringResource(R.string.manualRefill), R.drawable.check_in) {
-                                    val intent = Intent(this@MainActivity, ManualRefillActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.manualRefill),
+                                    R.drawable.check_in
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, ManualRefillActivity::class.java)
                                     startActivity(intent)
                                 }
-                                OpenActivityButton(stringResource(R.string.refill), R.drawable.refill) {
-                                    val intent = Intent(this@MainActivity, RefillActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.refill),
+                                    R.drawable.refill
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, RefillActivity::class.java)
                                     startActivity(intent)
                                 }
-                                OpenActivityButton(stringResource(R.string.checkInText), R.drawable.inventory) {
-                                    val intent = Intent(this@MainActivity, CheckInActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.checkInText),
+                                    R.drawable.inventory
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, CheckInActivity::class.java)
                                     startActivity(intent)
                                 }
                             }
@@ -295,12 +312,20 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                OpenActivityButton(stringResource(R.string.checkOut), R.drawable.check_in) {
-                                    val intent = Intent(this@MainActivity, CheckOutActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.checkOut),
+                                    R.drawable.check_in
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, CheckOutActivity::class.java)
                                     startActivity(intent)
                                 }
-                                OpenActivityButton(stringResource(R.string.search), R.drawable.search) {
-                                    val intent = Intent(this@MainActivity, SearchActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.search),
+                                    R.drawable.search
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, SearchActivity::class.java)
                                     startActivity(intent)
                                 }
                                 OpenActivityButton(
@@ -317,20 +342,31 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                OpenActivityButton(stringResource(R.string.tagProgramming), R.drawable.write) {
-                                    val intent = Intent(this@MainActivity, WriteActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.tagProgramming),
+                                    R.drawable.write
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, WriteActivity::class.java)
                                     startActivity(intent)
                                 }
                                 OpenActivityButton(
                                     text = stringResource(R.string.centralCheckInCheckInText),
                                     iconId = R.drawable.inventory
                                 ) {
-                                    Intent(this@MainActivity, CentralWarehouseCheckInActivity::class.java).apply {
+                                    Intent(
+                                        this@MainActivity,
+                                        CentralWarehouseCheckInActivity::class.java
+                                    ).apply {
                                         startActivity(this)
                                     }
                                 }
-                                OpenActivityButton(stringResource(R.string.count), R.drawable.counter) {
-                                    val intent = Intent(this@MainActivity, CountActivity::class.java)
+                                OpenActivityButton(
+                                    stringResource(R.string.count),
+                                    R.drawable.counter
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, CountActivity::class.java)
                                     startActivity(intent)
                                 }
                             }
@@ -343,7 +379,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun OpenActivityButton(text : String, iconId : Int, onClick : () -> Unit) {
+    fun OpenActivityButton(text: String, iconId: Int, onClick: () -> Unit) {
 
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
@@ -425,7 +461,7 @@ class MainActivity : ComponentActivity() {
                                     Intent(this@MainActivity, UserLoginActivity::class.java)
                                 intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 startActivity(intent)
-                            }, modifier = Modifier.padding(end  = 8.dp)
+                            }, modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(text = "خروج از حساب")
                         }

@@ -7,6 +7,7 @@ import java.util.Locale;
 public class JalaliDate {
     public String strWeekDay = "";
     public String strMonth = "";
+
     public String nowDate() {
         Calendar calendar = Calendar.getInstance();
         return calendar.get(Calendar.YEAR) + "-" + (calendar.get(Calendar.MONTH) + 1) + "-"
@@ -14,21 +15,26 @@ public class JalaliDate {
                 + calendar.getTime().getHours() + ":" + calendar.getTime().getMinutes() + ":"
                 + calendar.getTime().getSeconds();
     }
+
     public String nowdate() {
         Calendar calendar = Calendar.getInstance();
         return calendar.get(Calendar.YEAR) + "/" + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.DAY_OF_MONTH);
     }
+
     private class SolarCalendar {
         int date;
         int month;
         int year;
+
         public SolarCalendar() {
             Date MiladiDate = new Date();
             calcSolarCalendar(MiladiDate);
         }
+
         public SolarCalendar(Date MiladiDate) {
             calcSolarCalendar(MiladiDate);
         }
+
         private void calcSolarCalendar(Date MiladiDate) {
             int ld;
             int miladiYear = MiladiDate.getYear() + 1900;
@@ -223,6 +229,7 @@ public class JalaliDate {
             }
         }
     }
+
     public String getCurrentShamsidate() {
         Locale loc = new Locale("en_US");
         JalaliDate util = new JalaliDate();
@@ -230,6 +237,7 @@ public class JalaliDate {
         return String.valueOf(sc.year) + "." + String.format(loc, "%02d",
                 sc.month) + "." + String.format(loc, "%02d", sc.date);
     }
+
     public String day_of_week() {
         Date MiladiDate = new Date();
         MiladiDate.setDate(6);
@@ -239,6 +247,7 @@ public class JalaliDate {
         solarCalendar.calcSolarCalendar(MiladiDate);
         return strWeekDay;
     }
+
     public String day_of_week(int year, int month, int day) {
         Calendar now = Calendar.getInstance();
         now.set(year, month, day);

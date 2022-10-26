@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -60,6 +61,42 @@ fun ErrorSnackBar(state: SnackbarHostState) {
                 )
             }
         })
+    }
+}
+
+@Composable
+fun BottomBarButton(text: String, enable: Boolean = true, onClick: () -> Unit) {
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        Box(
+            modifier = Modifier
+                .shadow(6.dp, RoundedCornerShape(0.dp))
+                .background(Color.White, RoundedCornerShape(0.dp))
+                .height(100.dp)
+                .align(Alignment.BottomCenter),
+        ) {
+
+            Button(
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp)
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Jeanswest,
+                    disabledBackgroundColor = DisableButtonColor,
+                    disabledContentColor = Color.White
+                ),
+                onClick = onClick
+            ) {
+                Text(
+                    text = text,
+                    style = Typography.body1,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        }
     }
 }
 
@@ -283,8 +320,8 @@ fun CustomTextField(
     hint: String,
     onValueChange: (it: String) -> Unit,
     value: String,
-    isError : Boolean = false,
-    keyboardType : KeyboardType = KeyboardType.Text
+    isError: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
 
     val focusManager = LocalFocusManager.current
@@ -312,7 +349,10 @@ fun CustomTextField(
             focusManager.clearFocus()
             onSearch()
         }),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search,
+            keyboardType = keyboardType
+        ),
         colors = TextFieldDefaults.outlinedTextFieldColors(
             unfocusedBorderColor = MaterialTheme.colors.secondary
         ),
@@ -320,7 +360,7 @@ fun CustomTextField(
         isError = isError,
         singleLine = true,
 
-    )
+        )
 }
 
 @Composable

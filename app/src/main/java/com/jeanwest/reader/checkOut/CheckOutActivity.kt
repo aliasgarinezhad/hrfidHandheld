@@ -15,10 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -43,14 +40,15 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import com.jeanwest.reader.shared.theme.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 @OptIn(ExperimentalFoundationApi::class)
 class CheckOutActivity : ComponentActivity(), IBarcodeResult {
@@ -68,9 +66,12 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     private var scanMode by mutableStateOf(true)
     var scannedBarcodes = mutableListOf<String>()
     private var destination by mutableStateOf("انتخاب مقصد")
+    private var source by mutableStateOf("انتخاب مبدا")
     private var destinations = mutableStateMapOf<String, Int>()
-    private var source = 0
+    private var sources = mutableStateMapOf<String, Int>()
     var products = mutableListOf<Product>()
+    private var locations = mutableMapOf<String, String>()
+    private var stockDraftSpec by mutableStateOf("حواله بین انباری با RFID")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,10 +119,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
                     for (j in 0 until warehouses.length()) {
                         val warehouse = warehouses.getJSONObject(j)
-                        if (warehouse.getString("WareHouseTypes_ID") == "2") {
-                            destinations[warehouse.getString("WareHouseTitle")] =
-                                warehouse.getInt("WareHouse_ID")
-                        }
+                        destinations[warehouse.getString("WareHouseTitle")] =
+                            warehouse.getInt("WareHouse_ID")
                     }
                 } catch (e: Exception) {
 
@@ -214,88 +213,62 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            barcodeArray,
+            { _, barcodes, _, invalidBarcodes ->
 
-            barcodes.forEach {
-                var isInRefillProductList = false
+                barcodes.forEach {
+                    var isInRefillProductList = false
 
-                run forEach1@{
-                    products.forEach { it1 ->
-                        if (it1.KBarCode == it.KBarCode) {
-                            it1.scannedBarcode = it.scannedBarcode
-                            it1.scannedBarcodeNumber += 1
-                            isInRefillProductList = true
-                            return@forEach1
+                    run forEach1@{
+                        products.forEach { it1 ->
+                            if (it1.KBarCode == it.KBarCode) {
+                                it1.scannedBarcode = it.scannedBarcode
+                                it1.scannedBarcodeNumber += 1
+                                isInRefillProductList = true
+                                return@forEach1
+                            }
                         }
                     }
+                    if (!isInRefillProductList) {
+                        it.scannedBarcodeNumber = 1
+                        products.add(it)
+                    }
                 }
-                if (!isInRefillProductList) {
-                    it.scannedBarcodeNumber = 1
-                    products.add(it)
+
+                for (i in 0 until invalidBarcodes.length()) {
+                    scannedBarcodes.remove(invalidBarcodes[i])
                 }
-            }
 
-            uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy {
-                it.productCode
-            }
-            uiList.sortBy {
-                it.name
-            }
-            loading = false
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy {
+                    it.productCode
+                }
+                uiList.sortBy {
+                    it.name
+                }
+                loading = false
 
-        }, {
+            },
+            {
 
-            uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy { it1 ->
-                it1.productCode
-            }
-            uiList.sortBy { it1 ->
-                it1.name
-            }
-            loading = false
-        })
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy { it1 ->
+                    it1.productCode
+                }
+                uiList.sortBy { it1 ->
+                    it1.name
+                }
+                loading = false
+            })
     }
 
     private fun createStockDraft() {
-
-        if (destination == "انتخاب مقصد") {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "لطفا مقصد را انتخاب کنید",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            return
-        }
-
-        if (products.size == 0) {
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "کالایی برای ارسال وجود ندارد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            return
-        }
-
-        uiList.forEach {
-            if (it.scannedBarcodeNumber > it.wareHouseNumber) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                return
-            }
-        }
 
         creatingStockDraft = true
 
@@ -374,9 +347,9 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
 
-                body.put("desc", "حواله بین انباری با RFID")
+                body.put("desc", stockDraftSpec)
                 body.put("createDate", sdf.format(Date()))
-                body.put("fromWarehouseId", source)
+                body.put("fromWarehouseId", sources[source])
                 body.put("toWarehouseId", destinations[destination])
                 body.put("kbarcodes", barcodeArray)
                 body.put("epcs", epcArray)
@@ -428,7 +401,24 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
         val type = object : TypeToken<List<Product>>() {}.type
 
-        source = memory.getInt("userWarehouseCode", 0)
+        val userLocationCode = memory.getInt("userWarehouseCode", 0)
+
+        locations = Gson().fromJson(
+            memory.getString("userWarehouses", ""),
+            locations.javaClass
+        ) ?: mutableMapOf()
+
+        locations.forEach {
+            sources[it.value] = it.key.toInt()
+        }
+        source = locations[userLocationCode.toString()] ?: "امتخاب مبدا"
+
+        val defaultDestinations = locations.filter {
+            it.key != userLocationCode.toString()
+        }
+        if (defaultDestinations.isNotEmpty()) {
+            destination = defaultDestinations.values.toList()[0]
+        }
 
         scannedBarcodes = Gson().fromJson(
             memory.getString("CheckOutBarcodeTable", ""),
@@ -510,60 +500,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 Scaffold(
                     topBar = { AppBar() },
                     content = { if (scanMode) Content() else Content2() },
-                    bottomBar = { if (scanMode) BottomBar() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
-            }
-        }
-    }
-
-    @Composable
-    fun BottomBar() {
-        BottomAppBar(
-            backgroundColor = JeanswestBottomBar,
-            modifier = Modifier.wrapContentHeight()
-        ) {
-
-            Column {
-
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    CategoryFilterDropDownList(modifier = Modifier.align(Alignment.CenterVertically))
-
-                    Button(onClick = {
-
-                        if (destination == "انتخاب مقصد") {
-
-                            CoroutineScope(Dispatchers.Default).launch {
-                                state.showSnackbar(
-                                    "لطفا مقصد را انتخاب کنید",
-                                    null,
-                                    SnackbarDuration.Long
-                                )
-                            }
-                        } else if (products.filter { it1 ->
-                                it1.scannedNumber > 0
-                            }.toMutableStateList().isEmpty()) {
-                            CoroutineScope(Dispatchers.Default).launch {
-                                state.showSnackbar(
-                                    "هنوز کالایی برای ارسال اسکن نکرده اید",
-                                    null,
-                                    SnackbarDuration.Long
-                                )
-                            }
-                        } else {
-                            scanMode = false
-                        }
-
-                    }) {
-                        Text(text = "ارسال اسکن شده ها")
-                    }
-                }
             }
         }
     }
@@ -656,6 +594,23 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 }
             }
         }
+
+        BottomBarButton(text = "ثبت حواله") {
+
+            if (products.filter { it1 ->
+                    it1.scannedNumber > 0
+                }.toMutableStateList().isEmpty()) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "هنوز کالایی برای ارسال اسکن نکرده اید",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+                scanMode = false
+            }
+        }
     }
 
     @Composable
@@ -670,7 +625,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 text1 = "اسکن: " + uiList[i].scannedNumber,
                 text2 = "انبار: " + uiList[i].wareHouseNumber,
                 colorFull = uiList[i].scannedNumber >= uiList[i].requestedNumber,
-                enableWarehouseNumberCheck = true,
             ) {
                 openSearchActivity(uiList[i])
             }
@@ -705,6 +659,93 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
     fun Content2() {
 
         Column {
+
+            Column(
+                modifier = Modifier
+                    .shadow(6.dp, Shapes.medium)
+                    .background(
+                        color = MaterialTheme.colors.onPrimary,
+                        shape = MaterialTheme.shapes.large
+                    )
+                    .fillMaxWidth(),
+            ) {
+
+                Row {
+                    OutlinedTextField(
+                        value = stockDraftSpec,
+                        singleLine = true,
+                        label = { Text(text = "شرح حواله") },
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 12.dp)
+                            .fillMaxWidth(),
+                        onValueChange = {
+                            stockDraftSpec = it
+                        })
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                ) {
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 16.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_baseline_my_location_24),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = source,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        onClick = {
+                            source = it
+                        },
+                        values = sources.keys.toMutableList()
+                    )
+
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 12.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_baseline_location_on_24),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 4.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                style = MaterialTheme.typography.body2,
+                                text = destination,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 4.dp)
+                            )
+                        },
+                        onClick = {
+                            destination = it
+                        },
+                        values = destinations.keys.toMutableList()
+                    )
+                }
+            }
 
             if (uiList.filter {
                     it.scannedBarcodeNumber > 0
@@ -759,7 +800,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                             text2 = "انبار: " + uiList.filter {
                                 it.scannedBarcodeNumber > 0
                             }.toMutableList()[i].wareHouseNumber.toString(),
-                            enableWarehouseNumberCheck = true,
                         )
                     }
                 }
@@ -769,81 +809,19 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
         if (uiList.filter {
                 it.scannedBarcodeNumber > 0
             }.toMutableList().isNotEmpty()) {
-            SendRequestButton()
-        }
-    }
+            BottomBarButton(text = if (creatingStockDraft) "در حال ثبت ..." else "ثبت نهایی حواله") {
 
-    @Composable
-    fun SendRequestButton() {
+                if (destination == "انتخاب مقصد" || source == "انتخاب مبدا") {
 
-        Box(modifier = Modifier.fillMaxSize()) {
-
-            Box(
-                modifier = Modifier
-                    .shadow(6.dp, RoundedCornerShape(0.dp))
-                    .background(Color.White, RoundedCornerShape(0.dp))
-                    .height(100.dp)
-                    .align(Alignment.BottomCenter),
-            ) {
-
-                Button(modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp)
-                    .align(Alignment.Center)
-                    .fillMaxWidth()
-                    .align(Alignment.Center),
-                    enabled = !creatingStockDraft,
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Jeanswest,
-                        disabledBackgroundColor = DisableButtonColor,
-                        disabledContentColor = Color.White
-                    ),
-                    onClick = {
-                        if (!creatingStockDraft) {
-                            createStockDraft()
-                        }
-                    }) {
-                    Text(
-                        text = if (creatingStockDraft) "در حال ثبت ..." else "ثبت نهایی حواله",
-                        style = Typography.body1,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun CategoryFilterDropDownList(modifier: Modifier) {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box(modifier = modifier) {
-            Row(modifier = modifier.clickable { expanded = true }) {
-                Text(
-                    text = destination, Modifier
-                        .align(Alignment.CenterVertically)
-                )
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown, "", Modifier
-                        .align(Alignment.CenterVertically)
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-
-                destinations.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        destination = it.key
-                    }) {
-                        Text(text = it.key)
+                    CoroutineScope(Dispatchers.Default).launch {
+                        state.showSnackbar(
+                            "لطفا مبدا و مقصد را انتخاب کنید",
+                            null,
+                            SnackbarDuration.Long
+                        )
                     }
+                } else if (!creatingStockDraft) {
+                    createStockDraft()
                 }
             }
         }

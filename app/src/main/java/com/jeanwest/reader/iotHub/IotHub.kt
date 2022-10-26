@@ -1,6 +1,5 @@
 package com.jeanwest.reader.iotHub
 
-import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
@@ -14,12 +13,8 @@ import com.microsoft.azure.sdk.iot.deps.serializer.FileUploadSasUriRequest
 import com.microsoft.azure.sdk.iot.device.*
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Device
 import com.microsoft.azure.sdk.iot.device.DeviceTwin.Property
-import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
-import java.text.SimpleDateFormat
 import java.util.*
 
 class IotHub : Service() {
@@ -200,7 +195,7 @@ class IotHub : Service() {
 
     private fun sendExceptionLog() {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        if(memory.getBoolean("isAppCrashed", false)) {
+        if (memory.getBoolean("isAppCrashed", false)) {
             val logFileName = memory.getString("logFileName", "") ?: ""
             val file = File(this.getExternalFilesDir(null), "/")
             sendFile(File(file, logFileName))

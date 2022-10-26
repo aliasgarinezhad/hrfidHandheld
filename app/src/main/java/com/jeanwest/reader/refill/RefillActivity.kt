@@ -40,15 +40,15 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import com.jeanwest.reader.shared.theme.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 class RefillActivity : ComponentActivity(), IBarcodeResult {
 
@@ -249,54 +249,66 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            barcodeTableForV4,
+            { _, barcodes, _, invalidBarcodes ->
 
-            val junkBarcodes = mutableListOf<String>()
-            for (i in 0 until barcodes.size) {
+                val junkBarcodes = mutableListOf<String>()
+                for (i in 0 until barcodes.size) {
 
-                val isInRefillList = refillProducts.any { refillProduct ->
-                    refillProduct.primaryKey == barcodes[i].primaryKey
-                }
-
-                if (isInRefillList) {
-
-                    val productIndex = refillProducts.indexOf(refillProducts.last { refillProduct ->
+                    val isInRefillList = refillProducts.any { refillProduct ->
                         refillProduct.primaryKey == barcodes[i].primaryKey
-                    })
+                    }
 
-                    refillProducts[productIndex].scannedBarcodeNumber =
-                        scannedBarcodes.count { it1 ->
-                            it1 == barcodes[i].scannedBarcode
-                        }
+                    if (isInRefillList) {
 
-                    refillProducts[productIndex].scannedBarcode = barcodes[i].scannedBarcode
-                } else {
-                    junkBarcodes.add(barcodes[i].scannedBarcode)
+                        val productIndex =
+                            refillProducts.indexOf(refillProducts.last { refillProduct ->
+                                refillProduct.primaryKey == barcodes[i].primaryKey
+                            })
+
+                        refillProducts[productIndex].scannedBarcodeNumber =
+                            scannedBarcodes.count { it1 ->
+                                it1 == barcodes[i].scannedBarcode
+                            }
+
+                        refillProducts[productIndex].scannedBarcode = barcodes[i].scannedBarcode
+                    } else {
+                        junkBarcodes.add(barcodes[i].scannedBarcode)
+                    }
                 }
-            }
-            scannedBarcodes.removeAll(junkBarcodes)
 
-            refillProducts.sortBy {
-                it.productCode
-            }
-            refillProducts.sortBy {
-                it.name
-            }
-            refillProducts.sortBy { refillProduct ->
-                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
-            }
-            uiList.clear()
-            uiList.addAll(refillProducts)
-            foundProductsNumber = uiList.filter { refillProduct ->
-                refillProduct.scannedBarcodeNumber > 0
-            }.size
-            loading = false
+                for (i in 0 until invalidBarcodes.length()) {
+                    junkBarcodes.add(invalidBarcodes[i].toString())
+                }
 
-        }, {
-            uiList.clear()
-            uiList.addAll(refillProducts)
-            loading = false
-        })
+                scannedBarcodes.removeAll(junkBarcodes)
+
+                refillProducts.sortBy {
+                    it.productCode
+                }
+                refillProducts.sortBy {
+                    it.name
+                }
+                refillProducts.sortBy { refillProduct ->
+                    refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
+                }
+                uiList.clear()
+                uiList.addAll(refillProducts)
+                foundProductsNumber = uiList.filter { refillProduct ->
+                    refillProduct.scannedBarcodeNumber > 0
+                }.size
+                loading = false
+
+            },
+            {
+                uiList.clear()
+                uiList.addAll(refillProducts)
+                loading = false
+            })
     }
 
     override fun getBarcode(barcode: String?) {
@@ -601,7 +613,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            if(loading) {
+            if (loading) {
 
                 Column(
                     modifier = Modifier

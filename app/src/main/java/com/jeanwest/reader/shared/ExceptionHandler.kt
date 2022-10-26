@@ -7,7 +7,8 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ExceptionHandler(var context : Context, var default : Thread.UncaughtExceptionHandler) : Thread.UncaughtExceptionHandler {
+class ExceptionHandler(var context: Context, var default: Thread.UncaughtExceptionHandler) :
+    Thread.UncaughtExceptionHandler {
 
     override fun uncaughtException(thread: Thread, exception: Throwable) {
 

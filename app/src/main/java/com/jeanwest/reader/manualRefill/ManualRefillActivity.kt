@@ -41,15 +41,15 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import com.jeanwest.reader.shared.theme.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 @OptIn(ExperimentalFoundationApi::class)
 class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
@@ -229,7 +229,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         loading = true
 
-        if(scannedBarcodes.size == 0) {
+        if (scannedBarcodes.size == 0) {
             uiList.clear()
             uiList.addAll(products)
             uiList.sortBy {
@@ -284,55 +284,65 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, mutableListOf(), barcodeArray, { _, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            barcodeArray,
+            { _, barcodes, _, invalidBarcodes ->
 
-            barcodes.forEach {
-                var isInRefillProductList = false
+                barcodes.forEach {
+                    var isInRefillProductList = false
 
-                run forEach1@{
-                    products.forEach { it1 ->
-                        if (it1.KBarCode == it.KBarCode) {
-                            it1.scannedBarcode = it.scannedBarcode
-                            it1.scannedBarcodeNumber += 1
-                            isInRefillProductList = true
-                            return@forEach1
+                    run forEach1@{
+                        products.forEach { it1 ->
+                            if (it1.KBarCode == it.KBarCode) {
+                                it1.scannedBarcode = it.scannedBarcode
+                                it1.scannedBarcodeNumber += 1
+                                isInRefillProductList = true
+                                return@forEach1
+                            }
                         }
                     }
+                    if (!isInRefillProductList) {
+                        it.scannedBarcodeNumber = 1
+                        products.add(it)
+                    }
                 }
-                if (!isInRefillProductList) {
-                    it.scannedBarcodeNumber = 1
-                    products.add(it)
+
+                for (i in 0 until invalidBarcodes.length()) {
+                    scannedBarcodes.remove(invalidBarcodes[i])
                 }
-            }
 
-            uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy {
-                it.productCode
-            }
-            uiList.sortBy {
-                it.name
-            }
-            uiList.sortBy { it1 ->
-                it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
-            }
-            loading = false
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy {
+                    it.productCode
+                }
+                uiList.sortBy {
+                    it.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
 
-        }, {
+            },
+            {
 
-            uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy { it1 ->
-                it1.productCode
-            }
-            uiList.sortBy { it1 ->
-                it1.name
-            }
-            uiList.sortBy { it1 ->
-                it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
-            }
-            loading = false
-        })
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy { it1 ->
+                    it1.productCode
+                }
+                uiList.sortBy { it1 ->
+                    it1.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
+            })
     }
 
     private fun createStockDraft() {
@@ -660,7 +670,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         Column {
 
-            if(loading) {
+            if (loading) {
                 Column(
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp)

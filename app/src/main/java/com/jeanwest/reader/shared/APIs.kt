@@ -1,6 +1,5 @@
 package com.jeanwest.reader.shared
 
-import android.util.Log
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
 import com.android.volley.DefaultRetryPolicy
@@ -38,70 +37,78 @@ fun getProductsV4(
 
         val epcsJsonArray = it.getJSONArray("epcs")
         val barcodesJsonArray = it.getJSONArray("KBarCodes")
-        val invalidBarcodes = it.getJSONArray("invalidBarCodes")
-        val invalidEpcs = it.getJSONArray("invalidEpcs")
+        val invalidBarcodesJsonArray = it.getJSONArray("invalidBarCodes")
+        val invalidEpcsJsonArray = it.getJSONArray("invalidEpcs")
 
-        if (invalidBarcodes.length() > 0 || invalidEpcs.length() > 0) {
+        if (invalidEpcsJsonArray.length() > 0) {
             CoroutineScope(Dispatchers.Main).launch {
                 state.showSnackbar(
-                    "دسترسی به اطلاعات با این اکانت امکان پذیر نیست",
+                    "مشخصات برخی ای پی سی ها یافت نشد",
                     null,
                     SnackbarDuration.Long
                 )
             }
-            Log.e("error", invalidEpcs.toString())
-            onError(null)
-        } else {
-
-            for (i in 0 until epcsJsonArray.length()) {
-                val product = Product(
-                    name = epcsJsonArray.getJSONObject(i).getString("productName"),
-                    KBarCode = epcsJsonArray.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = epcsJsonArray.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = epcsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = epcsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
-                    size = epcsJsonArray.getJSONObject(i).getString("Size"),
-                    color = epcsJsonArray.getJSONObject(i).getString("Color"),
-                    originalPrice = epcsJsonArray.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = epcsJsonArray.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = epcsJsonArray.getJSONObject(i).getLong("RFID"),
-                    storeNumber = epcsJsonArray.getJSONObject(i).getInt("storeCount"),
-                    wareHouseNumber = epcsJsonArray.getJSONObject(i).getInt("depoCount"),
-                    scannedEPCs = mutableListOf(epcsJsonArray.getJSONObject(i).getString("epc")),
-                    kName = epcsJsonArray.getJSONObject(i).getString("K_Name"),
-                    countedStoreNumber = epcsJsonArray.getJSONObject(i).getInt("diffRidStoreCount"),
-                    countedWarehouseNumber = epcsJsonArray.getJSONObject(i)
-                        .getInt("diffRfidDepoCount"),
-                )
-                responseEpcs.add(product)
-            }
-
-            for (i in 0 until barcodesJsonArray.length()) {
-                val product = Product(
-                    name = barcodesJsonArray.getJSONObject(i).getString("productName"),
-                    KBarCode = barcodesJsonArray.getJSONObject(i).getString("KBarCode"),
-                    imageUrl = barcodesJsonArray.getJSONObject(i).getString("ImgUrl"),
-                    primaryKey = barcodesJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
-                    productCode = barcodesJsonArray.getJSONObject(i).getString("K_Bar_Code"),
-                    size = barcodesJsonArray.getJSONObject(i).getString("Size"),
-                    color = barcodesJsonArray.getJSONObject(i).getString("Color"),
-                    originalPrice = barcodesJsonArray.getJSONObject(i).getString("OrgPrice"),
-                    salePrice = barcodesJsonArray.getJSONObject(i).getString("SalePrice"),
-                    rfidKey = barcodesJsonArray.getJSONObject(i).getLong("RFID"),
-                    wareHouseNumber = barcodesJsonArray.getJSONObject(i).getInt("depoCount"),
-                    storeNumber = barcodesJsonArray.getJSONObject(i).getInt("storeCount"),
-                    scannedBarcode = barcodesJsonArray.getJSONObject(i).getString("kbarcode"),
-                    kName = barcodesJsonArray.getJSONObject(i).getString("K_Name"),
-                    brandName = barcodesJsonArray.getJSONObject(i).getString("BrandGroupName"),
-                    countedStoreNumber = barcodesJsonArray.getJSONObject(i)
-                        .getInt("diffRidStoreCount"),
-                    countedWarehouseNumber = barcodesJsonArray.getJSONObject(i)
-                        .getInt("diffRfidDepoCount"),
-                )
-                responseBarcodes.add(product)
-            }
-            onSuccess(responseEpcs, responseBarcodes, invalidEpcs, invalidBarcodes)
         }
+        if (invalidBarcodesJsonArray.length() > 0) {
+            CoroutineScope(Dispatchers.Main).launch {
+                state.showSnackbar(
+                    "مشخصات بارکد " + invalidBarcodesJsonArray[0] + " یافت نشد.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        }
+
+        for (i in 0 until epcsJsonArray.length()) {
+            val product = Product(
+                name = epcsJsonArray.getJSONObject(i).getString("productName"),
+                KBarCode = epcsJsonArray.getJSONObject(i).getString("KBarCode"),
+                imageUrl = epcsJsonArray.getJSONObject(i).getString("ImgUrl"),
+                primaryKey = epcsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
+                productCode = epcsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                size = epcsJsonArray.getJSONObject(i).getString("Size"),
+                color = epcsJsonArray.getJSONObject(i).getString("Color"),
+                originalPrice = epcsJsonArray.getJSONObject(i).getString("OrgPrice"),
+                salePrice = epcsJsonArray.getJSONObject(i).getString("SalePrice"),
+                rfidKey = epcsJsonArray.getJSONObject(i).getLong("RFID"),
+                storeNumber = epcsJsonArray.getJSONObject(i).getInt("storeCount"),
+                wareHouseNumber = epcsJsonArray.getJSONObject(i).getInt("depoCount"),
+                scannedEPCs = mutableListOf(epcsJsonArray.getJSONObject(i).getString("epc")),
+                kName = epcsJsonArray.getJSONObject(i).getString("K_Name"),
+                countedStoreNumber = epcsJsonArray.getJSONObject(i).getInt("diffRidStoreCount"),
+                countedWarehouseNumber = epcsJsonArray.getJSONObject(i)
+                    .getInt("diffRfidDepoCount"),
+                brandName = epcsJsonArray.getJSONObject(i).getString("BrandGroupName"),
+            )
+            responseEpcs.add(product)
+        }
+
+        for (i in 0 until barcodesJsonArray.length()) {
+            val product = Product(
+                name = barcodesJsonArray.getJSONObject(i).getString("productName"),
+                KBarCode = barcodesJsonArray.getJSONObject(i).getString("KBarCode"),
+                imageUrl = barcodesJsonArray.getJSONObject(i).getString("ImgUrl"),
+                primaryKey = barcodesJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
+                productCode = barcodesJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                size = barcodesJsonArray.getJSONObject(i).getString("Size"),
+                color = barcodesJsonArray.getJSONObject(i).getString("Color"),
+                originalPrice = barcodesJsonArray.getJSONObject(i).getString("OrgPrice"),
+                salePrice = barcodesJsonArray.getJSONObject(i).getString("SalePrice"),
+                rfidKey = barcodesJsonArray.getJSONObject(i).getLong("RFID"),
+                wareHouseNumber = barcodesJsonArray.getJSONObject(i).getInt("depoCount"),
+                storeNumber = barcodesJsonArray.getJSONObject(i).getInt("storeCount"),
+                scannedBarcode = barcodesJsonArray.getJSONObject(i).getString("kbarcode"),
+                kName = barcodesJsonArray.getJSONObject(i).getString("K_Name"),
+                brandName = barcodesJsonArray.getJSONObject(i).getString("BrandGroupName"),
+                countedStoreNumber = barcodesJsonArray.getJSONObject(i)
+                    .getInt("diffRidStoreCount"),
+                countedWarehouseNumber = barcodesJsonArray.getJSONObject(i)
+                    .getInt("diffRfidDepoCount"),
+            )
+            responseBarcodes.add(product)
+        }
+        onSuccess(responseEpcs, responseBarcodes, invalidEpcsJsonArray, invalidBarcodesJsonArray)
+
     }, {
         when (it) {
             is NoConnectionError -> {

@@ -1,5 +1,7 @@
 package com.jeanwest.reader.search
 
+//import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -7,7 +9,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -29,9 +31,10 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
-//import com.jeanwest.reader.sharedClassesAndFiles.testClasses.Barcode2D
-import com.jeanwest.reader.shared.theme.*
+import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.theme.MyApplicationTheme
+import com.jeanwest.reader.shared.theme.Shapes
+import com.jeanwest.reader.shared.theme.iconColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -52,7 +55,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var barcode2D =
         Barcode2D(this)
-    private lateinit var queue : RequestQueue
+    private lateinit var queue: RequestQueue
     val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,7 +65,12 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
         queue = Volley.newRequestQueue(this)
         loadMemory()
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onResume() {
@@ -114,7 +122,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         }
                     }
                     else -> {
-                        val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                        val error =
+                            JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                         CoroutineScope(Dispatchers.Default).launch {
                             state.showSnackbar(
                                 error.getString("message"),
@@ -217,7 +226,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                             }
                         }
                         else -> {
-                            val error = JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject("error")
+                            val error =
+                                JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject(
+                                    "error"
+                                )
                             CoroutineScope(Dispatchers.Default).launch {
                                 state.showSnackbar(
                                     error.getString("message"),
@@ -242,7 +254,8 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     }
                 }
                 else -> {
-                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    val error =
+                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             error.getString("message"),
@@ -305,6 +318,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         finish()
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @ExperimentalCoilApi
     @Composable
     fun Page() {
@@ -360,9 +374,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     .fillMaxWidth(),
             ) {
                 Column {
-                    CustomTextField(modifier = Modifier
-                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
-                        .fillMaxWidth(),
+                    CustomTextField(
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
+                            .fillMaxWidth(),
                         hint = "کد محصول",
                         onSearch = { getSimilarProducts() },
                         onValueChange = { productCode = it },
@@ -435,8 +450,10 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             LazyColumn {
 
                 items(filteredUiList.size) { i ->
-                    Item(i, filteredUiList, text1 = "رنگ: " + filteredUiList[i].color,
-                    text2 = "سایز: " + filteredUiList[i].size, clickable = true) {
+                    Item(
+                        i, filteredUiList, text1 = "انبار: " + filteredUiList[i].wareHouseNumber,
+                        text2 = "فروشگاه: " + filteredUiList[i].storeNumber, clickable = true
+                    ) {
                         openSearchActivity(filteredUiList[i])
                     }
                 }

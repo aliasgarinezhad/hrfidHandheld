@@ -2,17 +2,19 @@ package com.jeanwest.reader.shared.JalaliDate;
 
 public class JalaliDateConverter {
 
-    /**  Gregorian & Jalali (Hijri_Shamsi,Solar) Date Converter Functions
-     Author: JDF.SCR.IR =>> Download Full Version :  https://jdf.scr.ir/jdf
-     License: GNU/LGPL _ Open Source & Free :: Version: 2.80 : [2020=1399]
-     ---------------------------------------------------------------------
-     355746=361590-5844 & 361590=(30*33*365)+(30*8) & 5844=(16*365)+(16/4)
-     355666=355746-79-1 & 355668=355746-79+1 &  1595=605+990 &  605=621-16
-     990=30*33 & 12053=(365*33)+(32/4) & 36524=(365*100)+(100/4)-(100/100)
-     1461=(365*4)+(4/4) & 146097=(365*400)+(400/4)-(400/100)+(400/400)  */
+    /**
+     * Gregorian & Jalali (Hijri_Shamsi,Solar) Date Converter Functions
+     * Author: JDF.SCR.IR =>> Download Full Version :  https://jdf.scr.ir/jdf
+     * License: GNU/LGPL _ Open Source & Free :: Version: 2.80 : [2020=1399]
+     * ---------------------------------------------------------------------
+     * 355746=361590-5844 & 361590=(30*33*365)+(30*8) & 5844=(16*365)+(16/4)
+     * 355666=355746-79-1 & 355668=355746-79+1 &  1595=605+990 &  605=621-16
+     * 990=30*33 & 12053=(365*33)+(32/4) & 36524=(365*100)+(100/4)-(100/100)
+     * 1461=(365*4)+(4/4) & 146097=(365*400)+(400/4)-(400/100)+(400/400)
+     */
 
     public static int[] gregorian_to_jalali(int gy, int gm, int gd) {
-        int[] g_d_m = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+        int[] g_d_m = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
         int gy2 = (gm > 2) ? (gy + 1) : gy;
         int days = 355666 + (365 * gy) + ((int) ((gy2 + 3) / 4)) - ((int) ((gy2 + 99) / 100)) + ((int) ((gy2 + 399) / 400)) + gd + g_d_m[gm - 1];
         int jy = -1595 + (33 * ((int) (days / 12053)));
@@ -25,7 +27,7 @@ public class JalaliDateConverter {
         }
         int jm = (days < 186) ? 1 + (int) (days / 31) : 7 + (int) ((days - 186) / 30);
         int jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-        int[] jalali = { jy, jm, jd };
+        int[] jalali = {jy, jm, jd};
         return jalali;
     }
 
@@ -47,10 +49,10 @@ public class JalaliDateConverter {
             days = (days - 1) % 365;
         }
         int gd = days + 1;
-        int[] sal_a = { 0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+        int[] sal_a = {0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         int gm;
         for (gm = 0; gm < 13 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
-        int[] gregorian = { gy, gm, gd };
+        int[] gregorian = {gy, gm, gd};
         return gregorian;
     }
 

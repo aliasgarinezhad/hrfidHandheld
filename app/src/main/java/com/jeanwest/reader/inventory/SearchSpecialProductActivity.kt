@@ -22,14 +22,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.shared.ExceptionHandler
 import com.jeanwest.reader.R
-import com.jeanwest.reader.shared.setRFEpcMode
-import com.jeanwest.reader.shared.setRFPower
-import com.jeanwest.reader.shared.Product
+import com.jeanwest.reader.shared.*
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
-import com.jeanwest.reader.shared.ErrorSnackBar
-import com.jeanwest.reader.shared.LoadingCircularProgressIndicator
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -67,7 +62,7 @@ class SearchSpecialProductActivity : ComponentActivity() {
                         SnackbarDuration.Long
                     )
                 }
-                //finish()
+//finish()
 
                 product = Product(
                     name = "ساپورت",
@@ -100,7 +95,12 @@ class SearchSpecialProductActivity : ComponentActivity() {
         }
         setRFEpcMode(rf, state)
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -442,7 +442,7 @@ class SearchSpecialProductActivity : ComponentActivity() {
                 .fillMaxWidth()
                 .height(200.dp)
                 .padding(5.dp),
-            //horizontalArrangement = Arrangement.SpaceBetween
+//horizontalArrangement = Arrangement.SpaceBetween
         ) {
 
             Image(

@@ -1,11 +1,11 @@
 package com.jeanwest.reader.shared
 
-import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import android.content.Context
 import android.os.Build
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
 import com.jeanwest.reader.R
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

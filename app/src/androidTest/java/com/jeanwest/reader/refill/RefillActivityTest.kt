@@ -6,143 +6,145 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.Product
-import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
 @ExperimentalCoilApi
 class RefillActivityTest {
 
-    @get:Rule
-    val activity = createAndroidComposeRule<RefillActivity>()
+@get:Rule
+val activity = createAndroidComposeRule<RefillActivity>()
 
-    //send all stuffs after test
-    @Test
-    fun test1() {
+//send all stuffs after test
+@Test
+fun test1() {
 
-        start()
-        clearUserData()
-        restart()
+start()
+clearUserData()
+restart()
 
-        assert(activity.activity.inputBarcodes.size > 20)
+assert(activity.activity.inputBarcodes.size > 20)
 
-        activity.onNodeWithText("پیدا شده: " + 0)
-            .assertExists()
-        activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
-            .assertExists()
+activity.onNodeWithText("پیدا شده: " + 0)
+.assertExists()
+activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
+.assertExists()
 
-        for (i in 0 until 3) {
+for (i in 0 until 3) {
 
-            activity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(activity.activity.refillProducts[i].KBarCode)
-                assertTextContains(activity.activity.refillProducts[i].name)
-                assertTextContains("انبار: " + activity.activity.refillProducts[i].wareHouseNumber)
-                assertTextContains("اسکن: " + 0)
-            }
-        }
+activity.onAllNodesWithTag("items")[i].apply {
+assertTextContains(activity.activity.refillProducts[i].KBarCode)
+assertTextContains(activity.activity.refillProducts[i].name)
+assertTextContains("انبار: " + activity.activity.refillProducts[i].wareHouseNumber)
+assertTextContains("اسکن: " + 0)
+}
+}
 
-        val scannedProducts = mutableListOf<Product>()
-        activity.activity.refillProducts.forEach {
-            scannedProducts.add(it)
-        }
+val scannedProducts = mutableListOf<Product>()
+activity.activity.refillProducts.forEach {
+scannedProducts.add(it)
+}
 
-        barcodeArrayScan(20, scannedProducts)
+barcodeScan("123456")
 
-        restart()
+barcodeArrayScan(20, scannedProducts)
 
-        activity.onNodeWithText("پیدا شده: " + 20)
-            .assertExists()
-        activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
-            .assertExists()
+restart()
 
-        restart()
+activity.onNodeWithText("پیدا شده: " + 20)
+.assertExists()
+activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
+.assertExists()
 
-        activity.onNodeWithText("ارسال اسکن شده ها").performClick()
-        activity.waitForIdle()
+restart()
 
-        assert(activity.activity.refillProducts.filter {
-            it.scannedBarcodeNumber > 0
-        }.size == 20)
+activity.onNodeWithText("ارسال اسکن شده ها").performClick()
+activity.waitForIdle()
 
-        activity.activity.refillProducts.filter {
-            it.scannedBarcodeNumber > 0
-        }.toMutableList().forEach {
-            if (it.wareHouseNumber > 1) {
-                assert(it.scannedBarcodeNumber == 2)
-            } else {
-                assert(it.scannedBarcodeNumber == 1)
-            }
-        }
+assert(activity.activity.refillProducts.filter {
+it.scannedBarcodeNumber > 0
+}.size == 20)
 
-        val filteredUiList = activity.activity.uiList.filter {
-                it.scannedBarcodeNumber > 0
-        }
+activity.activity.refillProducts.filter {
+it.scannedBarcodeNumber > 0
+}.toMutableList().forEach {
+if (it.wareHouseNumber > 1) {
+assert(it.scannedBarcodeNumber == 2)
+} else {
+assert(it.scannedBarcodeNumber == 1)
+}
+}
 
-        for (i in 0 until 3) {
+val filteredUiList = activity.activity.uiList.filter {
+it.scannedBarcodeNumber > 0
+}
 
-            activity.onAllNodesWithTag("items")[i].apply {
-                assertTextContains(filteredUiList[i].KBarCode)
-                assertTextContains(filteredUiList[i].name)
-                assertTextContains("انبار: " + filteredUiList[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (filteredUiList[i].wareHouseNumber > 1) 2 else 1)
-            }
-        }
-    }
+for (i in 0 until 3) {
 
-    //test output apk file
+activity.onAllNodesWithTag("items")[i].apply {
+assertTextContains(filteredUiList[i].KBarCode)
+assertTextContains(filteredUiList[i].name)
+assertTextContains("انبار: " + filteredUiList[i].wareHouseNumber)
+assertTextContains("اسکن: " + if (filteredUiList[i].wareHouseNumber > 1) 2 else 1)
+}
+}
+}
 
-    private fun restart() {
-        activity.activity.runOnUiThread {
-            activity.activity.recreate()
-        }
-        waitForFinishLoading()
-    }
+//test output apk file
 
-    private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
+private fun restart() {
+activity.activity.runOnUiThread {
+activity.activity.recreate()
+}
+waitForFinishLoading()
+}
 
-        for (i in 0 until number) {
+private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
 
-            if (scannedProducts[i].wareHouseNumber > 1) {
-                barcodeScan(scannedProducts[i].KBarCode)
-                barcodeScan(scannedProducts[i].KBarCode)
-            } else {
-                barcodeScan(scannedProducts[i].KBarCode)
-            }
-        }
-    }
+for (i in 0 until number) {
 
-    private fun barcodeScan(barcode: String) {
-        Barcode2D.barcode = barcode
-        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-        waitForFinishLoading()
-    }
+if (scannedProducts[i].wareHouseNumber > 1) {
+barcodeScan(scannedProducts[i].KBarCode)
+barcodeScan(scannedProducts[i].KBarCode)
+} else {
+barcodeScan(scannedProducts[i].KBarCode)
+}
+}
+}
 
-    private fun waitForFinishLoading() {
+private fun barcodeScan(barcode: String) {
+Barcode2D.barcode = barcode
+activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+waitForFinishLoading()
+}
 
-        activity.waitForIdle()
-        while (activity.activity.loading) {
-            Thread.sleep(200)
-            activity.waitForIdle()
-        }
-    }
+private fun waitForFinishLoading() {
 
-    private fun start() {
-        MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+activity.waitForIdle()
+while (activity.activity.loading) {
+Thread.sleep(200)
+activity.waitForIdle()
+}
+}
 
-        waitForFinishLoading()
-    }
+private fun start() {
+MainActivity.token =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
-    private fun clearUserData() {
+waitForFinishLoading()
+}
 
-        val products = mutableListOf<Product>()
-        products.addAll(activity.activity.refillProducts)
+private fun clearUserData() {
 
-        products.forEach {
-            if (it.scannedBarcodeNumber > 0) {
-                activity.activity.clear(it)
-                activity.waitForIdle()
-            }
-        }
-    }
+val products = mutableListOf<Product>()
+products.addAll(activity.activity.refillProducts)
+
+products.forEach {
+if (it.scannedBarcodeNumber > 0) {
+activity.activity.clear(it)
+activity.waitForIdle()
+}
+}
+}
 }

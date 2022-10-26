@@ -7,7 +7,6 @@ import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,12 +38,13 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
-import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.Product
 import com.jeanwest.reader.search.SearchSubActivity
-import com.jeanwest.reader.shared.test.Barcode2D
-import com.jeanwest.reader.shared.theme.*
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
+import com.jeanwest.reader.shared.theme.JeanswestBottomBar
+import com.jeanwest.reader.shared.theme.MyApplicationTheme
+import com.jeanwest.reader.shared.theme.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -593,28 +593,43 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, epcTableForV4, barcodeTableForV4, { epcs, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            epcTableForV4,
+            barcodeTableForV4,
+            { epcs, barcodes, invalidEpcs, invalidBarcodes ->
 
-            epcs.forEach { product ->
-                scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
-            }
+                epcs.forEach { product ->
+                    scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
+                }
 
-            barcodes.forEach { product ->
-                scannedBarcodeMapWithProperties[product.scannedBarcode] = product
-            }
+                barcodes.forEach { product ->
+                    scannedBarcodeMapWithProperties[product.scannedBarcode] = product
+                }
 
-            if (scannedProductsBiggerThan1000) {
-                syncScannedItemsToServer()
-            } else {
-                makeScannedProductMap()
+                for (i in 0 until invalidBarcodes.length()) {
+                    scannedBarcodes.remove(invalidBarcodes[i])
+                }
+                for (i in 0 until invalidEpcs.length()) {
+                    scannedEpcs.remove(invalidEpcs[i])
+                }
+
+                scannedNumber = scannedEpcs.size + scannedBarcodes.size
+
+                if (scannedProductsBiggerThan1000) {
+                    syncScannedItemsToServer()
+                } else {
+                    makeScannedProductMap()
+                    calculateConflicts()
+                    loading = false
+                }
+
+            },
+            {
                 calculateConflicts()
                 loading = false
-            }
-
-        }, {
-            calculateConflicts()
-            loading = false
-        })
+            })
     }
 
     private fun makeScannedProductMap() {

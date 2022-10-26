@@ -6,7 +6,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -22,14 +25,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.shared.ExceptionHandler
 import com.jeanwest.reader.R
-import com.jeanwest.reader.shared.setRFEpcMode
-import com.jeanwest.reader.shared.setRFPower
-import com.jeanwest.reader.shared.Product
+import com.jeanwest.reader.shared.*
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
-import com.jeanwest.reader.shared.ErrorSnackBar
-import com.jeanwest.reader.shared.LoadingCircularProgressIndicator
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -68,7 +66,7 @@ class SearchSubActivity : ComponentActivity() {
                         SnackbarDuration.Long
                     )
                 }
-                //finish()
+//finish()
 
                 product = Product(
                     name = "ساپورت",
@@ -101,7 +99,12 @@ class SearchSubActivity : ComponentActivity() {
         }
         setRFEpcMode(rf, state)
 
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler()!!))
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -439,7 +442,7 @@ class SearchSubActivity : ComponentActivity() {
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(5.dp),
-            //horizontalArrangement = Arrangement.SpaceBetween
+//horizontalArrangement = Arrangement.SpaceBetween
         ) {
 
             Image(

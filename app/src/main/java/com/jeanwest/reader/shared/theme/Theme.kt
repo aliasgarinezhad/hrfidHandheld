@@ -7,15 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorPalette = darkColors(
-    /*primary = Jeanswest,
-    primaryVariant = JeanswestStatusBar,
-    background = JeanswestBackground,
-    surface = JeanswestBackground,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black,
-    secondaryVariant = Jeanswest,*/
+/*primary = Jeanswest,
+primaryVariant = JeanswestStatusBar,
+background = JeanswestBackground,
+surface = JeanswestBackground,
+onPrimary = Color.White,
+onSecondary = Color.Black,
+onBackground = Color.Black,
+onSurface = Color.Black,
+secondaryVariant = Jeanswest,*/
 )
 
 private val LightColorPalette = lightColors(
@@ -34,7 +34,7 @@ private val LightColorPalette = lightColors(
 
 @Composable
 fun MyApplicationTheme(
-    //darkTheme: Boolean = isSystemInDarkTheme(),
+//darkTheme: Boolean = isSystemInDarkTheme(),
     darkTheme: Boolean = false,
     content: @Composable() () -> Unit
 ) {

@@ -41,21 +41,18 @@ import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
+import com.jeanwest.reader.shared.*
+import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.JeanswestBottomBar
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
-import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
-import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 @OptIn(ExperimentalFoundationApi::class)
 class CheckInActivity : ComponentActivity(), IBarcodeResult {
@@ -422,30 +419,43 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, epcArray, barcodeArray, { epcs, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            epcArray,
+            barcodeArray,
+            { epcs, barcodes, invalidEpcs, invalidBarcodes ->
 
-            epcs.forEach {
-                scannedEpcMapWithProperties[it.scannedEPCs[0]] = it
-            }
+                epcs.forEach {
+                    scannedEpcMapWithProperties[it.scannedEPCs[0]] = it
+                }
 
-            barcodes.forEach {
-                scannedBarcodeMapWithProperties[it.scannedBarcode] = it
-            }
+                barcodes.forEach {
+                    scannedBarcodeMapWithProperties[it.scannedBarcode] = it
+                }
 
-            if (scannedProductsBiggerThan1000) {
-                syncScannedItemsToServer()
-            } else {
-                makeScannedProductMap()
+                for (i in 0 until invalidBarcodes.length()) {
+                    scannedBarcodes.remove(invalidBarcodes[i])
+                }
+                for (i in 0 until invalidEpcs.length()) {
+                    scannedEpcs.remove(invalidEpcs[i])
+                }
+
+                if (scannedProductsBiggerThan1000) {
+                    syncScannedItemsToServer()
+                } else {
+                    makeScannedProductMap()
+                    calculateConflicts()
+                    filterResult(productConflicts)
+                    loading = false
+                }
+
+            },
+            {
                 calculateConflicts()
                 filterResult(productConflicts)
                 loading = false
-            }
-
-        }, {
-            calculateConflicts()
-            filterResult(productConflicts)
-            loading = false
-        })
+            })
     }
 
     private fun makeScannedProductMap() {
@@ -481,23 +491,14 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
         numberOfScanned = scannedBarcodes.size + scannedEpcs.size
     }
 
-    private fun confirmCheckIns() {
+    private fun brokenEpcs() {
 
+        loading = true
         val url =
-            "https://rfid-api.avakatan.ir/stock-draft/${draftProperties.number}/confirm-via-erp"
+            "http://rfid-api.avakatan.ir/stock-draft/not-found-epc"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    it.getString("Message"),
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-
-            clear()
-            scanningMode = false
-            saveToMemory()
+            Log.e("info", "broken epcs log sent")
+            loading = false
 
         }, {
             if (it is NoConnectionError) {
@@ -523,6 +524,79 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                     )
                 }
             }
+            loading = false
+        }) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["Content-Type"] = "application/json;charset=UTF-8"
+                params["Authorization"] = "Bearer " + MainActivity.token
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+                val body = JSONObject()
+                val brokenEpcs = JSONArray()
+
+                draftProperties.epcTable.forEach {
+                    if (it !in scannedEpcs) {
+                        brokenEpcs.put(it)
+                    }
+                }
+
+                body.put("EPCs", brokenEpcs)
+                body.put("StockDraftId", draftProperties.number)
+
+                return body.toString().toByteArray()
+            }
+        }
+        queue.add(request)
+    }
+
+    private fun confirmCheckIns() {
+
+        loading = true
+
+        val url =
+            "https://rfid-api.avakatan.ir/stock-draft/${draftProperties.number}/confirm-via-erp"
+        val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    it.getString("Message"),
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+            clear()
+            scanningMode = false
+            saveToMemory()
+            brokenEpcs()
+
+        }, {
+            if (it is NoConnectionError) {
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            } else {
+
+                val error = it.networkResponse?.data?.decodeToString()?.let { it1 ->
+                    JSONObject(it1).getJSONObject("error").getString("message")
+                } ?: "ارتباط با سرور امکان پذیر نیست."
+
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        error,
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+            }
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = HashMap<String, String>()

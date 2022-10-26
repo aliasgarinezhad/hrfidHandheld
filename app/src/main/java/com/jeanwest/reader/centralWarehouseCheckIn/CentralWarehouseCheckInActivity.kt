@@ -50,7 +50,7 @@ import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.hardware.Barcode2D
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
@@ -245,7 +245,7 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             it.key in scannedProducts.keys
         }.forEach {
 
-            val product : Product = it.value.copy()
+            val product: Product = it.value.copy()
             product.scannedEPCs = scannedProducts[it.key]!!.scannedEPCs
             product.scannedBarcodeNumber = scannedProducts[it.key]!!.scannedBarcodeNumber
             product.scannedBarcode = scannedProducts[it.key]!!.scannedBarcode
@@ -498,30 +498,43 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        getProductsV4(queue, state, epcArray, barcodeArray, { epcs, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            epcArray,
+            barcodeArray,
+            { epcs, barcodes, invalidEpcs, invalidBarcodes ->
 
-            epcs.forEach {
-                scannedEpcMapWithProperties[it.scannedEPCs[0]] = it
-            }
+                epcs.forEach {
+                    scannedEpcMapWithProperties[it.scannedEPCs[0]] = it
+                }
 
-            barcodes.forEach {
-                scannedBarcodeMapWithProperties[it.scannedBarcode] = it
-            }
+                barcodes.forEach {
+                    scannedBarcodeMapWithProperties[it.scannedBarcode] = it
+                }
 
-            if (scannedProductsBiggerThan1000) {
-                syncScannedItemsToServer()
-            } else {
-                makeScannedProductMap()
+                for (i in 0 until invalidBarcodes.length()) {
+                    scannedBarcodes.remove(invalidBarcodes[i])
+                }
+                for (i in 0 until invalidEpcs.length()) {
+                    scannedEpcs.remove(invalidEpcs[i])
+                }
+
+                if (scannedProductsBiggerThan1000) {
+                    syncScannedItemsToServer()
+                } else {
+                    makeScannedProductMap()
+                    calculateConflicts()
+                    filterResult(productConflicts)
+                    loading = false
+                }
+
+            },
+            {
                 calculateConflicts()
                 filterResult(productConflicts)
                 loading = false
-            }
-
-        }, {
-            calculateConflicts()
-            filterResult(productConflicts)
-            loading = false
-        })
+            })
     }
 
     private fun makeScannedProductMap() {

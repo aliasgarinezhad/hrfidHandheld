@@ -45,8 +45,8 @@ import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.theme.*
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
+import com.jeanwest.reader.shared.theme.*
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -59,7 +59,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.abs
 
 
 @ExperimentalFoundationApi
@@ -76,8 +75,6 @@ class InventoryActivity : ComponentActivity() {
     private val scannedProducts = mutableMapOf<String, Product>()
     private var scanningJob: Job? = null
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
-    private var scannedProductsBiggerThan1000 = false
-    private var inputProductsBiggerThan1000 = false
     private var warehouseCode by mutableStateOf("")
     private var locations = mutableMapOf<String, String>()
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
@@ -89,10 +86,9 @@ class InventoryActivity : ComponentActivity() {
     private var openFinishDialog by mutableStateOf(false)
     var uiList = mutableStateListOf<Product>()
     var inventoryResult = mutableStateMapOf<String, Product>()
-    var syncScannedProductsRunning by mutableStateOf(false)
-    var syncInputProductsRunning by mutableStateOf(false)
-    var saveToServerInProgress by mutableStateOf(false)
-    private var isScanning by mutableStateOf(false)
+    var loading by mutableStateOf(false)
+    private var rfidScan by mutableStateOf(false)
+    var scanning by mutableStateOf(false)
     private var number by mutableStateOf(0)
     private var fileName by mutableStateOf("خروجی")
     private var openDialog by mutableStateOf(false)
@@ -139,7 +135,7 @@ class InventoryActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!syncInputProductsRunning) {
+        if (!loading) {
             number = scannedEpcs.size
             syncScannedItemsToServer()
         }
@@ -147,7 +143,7 @@ class InventoryActivity : ComponentActivity() {
 
     private fun getWarehouseBarcodes() {
 
-        syncInputProductsRunning = true
+        loading = true
 
         val url = "http://rfid-api.avakatan.ir/products/$warehouseCode"
 
@@ -164,7 +160,6 @@ class InventoryActivity : ComponentActivity() {
             for (i in 0 until products.length()) {
                 inputBarcodes.add(products.getJSONObject(i).getString("KBarCode"))
             }
-            syncInputProductsRunning = false
             syncInputItemsToServer()
         }, {
             when (it) {
@@ -192,7 +187,7 @@ class InventoryActivity : ComponentActivity() {
                     }
                 }
             }
-            syncInputProductsRunning = false
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val header = mutableMapOf<String, String>()
@@ -213,7 +208,9 @@ class InventoryActivity : ComponentActivity() {
 
     private fun calculateConflicts() {
 
-        syncScannedProductsRunning = true
+        Log.e("error", scannedProducts.toString())
+
+        loading = true
 
         val conflicts = mutableStateMapOf<String, Product>()
 
@@ -292,7 +289,7 @@ class InventoryActivity : ComponentActivity() {
         uiList.addAll(uiListTemp)
         filterUiList()
 
-        syncScannedProductsRunning = false
+        loading = false
         saveToMemory()
     }
 
@@ -358,7 +355,7 @@ class InventoryActivity : ComponentActivity() {
 
                 if (inventoryStarted) {
 
-                    if (!isScanning) {
+                    if (!rfidScan) {
 
                         scanningJob = CoroutineScope(IO).launch {
                             startRFScan()
@@ -387,7 +384,7 @@ class InventoryActivity : ComponentActivity() {
 
         scanningJob?.let {
             if (it.isActive) {
-                isScanning = false // cause scanning routine loop to stop
+                rfidScan = false // cause scanning routine loop to stop
                 runBlocking { it.join() }
             }
         }
@@ -399,9 +396,10 @@ class InventoryActivity : ComponentActivity() {
 
     private suspend fun startRFScan() {
 
-        isScanning = true
+        scanning = true
+        rfidScan = true
         if (!setRFPower(state, rf, rfPower)) {
-            isScanning = false
+            rfidScan = false
             return
         }
 
@@ -411,7 +409,7 @@ class InventoryActivity : ComponentActivity() {
 
         rf.startInventoryTag(0, 0, 0)
 
-        while (isScanning) {
+        while (rfidScan) {
 
             var uhfTagInfo: UHFTAGInfo?
             while (true) {
@@ -457,14 +455,15 @@ class InventoryActivity : ComponentActivity() {
         rf.stopInventory()
         number = scannedEpcs.size
         saveToMemory()
+        scanning = false
     }
 
     private fun syncInputItemsToServer() {
 
         val barcodeTableForV4 = mutableListOf<String>()
 
-        syncInputProductsRunning = true
-        inputProductsBiggerThan1000 = false
+        loading = true
+        var inputProductsBiggerThan1000 = false
 
         run breakForEach@{
             inputBarcodes.forEach {
@@ -481,19 +480,15 @@ class InventoryActivity : ComponentActivity() {
 
         if (barcodeTableForV4.size == 0) {
             syncScannedItemsToServer()
-            syncInputProductsRunning = false
+            loading = false
             return
         }
-
-        syncInputProductsRunning = true
 
         getProductsV4(queue, state, mutableListOf(), barcodeTableForV4, { _, barcodes, _, _ ->
 
             barcodes.forEach { product ->
                 inputBarcodeMapWithProperties[product.scannedBarcode] = product
             }
-
-            syncInputProductsRunning = false
 
             if (inputProductsBiggerThan1000) {
                 syncInputItemsToServer()
@@ -503,13 +498,13 @@ class InventoryActivity : ComponentActivity() {
             }
 
         }, {
-            syncInputProductsRunning = false
+            loading = false
         })
     }
 
     private fun makeInputProductMap() {
 
-        syncInputProductsRunning = true
+        loading = true
 
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
@@ -540,20 +535,21 @@ class InventoryActivity : ComponentActivity() {
             }
         }
 
-        syncInputProductsRunning = false
+        loading = false
     }
 
     private fun syncScannedItemsToServer() {
 
+        loading = true
+
         if (number == 0) {
             calculateConflicts()
+            loading = false
             return
         }
 
-        syncScannedProductsRunning = true
-
         val epcTableForV4 = mutableListOf<String>()
-        scannedProductsBiggerThan1000 = false
+        var scannedProductsBiggerThan1000 = false
 
         run breakForEach@{
             scannedEpcs.forEach {
@@ -570,29 +566,33 @@ class InventoryActivity : ComponentActivity() {
 
         if (epcTableForV4.size == 0) {
 
-            syncScannedProductsRunning = false
             calculateConflicts()
+            loading = false
             return
         }
 
-        getProductsV4(queue, state, epcTableForV4, mutableListOf(), { epcs, _, _, _ ->
+        getProductsV4(queue, state, epcTableForV4, mutableListOf(), { epcs, _, invalidEpcs, _ ->
 
             epcs.forEach { product ->
                 scannedEpcMapWithProperties[product.scannedEPCs[0]] = product
             }
 
-            syncScannedProductsRunning = false
+            for (i in 0 until invalidEpcs.length()) {
+                scannedEpcs.remove(invalidEpcs[i])
+            }
+            number = scannedEpcs.size
 
             if (scannedProductsBiggerThan1000) {
                 syncScannedItemsToServer()
             } else {
                 makeScannedProductMap()
                 calculateConflicts()
+                loading = false
             }
 
         }, {
             calculateConflicts()
-            syncScannedProductsRunning = false
+            loading = false
         })
     }
 
@@ -600,7 +600,7 @@ class InventoryActivity : ComponentActivity() {
 
         val isInDepo = locations[warehouseCode]?.contains("دپو") ?: false
 
-        syncScannedProductsRunning = true
+        loading = true
 
         scannedProducts.clear()
         currentScannedProductProductCodes.clear()
@@ -615,8 +615,6 @@ class InventoryActivity : ComponentActivity() {
         }
 
         scannedEpcs.forEach {
-
-            Log.e("error", it)
 
             val product = scannedEpcMapWithProperties[it]!!
             product.inventoryOnDepo = isInDepo
@@ -646,18 +644,17 @@ class InventoryActivity : ComponentActivity() {
                 }
             }
         }
-        syncScannedProductsRunning = false
+        loading = false
     }
 
     private fun saveResultsToServer() {
-        saveToServerInProgress = true
+        loading = true
+        Log.e("api 1 started", "")
 
         val url = "https://rfid-api.avakatan.ir/mojodi-review/header"
         val request = object : JsonObjectRequest(Method.POST, url, null, {
 
             saveToServerId = it.getString("MojodiReviewInfo_ID")
-            saveToServerInProgress = false
-            Log.e("error", "1 passed")
             saveApi2()
 
         }, {
@@ -683,7 +680,7 @@ class InventoryActivity : ComponentActivity() {
                 }
             }
 
-            saveToServerInProgress = false
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = mutableMapOf<String, String>()
@@ -717,14 +714,12 @@ class InventoryActivity : ComponentActivity() {
 
     private fun saveApi2() {
 
-        Log.e("saveApi2 called", "")
-
-        saveToServerInProgress = true
+        loading = true
+        Log.e("api 2 started", "")
 
         val url = "https://rfid-api.avakatan.ir/mojodi-review/products"
         val request = object : StringRequest(Method.POST, url, {
 
-            saveToServerInProgress = false
             if (resultsBiggerThan500) {
                 saveApi2()
             } else {
@@ -749,9 +744,8 @@ class InventoryActivity : ComponentActivity() {
                     )
                 }
             }
-
-            saveToServerInProgress = false
             resultIndexForApi2 = 0
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = mutableMapOf<String, String>()
@@ -800,7 +794,9 @@ class InventoryActivity : ComponentActivity() {
     }
 
     private fun saveApi3() {
-        saveToServerInProgress = true
+
+        Log.e("api 3 started", "")
+        loading = true
 
         val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/submit"
         val request = object : StringRequest(Method.POST, url, {
@@ -812,18 +808,17 @@ class InventoryActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
-            saveToServerInProgress = false
             inventoryStarted = false
             inputBarcodes.clear()
             inputProducts.clear()
             inputBarcodeMapWithProperties.clear()
             clear()
-            Log.e("error", "3 passed without waiting")
+            loading = false
 
         }, {
             when (it) {
                 is NoConnectionError -> {
-                    saveToServerInProgress = false
+                    loading = false
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
@@ -833,12 +828,10 @@ class InventoryActivity : ComponentActivity() {
                     }
                 }
                 is TimeoutError -> {
-                    Log.e("error", "3 passed with waiting")
-                    saveToServerInProgress = false
                     saveApi4()
                 }
                 else -> {
-                    saveToServerInProgress = false
+                    loading = false
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
                             it.networkResponse.data.decodeToString(),
@@ -870,7 +863,8 @@ class InventoryActivity : ComponentActivity() {
 
     private fun saveApi4() {
 
-        saveToServerInProgress = true
+        loading = true
+        Log.e("api 4 started", "")
 
         val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/report"
         val request = object : JsonObjectRequest(Method.GET, url, null, {
@@ -879,7 +873,6 @@ class InventoryActivity : ComponentActivity() {
                 Log.e("error", "4 waiting")
                 CoroutineScope(IO).launch {
                     delay(10000)
-                    saveToServerInProgress = false
                     saveApi4()
                 }
             } else {
@@ -890,13 +883,12 @@ class InventoryActivity : ComponentActivity() {
                         SnackbarDuration.Long
                     )
                 }
-                saveToServerInProgress = false
                 inventoryStarted = false
                 inputBarcodes.clear()
                 inputProducts.clear()
                 inputBarcodeMapWithProperties.clear()
                 clear()
-                Log.e("error", "4 passed")
+                loading = false
             }
 
         }, {
@@ -910,21 +902,21 @@ class InventoryActivity : ComponentActivity() {
                 }
             } else {
 
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                val error = it?.networkResponse?.data?.decodeToString()?.let { it1 ->
+                    JSONObject(it1).getJSONObject("error").getString("message")
+                } ?: "مشکلی در دریافت اطلاعات به وجود آمده است."
 
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
-                        error.getString("message"),
+                        error,
                         null,
                         SnackbarDuration.Long
                     )
                 }
             }
 
-            saveToServerInProgress = false
             resultIndexForApi2 = 0
-
+            loading = false
         }) {
             override fun getHeaders(): MutableMap<String, String> {
                 val params = mutableMapOf<String, String>()
@@ -999,14 +991,14 @@ class InventoryActivity : ComponentActivity() {
 
     private fun finishPackage() {
 
-        saveToServerInProgress = true
+        loading = true
 
         val url = "http://rfid-api.avakatan.ir/mojodi-review/package/submit"
         val request = object : StringRequest(Method.POST, url, {
 
             signedKBarCode.clear()
             saveToMemory()
-            saveToServerInProgress = false
+            loading = false
 
             inventoryStarted = true
             getWarehouseBarcodes()
@@ -1029,7 +1021,7 @@ class InventoryActivity : ComponentActivity() {
                     )
                 }
             }
-            saveToServerInProgress = false
+            loading = false
 
         }) {
             override fun getHeaders(): MutableMap<String, String> {
@@ -1079,14 +1071,12 @@ class InventoryActivity : ComponentActivity() {
         stopRFScan()
         queue.stop()
         beep.release()
-        syncInputProductsRunning = false
-        syncScannedProductsRunning = false
+        loading = false
+        loading = false
         isInProgress = false
-        isScanning = false
-        scannedProductsBiggerThan1000 = false
-        inputProductsBiggerThan1000 = false
+        rfidScan = false
         resultsBiggerThan500 = false
-        saveToServerInProgress = false
+        loading = false
         finish()
     }
 
@@ -1123,7 +1113,7 @@ class InventoryActivity : ComponentActivity() {
 
             actions = {
                 IconButton(onClick = {
-                    if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+                    if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
                         openDialog = true
                     }
                 }) {
@@ -1134,7 +1124,7 @@ class InventoryActivity : ComponentActivity() {
                 }
                 IconButton(modifier = Modifier.testTag("clear"),
                     onClick = {
-                        if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+                        if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
                             openClearDialog = true
                         }
                     }) {
@@ -1168,14 +1158,14 @@ class InventoryActivity : ComponentActivity() {
                 .fillMaxSize()
         ) {
 
-            if (syncInputProductsRunning || syncScannedProductsRunning || isScanning || saveToServerInProgress) {
+            if (this@InventoryActivity.loading || this@InventoryActivity.loading || rfidScan || loading) {
                 LoadingCircularProgressIndicator(
-                    isScanning,
-                    syncInputProductsRunning || syncScannedProductsRunning || saveToServerInProgress
+                    rfidScan,
+                    this@InventoryActivity.loading || this@InventoryActivity.loading || loading
                 )
             }
 
-            if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+            if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
 
 
                 Box(
@@ -1214,7 +1204,7 @@ class InventoryActivity : ComponentActivity() {
             }
         }
 
-        if (!syncInputProductsRunning && !syncScannedProductsRunning && !isScanning && !saveToServerInProgress) {
+        if (!loading && !loading && !rfidScan && !loading) {
             Column(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -1387,10 +1377,10 @@ class InventoryActivity : ComponentActivity() {
 
         Column(Modifier.fillMaxSize()) {
 
-            if (syncInputProductsRunning || syncScannedProductsRunning || isScanning) {
+            if (this@InventoryActivity.loading || this@InventoryActivity.loading || rfidScan) {
                 LoadingCircularProgressIndicator(
-                    isScanning,
-                    syncInputProductsRunning || syncScannedProductsRunning
+                    rfidScan,
+                    this@InventoryActivity.loading || this@InventoryActivity.loading
                 )
             } else {
 
@@ -1570,8 +1560,8 @@ class InventoryActivity : ComponentActivity() {
                             onClick = {
                                 openFinishDialog = false
                                 inventoryStarted = false
-                                syncInputProductsRunning = false
-                                syncScannedProductsRunning = false
+                                this@InventoryActivity.loading = false
+                                this@InventoryActivity.loading = false
                                 inputBarcodes.clear()
                                 inputProducts.clear()
                                 inputBarcodeMapWithProperties.clear()

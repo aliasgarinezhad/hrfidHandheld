@@ -55,10 +55,6 @@ class UserLoginActivity : ComponentActivity() {
                 "userWarehouseCode",
                 response.getJSONObject("location").getInt("warehouseCode")
             )
-            editor.putInt(
-                "userWarehouseCode",
-                response.getJSONObject("location").getInt("warehouseCode")
-            )
 
             val warehouses = mutableMapOf<String, String>()
             val warehousesJsonArray = response.getJSONArray("warehouses")
@@ -99,7 +95,8 @@ class UserLoginActivity : ComponentActivity() {
                 }
                 else -> {
 
-                    val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
+                    val error =
+                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
 
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(

@@ -49,7 +49,7 @@ class UpdateActivity : ComponentActivity() {
 
         try {
             rf = RFIDWithUHFUART.getInstance()
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         rf.stopInventory()
