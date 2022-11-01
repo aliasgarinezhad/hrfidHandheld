@@ -1,4 +1,4 @@
-package com.jeanwest.reader.refill
+package com.jeanwest.reader.refill2
 
 
 import android.annotation.SuppressLint
@@ -50,7 +50,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
-class RefillActivity : ComponentActivity(), IBarcodeResult {
+class RefillActivity2 : ComponentActivity(), IBarcodeResult {
 
     private val barcode2D = Barcode2D(this)
     val inputBarcodes = ArrayList<String>()
@@ -104,7 +104,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
         loading = true
 
-        val url = "https://rfid-api.avakatan.ir/refill"
+        val url = "https://rfid-api.avakatan.ir/refill/"
 
         val request = object : JsonArrayRequest(Method.GET, url, null, {
 
@@ -182,6 +182,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 it.scannedBarcodeNumber = 0
                 it.scannedBarcode = ""
                 it.scannedEPCs.clear()
+                it.requestedNumber = 2
                 refillProducts.add(it)
             }
             syncScannedItemsToServer()
@@ -544,7 +545,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
 
             title = {
                 Text(
-                    text = stringResource(id = R.string.refill),
+                    text = stringResource(id = R.string.refill2),
                     modifier = Modifier
                         .padding(end = 50.dp)
                         .fillMaxSize()
@@ -650,6 +651,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 text4 = "انبار: " + uiList[i].wareHouseNumber.toString(),
                 colorFull = uiList[i].scannedNumber > 0,
                 enableWarehouseNumberCheck = true,
+
             ) {
                 openSearchActivity(uiList[i])
             }

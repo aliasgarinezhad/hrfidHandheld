@@ -6,7 +6,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.Product
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 

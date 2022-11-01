@@ -40,7 +40,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.JeanswestBottomBar
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
@@ -1172,12 +1172,12 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                             i,
                             filteredUiList,
                             true,
-                            text1 = if (inputBarcodes.isNotEmpty()) {
+                            text3 = if (inputBarcodes.isNotEmpty()) {
                                 "موجودی: " + filteredUiList[i].draftNumber
                             } else {
                                 "رنگ: " + filteredUiList[i].color
                             },
-                            text2 = if (inputBarcodes.isNotEmpty()) {
+                            text4 = if (inputBarcodes.isNotEmpty()) {
                                 filteredUiList[i].conflictType + ":" + " " + filteredUiList[i].conflictNumber
                             } else {
                                 "اسکن: " + filteredUiList[i].scannedNumber

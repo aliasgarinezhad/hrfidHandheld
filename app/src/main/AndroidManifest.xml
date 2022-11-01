@@ -39,13 +39,11 @@
         <activity android:name="com.jeanwest.reader.inventory.SearchSpecialProductActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.AddProductToRefillListActivity" />
         <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
-        <activity android:name="com.jeanwest.reader.checkOut.SendToDestinationActivity" />
-        <activity android:name="com.jeanwest.reader.checkIn.GetCheckInPropertiesActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.ManualRefillActivity" />
         <activity android:name="com.jeanwest.reader.refill.RefillActivity" />
+        <activity android:name="com.jeanwest.reader.refill2.RefillActivity2" />
         <activity android:name="com.jeanwest.reader.logIn.OperatorLoginActivity" />
         <activity android:name="com.jeanwest.reader.checkIn.CheckInActivity" />
-        <activity android:name="com.jeanwest.reader.checkIn.ConfirmCheckInsActivity" />
         <activity android:name="com.jeanwest.reader.logIn.UserLoginActivity" />
         <activity android:name="com.jeanwest.reader.search.SearchSubActivity" />
         <activity android:name="com.jeanwest.reader.search.SearchActivity" />

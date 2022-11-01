@@ -38,6 +38,7 @@ import com.jeanwest.reader.logIn.OperatorLoginActivity
 import com.jeanwest.reader.logIn.UserLoginActivity
 import com.jeanwest.reader.manualRefill.ManualRefillActivity
 import com.jeanwest.reader.refill.RefillActivity
+import com.jeanwest.reader.refill2.RefillActivity2
 import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.shared.ErrorSnackBar
 import com.jeanwest.reader.shared.ExceptionHandler
@@ -61,7 +62,7 @@ class MainActivity : ComponentActivity() {
     private var deviceId = ""
     private var buttonSize = 100.dp
     private var iconSize = 48.dp
-    private var pageSize = buttonSize * 3 + 100.dp
+    private var pageSize = buttonSize * 4 + 133.dp
     private var userLocationCode = 0
     private var fullName = ""
     private var state = SnackbarHostState()
@@ -299,11 +300,11 @@ class MainActivity : ComponentActivity() {
                                     startActivity(intent)
                                 }
                                 OpenActivityButton(
-                                    stringResource(R.string.checkInText),
-                                    R.drawable.inventory
+                                    stringResource(R.string.refill2),
+                                    R.drawable.refill
                                 ) {
                                     val intent =
-                                        Intent(this@MainActivity, CheckInActivity::class.java)
+                                        Intent(this@MainActivity, RefillActivity2::class.java)
                                     startActivity(intent)
                                 }
                             }
@@ -312,6 +313,14 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
+                                OpenActivityButton(
+                                    stringResource(R.string.checkInText),
+                                    R.drawable.inventory
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, CheckInActivity::class.java)
+                                    startActivity(intent)
+                                }
                                 OpenActivityButton(
                                     stringResource(R.string.checkOut),
                                     R.drawable.check_in
@@ -328,6 +337,12 @@ class MainActivity : ComponentActivity() {
                                         Intent(this@MainActivity, SearchActivity::class.java)
                                     startActivity(intent)
                                 }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 OpenActivityButton(
                                     text = stringResource(R.string.inventoryText),
                                     iconId = R.drawable.inventory
@@ -336,12 +351,6 @@ class MainActivity : ComponentActivity() {
                                         startActivity(this)
                                     }
                                 }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
                                 OpenActivityButton(
                                     stringResource(R.string.tagProgramming),
                                     R.drawable.write
@@ -361,6 +370,12 @@ class MainActivity : ComponentActivity() {
                                         startActivity(this)
                                     }
                                 }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 OpenActivityButton(
                                     stringResource(R.string.count),
                                     R.drawable.counter
@@ -369,6 +384,8 @@ class MainActivity : ComponentActivity() {
                                         Intent(this@MainActivity, CountActivity::class.java)
                                     startActivity(intent)
                                 }
+                                Box(modifier = Modifier.size(buttonSize))
+                                Box(modifier = Modifier.size(buttonSize))
                             }
                         }
                     },

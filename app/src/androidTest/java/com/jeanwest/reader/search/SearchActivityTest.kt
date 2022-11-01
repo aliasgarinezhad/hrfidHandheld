@@ -4,6 +4,8 @@ import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
+import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.shared.test.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
@@ -11,70 +13,48 @@ import org.junit.Test
 
 class SearchActivityTest {
 
-@get:Rule
-var searchActivity = createAndroidComposeRule<SearchActivity>()
+    @get:Rule
+    var activity = createAndroidComposeRule<SearchActivity>()
 
-//Search product by writing K_Bar_Code, k_bar_code and barcode and check results (always K_Bar_Code should be showed on text field) (3 tests)
-@Test
-fun searchActivityTest1() {
-val productCode = "11531052"
-val color = "همه رنگ ها"
-val size = "همه سایز ها"
+    @Test
+    fun test() {
 
-searchActivity.onNodeWithTag("CustomTextField").performTextClearance()
-searchActivity.onNodeWithTag("CustomTextField").performTextInput(productCode)
-searchActivity.onNodeWithTag("CustomTextField").performImeAction()
-searchActivity.waitForIdle()
+        MainActivity.token =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        waitForFinishLoading()
 
-Thread.sleep(2000)
-searchActivity.waitForIdle()
-Thread.sleep(2000)
+        barcodeScan("11531052J-2010-L")
+        waitForFinishLoading()
 
-searchActivity.onNodeWithText("همه رنگ ها").performClick()
-searchActivity.waitForIdle()
-searchActivity.onAllNodesWithText(color)[1].performClick()
-searchActivity.waitForIdle()
+        activity.onNodeWithText(activity.activity.uiList[0].name).assertExists()
+        activity.onNodeWithText("کد فرعی: " + activity.activity.uiList[0].productCode).assertExists()
+        activity.onNodeWithText("قیمت: " + activity.activity.uiList[0].originalPrice).assertExists()
+        activity.onNodeWithText("قیمت فروش: " + activity.activity.uiList[0].salePrice).assertExists()
 
-searchActivity.onNodeWithText("همه سایز ها").performClick()
-searchActivity.waitForIdle()
-searchActivity.onAllNodesWithText(size)[1].performClick()
-searchActivity.waitForIdle()
+        val maxItems = if (activity.activity.uiList.size > 3) 3 else activity.activity.uiList.size
+        for (i in 0 until maxItems) {
 
-searchActivity.onAllNodesWithTag("items")[0].assertExists()
-searchActivity.waitForIdle()
-}
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains("رنگ: " + activity.activity.uiList[i].color)
+                assertTextContains("سایز: " + activity.activity.uiList[i].size)
+                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("فروشگاه: " + activity.activity.uiList[i].storeNumber)
+            }
+        }
+        Thread.sleep(30000)
+    }
 
-@Test
-fun searchActivityTest2() {
-val productCode = "11531052J-2010-L"
+    private fun barcodeScan(barcode: String) {
+        Barcode2D.barcode = barcode
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        waitForFinishLoading()
+    }
 
-searchActivity.onNodeWithTag("CustomTextField").performTextClearance()
-searchActivity.onNodeWithTag("CustomTextField").performTextInput(productCode)
-searchActivity.onNodeWithTag("CustomTextField").performImeAction()
-searchActivity.waitForIdle()
-
-Thread.sleep(2000)
-searchActivity.waitForIdle()
-Thread.sleep(2000)
-
-searchActivity.onNodeWithText("11531052").assertExists()
-searchActivity.onAllNodesWithTag("items")[0].assertExists()
-searchActivity.waitForIdle()
-}
-
-@Test
-fun searchActivityTest3() {
-
-searchActivity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
-
-searchActivity.waitForIdle()
-
-Thread.sleep(2000)
-searchActivity.waitForIdle()
-Thread.sleep(2000)
-
-searchActivity.onNodeWithText("64822109").assertExists()
-searchActivity.onAllNodesWithTag("items")[0].assertExists()
-searchActivity.waitForIdle()
-}
+    private fun waitForFinishLoading() {
+        activity.waitForIdle()
+        while (activity.activity.loading) {
+            Thread.sleep(200)
+            activity.waitForIdle()
+        }
+    }
 }

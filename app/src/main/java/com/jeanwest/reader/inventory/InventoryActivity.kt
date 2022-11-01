@@ -1408,8 +1408,8 @@ class InventoryActivity : ComponentActivity() {
                         Item(
                             i,
                             uiList,
-                            text1 = "موجودی: " + uiList[i].inventoryNumber,
-                            text2 = uiList[i].inventoryConflictType + ":" + " " + uiList[i].inventoryConflictAbs,
+                            text3 = "موجودی: " + uiList[i].inventoryNumber,
+                            text4 = uiList[i].inventoryConflictType + ":" + " " + uiList[i].inventoryConflictAbs,
                             clickable = true,
                             onClick = {
                                 Intent(

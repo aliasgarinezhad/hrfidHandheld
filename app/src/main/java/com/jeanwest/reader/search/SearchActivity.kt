@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
@@ -17,8 +18,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -31,10 +34,11 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
+import com.jeanwest.reader.shared.theme.JeanswestBackground
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.Shapes
-import com.jeanwest.reader.shared.theme.iconColor
+import com.jeanwest.reader.shared.theme.Typography
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,14 +48,10 @@ import org.json.JSONObject
 class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
-    private var uiList = mutableStateListOf<Product>()
-    private var filteredUiList = mutableStateListOf<Product>()
-    private var colorFilterValues = mutableStateListOf("همه رنگ ها")
-    private var sizeFilterValues = mutableStateListOf("همه سایز ها")
-    private var colorFilterValue by mutableStateOf("همه رنگ ها")
-    private var sizeFilterValue by mutableStateOf("همه سایز ها")
+    var uiList = mutableStateListOf<Product>()
     private var storeFilterValue = 0
     private var state = SnackbarHostState()
+    var loading by mutableStateOf(false)
 
     private var barcode2D =
         Barcode2D(this)
@@ -75,12 +75,12 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     override fun onResume() {
         super.onResume()
-        open()
+        barcodeInit()
     }
 
     override fun onPause() {
         super.onPause()
-        close()
+        stopBarcodeScan()
     }
 
     private fun loadMemory() {
@@ -94,11 +94,11 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
         if (barcode.isNotEmpty()) {
 
+            loading = true
+
             beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            filteredUiList.clear()
             uiList.clear()
-            colorFilterValues = mutableStateListOf("همه رنگ ها")
-            sizeFilterValues = mutableStateListOf("همه سایز ها")
+            uiList.clear()
             productCode = ""
 
             val url =
@@ -110,6 +110,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                 if (products.length() > 0) {
                     jsonArrayProcess(products)
                 }
+                loading = false
             }, {
                 when (it) {
                     is NoConnectionError -> {
@@ -133,6 +134,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                         }
                     }
                 }
+                loading = false
             })
             queue.add(request)
         }
@@ -141,133 +143,24 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
 
         if (keyCode == 280 || keyCode == 139 || keyCode == 293) {
-            start()
+            startBarcodeScan()
         } else if (keyCode == 4) {
             back()
         }
         return true
     }
 
-    private fun start() {
+    private fun startBarcodeScan() {
         barcode2D.startScan(this)
     }
 
-    private fun open() {
+    private fun barcodeInit() {
         barcode2D.open(this, this)
     }
 
-    private fun close() {
+    private fun stopBarcodeScan() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
-    }
-
-    private fun filterUiList() {
-
-        val sizeFilterOutput = if (sizeFilterValue == "همه سایز ها") {
-            uiList
-        } else {
-            uiList.filter {
-                it.size == sizeFilterValue
-            }
-        }
-
-        val colorFilterOutput = if (colorFilterValue == "همه رنگ ها") {
-            sizeFilterOutput
-        } else {
-            sizeFilterOutput.filter {
-                it.color == colorFilterValue
-            }
-
-        }
-
-        filteredUiList.clear()
-        filteredUiList.addAll(colorFilterOutput)
-    }
-
-    private fun getSimilarProducts() {
-
-        uiList.clear()
-        filteredUiList.clear()
-        colorFilterValues.clear()
-        colorFilterValues.add("همه رنگ ها")
-        sizeFilterValues.clear()
-        sizeFilterValues.add("همه سایز ها")
-
-        val url1 =
-            "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&K_Bar_Code=$productCode"
-
-        val request1 = JsonObjectRequest(url1, { response1 ->
-
-            val products = response1.getJSONArray("products")
-
-            if (products.length() > 0) {
-                jsonArrayProcess(products)
-            } else {
-
-                val url2 =
-                    "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$productCode"
-
-                val request2 = JsonObjectRequest(url2, { response2 ->
-
-                    val products2 = response2.getJSONArray("products")
-
-                    if (products2.length() > 0) {
-                        jsonArrayProcess(products2)
-                    }
-                }, { it2 ->
-                    when (it2) {
-                        is NoConnectionError -> {
-                            CoroutineScope(Dispatchers.Default).launch {
-                                state.showSnackbar(
-                                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                    null,
-                                    SnackbarDuration.Long
-                                )
-                            }
-                        }
-                        else -> {
-                            val error =
-                                JSONObject(it2.networkResponse.data.decodeToString()).getJSONObject(
-                                    "error"
-                                )
-                            CoroutineScope(Dispatchers.Default).launch {
-                                state.showSnackbar(
-                                    error.getString("message"),
-                                    null,
-                                    SnackbarDuration.Long
-                                )
-                            }
-                        }
-                    }
-                })
-                queue.add(request2)
-            }
-        }, {
-            when (it) {
-                is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-        })
-
-        queue.add(request1)
     }
 
     private fun jsonArrayProcess(similarProductsJsonArray: JSONArray) {
@@ -275,9 +168,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         for (i in 0 until similarProductsJsonArray.length()) {
 
             val json = similarProductsJsonArray.getJSONObject(i)
-
-            colorFilterValues.add(json.getString("Color"))
-            sizeFilterValues.add(json.getString("Size"))
 
             uiList.add(
                 Product(
@@ -299,9 +189,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
         }
 
         productCode = uiList[0].productCode
-        colorFilterValues = colorFilterValues.distinct().toMutableStateList()
-        sizeFilterValues = sizeFilterValues.distinct().toMutableStateList()
-        filterUiList()
     }
 
     private fun openSearchActivity(product: Product) {
@@ -312,7 +199,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     }
 
     private fun back() {
-        close()
+        stopBarcodeScan()
         queue.stop()
         beep.release()
         finish()
@@ -345,7 +232,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "جست و جو", textAlign = TextAlign.Center,
+                        stringResource(R.string.search), textAlign = TextAlign.Center,
                     )
                 }
             },
@@ -363,99 +250,121 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     @Composable
     fun Content() {
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+        if (loading) {
+            Column(
                 modifier = Modifier
-                    .shadow(6.dp, Shapes.medium)
-                    .background(
-                        color = MaterialTheme.colors.onPrimary,
-                        shape = MaterialTheme.shapes.large
-                    )
-                    .fillMaxWidth(),
+                    .padding(start = 8.dp, end = 8.dp)
+                    .background(JeanswestBackground, Shapes.small)
+                    .fillMaxWidth()
             ) {
-                Column {
-                    CustomTextField(
-                        modifier = Modifier
-                            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 14.dp)
-                            .fillMaxWidth(),
-                        hint = "کد محصول",
-                        onSearch = { getSimilarProducts() },
-                        onValueChange = { productCode = it },
-                        value = productCode
-                    )
+                LoadingCircularProgressIndicator(false, loading)
+            }
+        } else if (uiList.isNotEmpty()) {
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .shadow(6.dp, Shapes.medium)
+                        .background(
+                            color = MaterialTheme.colors.onPrimary,
+                            shape = MaterialTheme.shapes.large
+                        )
+                        .fillMaxWidth(),
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .height(90.dp)
                     ) {
-                        FilterDropDownList(
+                        Column(
                             modifier = Modifier
-                                .padding(start = 16.dp, bottom = 16.dp),
-                            icon = {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_baseline_color_lens_24),
-                                    contentDescription = "",
-                                    tint = iconColor,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterVertically)
-                                        .padding(start = 4.dp)
-                                )
-                            },
-                            text = {
-                                Text(
-                                    style = MaterialTheme.typography.body2,
-                                    text = colorFilterValue,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterVertically)
-                                        .padding(start = 4.dp)
-                                )
-                            },
-                            onClick = {
-                                colorFilterValue = it
-                                filterUiList()
-                            },
-                            values = colorFilterValues
-                        )
-                        FilterDropDownList(
+                                .weight(1F)
+                                .fillMaxHeight()
+                                .padding(top = 16.dp, bottom = 16.dp, start = 16.dp),
+                            verticalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Text(
+                                uiList[0].name,
+                                style = MaterialTheme.typography.h2,
+                                textAlign = TextAlign.Right,
+                            )
+
+                            Text(
+                                "کد فرعی: " + uiList[0].productCode,
+                                style = MaterialTheme.typography.h2,
+                                textAlign = TextAlign.Right,
+                            )
+                        }
+                        Column(
                             modifier = Modifier
-                                .padding(start = 16.dp, bottom = 16.dp),
-                            icon = {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.size),
-                                    contentDescription = "",
-                                    tint = iconColor,
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .align(Alignment.CenterVertically)
-                                        .padding(start = 6.dp)
-                                )
-                            },
-                            text = {
-                                Text(
-                                    text = sizeFilterValue,
-                                    style = MaterialTheme.typography.body2,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterVertically)
-                                        .padding(start = 6.dp)
-                                )
-                            },
-                            onClick = {
-                                sizeFilterValue = it
-                                filterUiList()
-                            },
-                            values = sizeFilterValues
-                        )
+                                .weight(1F)
+                                .fillMaxHeight()
+                                .padding(top = 16.dp, bottom = 16.dp, start = 16.dp),
+                            verticalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Text(
+                                "قیمت: " + uiList[0].originalPrice,
+                                style = MaterialTheme.typography.h2,
+                                textAlign = TextAlign.Right,
+                            )
+                            Text(
+                                "قیمت فروش: " + uiList[0].salePrice,
+                                style = MaterialTheme.typography.h2,
+                                textAlign = TextAlign.Right,
+                            )
+                        }
+                    }
+                }
+                LazyColumn {
+
+                    items(uiList.size) { i ->
+                        Item(
+                            i,
+                            uiList,
+                            text1 = "رنگ: " + uiList[i].color,
+                            text2 = "سایز: " + uiList[i].size,
+                            text3 = "انبار: " + uiList[i].wareHouseNumber,
+                            text4 = "فروشگاه: " + uiList[i].storeNumber,
+                            clickable = true
+                        ) {
+                            openSearchActivity(uiList[i])
+                        }
                     }
                 }
             }
 
-            LazyColumn {
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .width(256.dp)
+                ) {
+                    Box(
 
-                items(filteredUiList.size) { i ->
-                    Item(
-                        i, filteredUiList, text1 = "انبار: " + filteredUiList[i].wareHouseNumber,
-                        text2 = "فروشگاه: " + filteredUiList[i].storeNumber, clickable = true
+                        modifier = Modifier
+                            .background(color = Color.White, shape = Shapes.medium)
+                            .size(256.dp)
                     ) {
-                        openSearchActivity(filteredUiList[i])
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_big_barcode_scan),
+                            contentDescription = "",
+                            tint = Color.Unspecified,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .clickable {
+                                    startBarcodeScan()
+                                }
+                        )
                     }
+
+                    Text(
+                        "برای دیدن مشخصات کالا، ابتدا بارکد آن را اسکن کنید",
+                        style = Typography.h1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                    )
                 }
             }
         }

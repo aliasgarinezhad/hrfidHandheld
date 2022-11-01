@@ -40,7 +40,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import com.jeanwest.reader.shared.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -622,8 +622,8 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
             Item(
                 i, uiList, true,
-                text1 = "اسکن: " + uiList[i].scannedNumber,
-                text2 = "انبار: " + uiList[i].wareHouseNumber,
+                text3 = "اسکن: " + uiList[i].scannedNumber,
+                text4 = "انبار: " + uiList[i].wareHouseNumber,
                 colorFull = uiList[i].scannedNumber >= uiList[i].requestedNumber,
             ) {
                 openSearchActivity(uiList[i])
@@ -794,10 +794,10 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                             uiList.filter {
                                 it.scannedBarcodeNumber > 0
                             }.toMutableList(),
-                            text1 = "اسکن: " + uiList.filter {
+                            text3 = "اسکن: " + uiList.filter {
                                 it.scannedBarcodeNumber > 0
                             }.toMutableList()[i].scannedNumber,
-                            text2 = "انبار: " + uiList.filter {
+                            text4 = "انبار: " + uiList.filter {
                                 it.scannedBarcodeNumber > 0
                             }.toMutableList()[i].wareHouseNumber.toString(),
                         )

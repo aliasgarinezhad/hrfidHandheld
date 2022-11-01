@@ -31,7 +31,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.manualRefill.ManualRefillActivity.Companion.products
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.iconColor
 import kotlinx.coroutines.CoroutineScope
@@ -495,8 +495,8 @@ class AddProductToRefillListActivity : ComponentActivity(), IBarcodeResult {
                 items(filteredUiList.size) { i ->
                     Item(
                         i, filteredUiList, true,
-                        text1 = "فروشگاه: " + filteredUiList[i].storeNumber,
-                        text2 = "انبار: " + filteredUiList[i].wareHouseNumber
+                        text3 = "فروشگاه: " + filteredUiList[i].storeNumber,
+                        text4 = "انبار: " + filteredUiList[i].wareHouseNumber
                     ) {
                         addToRefillList(filteredUiList[i].KBarCode)
                     }

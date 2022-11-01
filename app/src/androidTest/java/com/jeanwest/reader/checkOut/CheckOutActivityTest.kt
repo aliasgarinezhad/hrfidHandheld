@@ -10,7 +10,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.Product
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import okhttp3.internal.wait
 import org.junit.Rule
 import org.junit.Test

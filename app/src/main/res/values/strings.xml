@@ -7,6 +7,7 @@
     <string name="centralCheckInCheckInText">ارسال حواله انبار مرکزی</string>
     <string name="inventoryText">انبارگردانی</string>
     <string name="refill">خطی</string>
+    <string name="refill2">خطی 2</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
     <string name="xls">application/vnd.ms-excel</string>
     <string name="EXARK">EXARKXK650</string>

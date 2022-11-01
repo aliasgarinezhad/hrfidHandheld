@@ -42,7 +42,7 @@ import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.JeanswestBottomBar
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
@@ -988,8 +988,8 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
                             i,
                             uiList,
                             true,
-                            text1 = "موجودی: " + uiList[i].draftNumber,
-                            text2 = uiList[i].conflictType + ":" + " " + uiList[i].conflictNumber
+                            text3 = "موجودی: " + uiList[i].draftNumber,
+                            text4 = uiList[i].conflictType + ":" + " " + uiList[i].conflictNumber
                         ) {
                             openSearchActivity(uiList[i])
                         }

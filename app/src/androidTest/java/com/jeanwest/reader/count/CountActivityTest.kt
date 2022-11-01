@@ -10,7 +10,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.Product
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule

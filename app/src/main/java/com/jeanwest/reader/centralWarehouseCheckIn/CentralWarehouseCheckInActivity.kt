@@ -50,9 +50,8 @@ import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import com.jeanwest.reader.shared.*
-import com.jeanwest.reader.shared.hardware.Barcode2D
+import com.jeanwest.reader.shared.test.Barcode2D
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -952,8 +951,8 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
                             i,
                             uiList,
                             true,
-                            text1 = "موجودی: " + uiList[i].draftNumber,
-                            text2 = uiList[i].conflictType + ":" + " " + uiList[i].conflictNumber
+                            text3 = "موجودی: " + uiList[i].draftNumber,
+                            text4 = uiList[i].conflictType + ":" + " " + uiList[i].conflictNumber
                         ) {
                             openSearchActivity(uiList[i])
                         }

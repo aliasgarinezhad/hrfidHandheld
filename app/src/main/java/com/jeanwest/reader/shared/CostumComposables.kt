@@ -106,10 +106,12 @@ fun Item(
     i: Int,
     uiList: MutableList<Product>,
     clickable: Boolean = false,
-    text1: String,
-    text2: String,
+    text3: String,
+    text4: String,
     colorFull: Boolean = false,
     enableWarehouseNumberCheck: Boolean = false,
+    text1: String = "",
+    text2: String = "",
     onLongClick: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
@@ -195,13 +197,13 @@ fun Item(
             ) {
 
                 Text(
-                    text = uiList[i].KBarCode,
+                    text = if(text1 == "") uiList[i].KBarCode else text1,
                     style = MaterialTheme.typography.body2,
                     textAlign = TextAlign.Right,
                     fontSize = 12.sp
                 )
                 Text(
-                    text = uiList[i].name,
+                    text = if(text2 == "") uiList[i].name else text2,
                     style = MaterialTheme.typography.h4,
                     textAlign = TextAlign.Right,
                 )
@@ -221,7 +223,7 @@ fun Item(
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
                 Text(
-                    text = text1,
+                    text = text3,
                     style = MaterialTheme.typography.h3,
                     textAlign = TextAlign.Right,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
@@ -234,7 +236,7 @@ fun Item(
                         .width(66.dp)
                 )
                 Text(
-                    text = text2,
+                    text = text4,
                     style = MaterialTheme.typography.h3,
                     textAlign = TextAlign.Right,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
