@@ -26,6 +26,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity
@@ -43,6 +44,7 @@ import com.jeanwest.reader.search.SearchActivity
 import com.jeanwest.reader.shared.ErrorSnackBar
 import com.jeanwest.reader.shared.ExceptionHandler
 import com.jeanwest.reader.shared.rfInit
+import com.jeanwest.reader.shared.syncServerToLocalWarehouse
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
@@ -66,10 +68,13 @@ class MainActivity : ComponentActivity() {
     private var userLocationCode = 0
     private var fullName = ""
     private var state = SnackbarHostState()
+    private lateinit var queue: RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        queue = Volley.newRequestQueue(this)
 
         clearCash()
 
@@ -164,54 +169,6 @@ class MainActivity : ComponentActivity() {
         }
         fileOrDirectory.delete()
     }
-
-    private fun syncServerToLocalWarehouse() {
-
-        val url = "https://rfid-api.avakatan.ir/department-infos/sync"
-        val request = object : StringRequest(Method.GET, url, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "ارسال و دریافت با موفقیت انجام شد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-
-        }, {
-
-            if (it is NoConnectionError) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        it.toString(),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val header = mutableMapOf<String, String>()
-                header["accept"] = "application/json"
-                header["Content-Type"] = "application/json"
-                header["Authorization"] = "Bearer $token"
-                return header
-            }
-        }
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
-    }
-
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == 4) {
@@ -486,7 +443,7 @@ class MainActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 openAccountDialog = false
-                                syncServerToLocalWarehouse()
+                                syncServerToLocalWarehouse(queue, state)
                             },
                         ) {
                             Text(text = "ارسال و دریافت")

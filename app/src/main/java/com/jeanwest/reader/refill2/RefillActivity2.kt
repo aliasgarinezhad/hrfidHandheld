@@ -366,44 +366,11 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
         saveToMemory()
     }
 
-    private fun sendToStore() {
-
-        if (foundProductsNumber == 0) {
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "کالایی برای ارسال وجود ندارد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            return
-        }
-
-        uiList.forEach {
-            if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                return
-            }
-        }
+    private fun createStockDraft() {
 
         creatingStockDraft = true
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/refill"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "اجناس با موفقیت به فروشگاه حواله شدند",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
+        createLocalStockDraft(queue, state, uiList, "خطی 2 با RFID", {
             creatingStockDraft = false
             scannedBarcodes.clear()
             refillProducts.removeAll {
@@ -411,73 +378,9 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
             }
             syncScannedItemsToServer()
             saveToMemory()
-
         }, {
-            if (it is NoConnectionError) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error.getString("message"),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-
             creatingStockDraft = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = java.util.HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val products = JSONArray()
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                Log.e("time", sdf.format(Date()))
-
-                uiList.forEach {
-                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        products.put(productJson)
-                    }
-                }
-
-                body.put("desc", "خطی با RFID")
-                body.put("createDate", sdf.format(Date()))
-                body.put("products", products)
-
-                Log.e("error", body.toString())
-
-                return body.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     private fun startBarcodeScan() {
@@ -782,7 +685,7 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
                     ),
                     onClick = {
                         if (!creatingStockDraft) {
-                            sendToStore()
+                            createStockDraft()
                         }
                     }) {
                     Text(

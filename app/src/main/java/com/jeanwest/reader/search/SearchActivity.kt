@@ -49,7 +49,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
 
     private var productCode by mutableStateOf("")
     var uiList = mutableStateListOf<Product>()
-    private var storeFilterValue = 0
+    private var storeCode = 0
     private var state = SnackbarHostState()
     var loading by mutableStateOf(false)
 
@@ -86,7 +86,7 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private fun loadMemory() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        storeFilterValue = memory.getInt("userLocationCode", 0)
+        storeCode = memory.getInt("userLocationCode", 0)
     }
 
     @Throws(InterruptedException::class)
@@ -101,42 +101,13 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
             uiList.clear()
             productCode = ""
 
-            val url =
-                "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeFilterValue&kbarcode=$barcode"
-
-            val request = JsonObjectRequest(url, {
-
-                val products = it.getJSONArray("products")
-                if (products.length() > 0) {
-                    jsonArrayProcess(products)
-                }
+            getProductsSimilar(queue, state, storeCode, barcode, {
+                uiList.addAll(it)
+                productCode = uiList[0].productCode
                 loading = false
             }, {
-                when (it) {
-                    is NoConnectionError -> {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                    else -> {
-                        val error =
-                            JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-                        CoroutineScope(Dispatchers.Default).launch {
-                            state.showSnackbar(
-                                error.getString("message"),
-                                null,
-                                SnackbarDuration.Long
-                            )
-                        }
-                    }
-                }
                 loading = false
             })
-            queue.add(request)
         }
     }
 
@@ -161,34 +132,6 @@ class SearchActivity : ComponentActivity(), IBarcodeResult {
     private fun stopBarcodeScan() {
         barcode2D.stopScan(this)
         barcode2D.close(this)
-    }
-
-    private fun jsonArrayProcess(similarProductsJsonArray: JSONArray) {
-
-        for (i in 0 until similarProductsJsonArray.length()) {
-
-            val json = similarProductsJsonArray.getJSONObject(i)
-
-            uiList.add(
-                Product(
-                    name = json.getString("productName"),
-                    KBarCode = json.getString("KBarCode"),
-                    imageUrl = json.getString("ImgUrl"),
-                    storeNumber = json.getInt("dbCountStore"),
-                    wareHouseNumber = json.getInt("dbCountDepo"),
-                    productCode = json.getString("K_Bar_Code"),
-                    size = json.getString("Size"),
-                    color = json.getString("Color"),
-                    originalPrice = json.getString("OrigPrice"),
-                    salePrice = json.getString("SalePrice"),
-                    primaryKey = json.getLong("BarcodeMain_ID"),
-                    rfidKey = json.getLong("RFID"),
-                    kName = json.getString("K_Name"),
-                )
-            )
-        }
-
-        productCode = uiList[0].productCode
     }
 
     private fun openSearchActivity(product: Product) {

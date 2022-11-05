@@ -668,18 +668,11 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "https://rfid-api.avakatan.ir/products/v3"
-
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            val epcs = it.getJSONArray("epcs")
-
-            searchModeProductCodes.clear()
-            for (i in 0 until epcs.length()) {
-                searchModeProductCodes.add(epcs.getJSONObject(i).getString("K_Bar_Code"))
+        getProductsV4(queue, state, searchModeEpcTable, mutableListOf(), { epcs, _, _, _ ->
+            epcs.forEach {
+                searchModeEpcTable.add(it.productCode)
             }
             filterUiList()
-
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
                     "بارکد های جست و جو مشخص شدند. حال می توانید جنس های مشابه این بارکد ها را جست و جو کنید. برای دیدن همه اجناس، جست و جو را غیر فعال کنید.",
@@ -687,63 +680,7 @@ class CountActivity : ComponentActivity(), IBarcodeResult {
                     SnackbarDuration.Long
                 )
             }
-
-        }, {
-            when (it) {
-                is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-
-            }
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val json = JSONObject()
-                val epcArray = JSONArray()
-
-                searchModeEpcTable.forEach {
-                    epcArray.put(it)
-                }
-
-                json.put("epcs", epcArray)
-
-                val barcodeArray = JSONArray()
-
-                json.put("KBarCodes", barcodeArray)
-
-                return json.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        }, {})
     }
 
     private fun readXLSXFile(uri: Uri) {

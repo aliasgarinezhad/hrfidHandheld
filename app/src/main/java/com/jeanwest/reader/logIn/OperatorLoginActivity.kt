@@ -1,5 +1,6 @@
 package com.jeanwest.reader.logIn
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -16,10 +17,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.ErrorSnackBar
+import com.jeanwest.reader.shared.operatorLogin
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,78 +33,22 @@ class OperatorLoginActivity : ComponentActivity() {
 
     private var password by mutableStateOf("")
     private var username by mutableStateOf("")
-    private var advanceSettingToken = ""
     private var state = SnackbarHostState()
+    private lateinit var queue : RequestQueue
 
     override fun onResume() {
         super.onResume()
         setContent { Page() }
+        queue = Volley.newRequestQueue(this)
     }
 
     private fun advanceUserAuthenticate() {
-
-        val url = "https://rfid-api.avakatan.ir/login/operators"
-        val request = object : JsonObjectRequest(Method.POST, url, null, fun(it) {
-            advanceSettingToken = it.getString("accessToken")
+        operatorLogin(queue, state, username, password, {
             Intent(this, DeviceRegisterActivity::class.java).also {
-                it.putExtra("advanceSettingToken", advanceSettingToken)
+                it.putExtra("advanceSettingToken", it)
                 startActivity(it)
             }
-        }, {
-            when {
-                it is NoConnectionError -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                it.networkResponse.statusCode == 401 -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "نام کاربری یا رمز عبور اشتباه است",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val header = mutableMapOf<String, String>()
-                header["accept"] = "application/json"
-                header["Content-Type"] = "application/json"
-                return header
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                body.put("username", username)
-                body.put("password", password)
-                return body.toString().toByteArray()
-            }
-        }
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
+        }, {})
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -115,6 +62,7 @@ class OperatorLoginActivity : ComponentActivity() {
         finish()
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {

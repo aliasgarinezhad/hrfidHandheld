@@ -33,7 +33,6 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -48,8 +47,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalFoundationApi::class)
 class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
@@ -132,66 +129,17 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
         loading = true
 
-        val url = "https://rfid-api.avakatan.ir/charge-requests"
-
-        val request = object : JsonArrayRequest(Method.GET, url, null, {
-
+        getManualRefill(queue, state, {
             inputBarcodes.clear()
-
-            for (i in 0 until it.length()) {
-                inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
-            }
-
-            if (inputBarcodes.size > 0) {
-                getRefillItems()
-            } else {
+            inputBarcodes.addAll(it)
+            if (inputBarcodes.isEmpty()) {
                 syncScannedItemsToServer()
+            } else {
+                getRefillItems()
             }
         }, {
-            when {
-                it is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                it.networkResponse.statusCode == 422 -> {
-                    Log.e("error", "charge database is empty")
-                }
-                else -> {
-                    val error = JSONObject(
-                        it.networkResponse?.data?.decodeToString().toString()
-                    ).getJSONObject("error")
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             syncScannedItemsToServer()
-
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     private fun getRefillItems() {
@@ -347,44 +295,9 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     private fun createStockDraft() {
 
-        if (products.filter { it1 ->
-                it1.scannedNumber > 0
-            }.toMutableStateList().isEmpty()) {
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "کالایی برای ارسال وجود ندارد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            return
-        }
-
-        uiList.forEach {
-            if (it.scannedBarcodeNumber + it.scannedEPCNumber > it.wareHouseNumber) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "تعداد ارسالی کالای ${it.KBarCode}" + " از موجودی انبار بیشتر است.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                return
-            }
-        }
-
         creatingStockDraft = true
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/refill/v2"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "اجناس با موفقیت به فروشگاه حواله شدند",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
+        createLocalStockDraft(queue, state, uiList, "شارژ با RFID", {
             creatingStockDraft = false
             scannedBarcodes.clear()
             products.removeAll {
@@ -392,73 +305,10 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
             syncScannedItemsToServer()
             saveToMemory()
-
         }, {
-            if (it is NoConnectionError) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error.getString("message"),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-
             creatingStockDraft = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = java.util.HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val products = JSONArray()
-
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                Log.e("time", sdf.format(Date()))
-
-                uiList.forEach {
-                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        products.put(productJson)
-                    }
-                }
-
-                body.put("desc", "شارژ با RFID")
-                body.put("createDate", sdf.format(Date()))
-                body.put("products", products)
-
-                Log.e("error", body.toString())
-
-                return body.toString().toByteArray()
-            }
         }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
-
-        queue.add(request)
     }
 
     override fun getBarcode(barcode: String?) {

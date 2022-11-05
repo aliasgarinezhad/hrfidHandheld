@@ -317,66 +317,16 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/$code/details"
-        val request = object : JsonArrayRequest(url, fun(it) {
-
-            val draftBarcodes = mutableListOf<String>()
-            var numberOfItems = 0
-            for (i in 0 until it.length()) {
-                numberOfItems += it.getJSONObject(i).getInt("Qty")
-
-                repeat(it.getJSONObject(i).getInt("Qty")) { _ ->
-                    draftBarcodes.add(it.getJSONObject(i).getString("kbarcode"))
-                }
-            }
-
-            draftProperties = DraftProperties(
-                number = code.toLong(),
-                numberOfItems = numberOfItems,
-                barcodeTable = draftBarcodes,
-            )
-
+        getStockDraftDetails(queue, state, code, {
+            draftProperties = it
             saveToMemory()
             clear()
             scanningMode = true
             saveToMemory()
             syncInputItemsToServer()
-
         }, {
-            when (it) {
-                is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-        queue.add(request)
+        })
     }
 
 
@@ -723,67 +673,14 @@ class CentralWarehouseCheckInActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/${draftProperties.number}"
-
-        val request = object : StringRequest(Method.PATCH, url, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "حواله " + draftProperties.number + "با موفقیت تایید شد.",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
+        editStockDraft(queue, state, draftProperties.number, productConflicts, {
             clear()
             scanningMode = false
             saveToMemory()
             loading = false
         }, {
-            if (it is NoConnectionError) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        it.toString(),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONArray()
-
-                productConflicts.forEach {
-
-                    val item = JSONObject()
-                    item.put("BarcodeMain_ID", it.primaryKey)
-                    item.put("epcs", JSONArray(it.scannedEPCs))
-                    body.put(item)
-                }
-
-                Log.e("error", body.toString())
-
-                return body.toString().toByteArray()
-            }
-        }
-        queue.add(request)
+        })
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")

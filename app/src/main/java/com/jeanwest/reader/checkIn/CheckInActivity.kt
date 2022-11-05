@@ -494,136 +494,26 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
     private fun brokenEpcs() {
 
         loading = true
-        val url =
-            "http://rfid-api.avakatan.ir/stock-draft/not-found-epc"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-            Log.e("info", "broken epcs log sent")
-            loading = false
 
+        sendBrokenEpcs(queue, state, draftProperties.number, draftProperties.epcTable, scannedEpcs, {
+            loading = false
         }, {
-            if (it is NoConnectionError) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-
-                val error = it.networkResponse?.data?.decodeToString()?.let { it1 ->
-                    JSONObject(it1).getJSONObject("error").getString("message")
-                } ?: "ارتباط با سرور امکان پذیر نیست."
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error,
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                val brokenEpcs = JSONArray()
-
-                draftProperties.epcTable.forEach {
-                    if (it !in scannedEpcs) {
-                        brokenEpcs.put(it)
-                    }
-                }
-
-                body.put("EPCs", brokenEpcs)
-                body.put("StockDraftId", draftProperties.number)
-
-                return body.toString().toByteArray()
-            }
-        }
-        queue.add(request)
+        })
     }
 
     private fun confirmCheckIns() {
 
         loading = true
 
-        val url =
-            "https://rfid-api.avakatan.ir/stock-draft/${draftProperties.number}/confirm-via-erp"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    it.getString("Message"),
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
+        confirmStockDraft(queue, state, draftProperties.number, productConflicts, {
             clear()
             scanningMode = false
             saveToMemory()
             brokenEpcs()
-
         }, {
-            if (it is NoConnectionError) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-
-                val error = it.networkResponse?.data?.decodeToString()?.let { it1 ->
-                    JSONObject(it1).getJSONObject("error").getString("message")
-                } ?: "ارتباط با سرور امکان پذیر نیست."
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error,
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                val products = JSONArray()
-
-                productConflicts.forEach {
-                    repeat(it.scannedBarcodeNumber + it.scannedEPCNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        products.put(productJson)
-                    }
-                }
-                body.put("kbarcodes", products)
-
-                return body.toString().toByteArray()
-            }
-        }
-        queue.add(request)
+        })
     }
 
     override fun getBarcode(barcode: String?) {
@@ -759,69 +649,16 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             return
         }
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft/$code/details"
-        val request = object : JsonArrayRequest(url, fun(it) {
-
-            val draftBarcodes = mutableListOf<String>()
-            val draftEpcs = mutableListOf<String>()
-            var numberOfItems = 0
-            for (i in 0 until it.length()) {
-                numberOfItems += it.getJSONObject(i).getInt("Qty")
-
-                repeat(it.getJSONObject(i).getInt("Qty")) { _ ->
-                    draftBarcodes.add(it.getJSONObject(i).getString("kbarcode"))
-                }
-                draftEpcs.add(it.getJSONObject(i).getString("EPC"))
-            }
-
-            draftProperties = DraftProperties(
-                number = code.toLong(),
-                numberOfItems = numberOfItems,
-                barcodeTable = draftBarcodes,
-                epcTable = draftEpcs
-            )
-
+        getStockDraftDetails(queue, state, code, {
+            draftProperties = it
             saveToMemory()
             clear()
             scanningMode = true
             saveToMemory()
             syncInputItemsToServer()
-
         }, {
-            when (it) {
-                is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-        queue.add(request)
+        })
     }
 
 

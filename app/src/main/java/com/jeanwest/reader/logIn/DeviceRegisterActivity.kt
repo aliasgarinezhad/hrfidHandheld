@@ -1,5 +1,6 @@
 package com.jeanwest.reader.logIn
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -21,12 +22,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.DefaultRetryPolicy
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.ErrorSnackBar
+import com.jeanwest.reader.shared.getWarehousesLists
+import com.jeanwest.reader.shared.registerDevice
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,110 +43,39 @@ class DeviceRegisterActivity : ComponentActivity() {
     private var deviceId by mutableStateOf("")
     private var iotToken by mutableStateOf("")
     private var advanceSettingToken = ""
-    private val apiTimeout = 30000
     private var deviceLocationCode = 0
     private var deviceLocation = ""
     private val locations = mutableMapOf<Int, String>()
     private var state = SnackbarHostState()
+    private lateinit var queue : RequestQueue
 
 
     override fun onResume() {
         super.onResume()
         setContent { Page() }
+        queue = Volley.newRequestQueue(this)
         advanceSettingToken = intent.getStringExtra("advanceSettingToken") ?: ""
         getLocations()
     }
 
     private fun registerDeviceToIotHub() {
-        val url = "https://rfid-api.avakatan.ir/devices/handheld"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-            deviceId = it.getString("deviceId")
-            iotToken = it.getJSONObject("authentication").getJSONObject("symmetricKey")
-                .getString("primaryKey")
 
+        registerDevice(queue, state, advanceSettingToken, deviceSerialNumber, { deviceId, iotToken ->
             saveToMemory()
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "دستگاه با موفقیت رجیستر شد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-
             val nextActivityIntent = Intent(this, MainActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(nextActivityIntent)
-        }, {
-
-            val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    error.getString("message"),
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val header = mutableMapOf<String, String>()
-                header["accept"] = "application/json"
-                header["Content-Type"] = "application/json"
-                header["Authorization"] = "Bearer $advanceSettingToken"
-                return header
-            }
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                body.put("serialNumber", deviceSerialNumber)
-                return body.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
+        }, {})
     }
 
     private fun getLocations() {
-        val url = "https://rfid-api.avakatan.ir/department-infos"
-        val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+        getWarehousesLists(queue, state, {
             locations.clear()
-            for (i in 0 until it.length()) {
-                locations[it.getJSONObject(i).getInt("DepartmentInfo_ID")] =
-                    it.getJSONObject(i).getString("DepName")
+            it.forEach{ it1 ->
+                locations[it1.value] = it1.key
             }
-        }, {
-
-            val error = JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    error.getString("message"),
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val header = mutableMapOf<String, String>()
-                header["accept"] = "application/json"
-                header["Content-Type"] = "application/json"
-                header["Authorization"] = "Bearer $advanceSettingToken"
-                return header
-            }
-        }
-
-        val queue = Volley.newRequestQueue(this)
-        queue.add(request)
+        }, {}, advanceSettingToken)
     }
 
     private fun saveToMemory() {
@@ -170,6 +103,7 @@ class DeviceRegisterActivity : ComponentActivity() {
         finish()
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {

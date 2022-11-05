@@ -1,5 +1,6 @@
 package com.jeanwest.reader.logIn
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,12 +16,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.android.volley.NoConnectionError
+import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.shared.ErrorSnackBar
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
+import com.jeanwest.reader.shared.userLogin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,105 +34,40 @@ class UserLoginActivity : ComponentActivity() {
     private var username by mutableStateOf("")
     private var password by mutableStateOf("")
     private var state = SnackbarHostState()
+    private lateinit var queue : RequestQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { Page() }
+        queue = Volley.newRequestQueue(this)
     }
 
-    private fun signIn() {
+    private fun login() {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val editor = memory.edit()
 
-        val logInRequest = Volley.newRequestQueue(this)
-        val url = "https://rfid-api.avakatan.ir/login"
+        userLogin(queue, state, username, password, { token, fullName, assignedLocation, assignedWarehouse, warehouses ->
 
-        val jsonRequest = object : JsonObjectRequest(Method.POST, url, null, { response ->
-
-            editor.putString("accessToken", response.getString("accessToken"))
+            editor.putString("accessToken", token)
             editor.putString("username", username)
-            editor.putString("userFullName", response.getString("fullName"))
-            editor.putInt("userLocationCode", response.getInt("locationCode"))
-            editor.putInt(
-                "userWarehouseCode",
-                response.getJSONObject("location").getInt("warehouseCode")
-            )
-
-            val warehouses = mutableMapOf<String, String>()
-            val warehousesJsonArray = response.getJSONArray("warehouses")
-            for (i in 0 until warehousesJsonArray.length()) {
-                warehouses[warehousesJsonArray.getJSONObject(i).getString("WareHouse_ID")] =
-                    warehousesJsonArray.getJSONObject(i).getString("WareHouseTitle")
-            }
-
+            editor.putString("userFullName", fullName)
+            editor.putInt("userLocationCode", assignedLocation)
+            editor.putInt("userWarehouseCode", assignedWarehouse)
             editor.putString("userWarehouses", Gson().toJson(warehouses).toString())
             editor.apply()
-
             val intent =
                 Intent(this@UserLoginActivity, MainActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
-
-
         }, {
-            when {
-                it is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                it.networkResponse.statusCode == 401 -> {
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "نام کاربری یا رمز عبور اشتباه است",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-
             editor.putString("accessToken", "")
             editor.putString("username", "")
             editor.apply()
-
-        }) {
-
-            override fun getBody(): ByteArray {
-                val body = JSONObject()
-                body.put("username", username)
-                body.put("password", password)
-                return body.toString().toByteArray()
-            }
-
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                return params
-            }
-        }
-        logInRequest.add(jsonRequest)
+        })
     }
 
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
         MyApplicationTheme {
@@ -150,7 +88,7 @@ class UserLoginActivity : ComponentActivity() {
             UsernameTextField()
             PasswordTextField()
             Button(
-                onClick = { signIn() },
+                onClick = { login() },
                 modifier = Modifier
                     .padding(top = 20.dp)
                     .align(Alignment.CenterHorizontally)

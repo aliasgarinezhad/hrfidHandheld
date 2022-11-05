@@ -28,15 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonArrayRequest
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
@@ -46,9 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalFoundationApi::class)
 class CheckOutActivity : ComponentActivity(), IBarcodeResult {
@@ -57,7 +49,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
 
     //ui parameters
     var loading by mutableStateOf(false)
-    private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
@@ -83,7 +74,10 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             Page()
         }
 
-        getDestinationLists()
+        getWarehousesLists(queue, state, {
+            destinations.clear()
+            destinations.putAll(it)
+        }, {})
         loadMemory()
 
         Thread.setDefaultUncaughtExceptionHandler(
@@ -106,58 +100,6 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             }
         }
         return true
-    }
-
-    private fun getDestinationLists() {
-
-        val url = "https://rfid-api.avakatan.ir/department-infos"
-        val request = object : JsonArrayRequest(Method.GET, url, null, {
-
-            for (i in 0 until it.length()) {
-                try {
-                    val warehouses = it.getJSONObject(i).getJSONArray("wareHouses")
-
-                    for (j in 0 until warehouses.length()) {
-                        val warehouse = warehouses.getJSONObject(j)
-                        destinations[warehouse.getString("WareHouseTitle")] =
-                            warehouse.getInt("WareHouse_ID")
-                    }
-                } catch (e: Exception) {
-
-                }
-            }
-
-        }, {
-            when (it) {
-                is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.toString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = java.util.HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        queue.add(request)
     }
 
     private fun syncScannedItemsToServer() {
@@ -268,103 +210,28 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
             })
     }
 
-    private fun createStockDraft() {
+    private fun createNewStockDraft() {
 
         creatingStockDraft = true
 
-        val url = "https://rfid-api.avakatan.ir/stock-draft"
-        val request = object : JsonObjectRequest(Method.POST, url, null, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "حواله با موفقیت ثبت شد",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
-            creatingStockDraft = false
-            scannedBarcodes.clear()
-            products.removeAll {
-                it.scannedBarcodeNumber > 0
-            }
-            syncScannedItemsToServer()
-            saveToMemory()
-        }, {
-            if (it is NoConnectionError) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
+        createStockDraft(
+            queue,
+            state,
+            uiList,
+            stockDraftSpec,
+            sources[source]!!,
+            destinations[destination]!!,
+            {
+                creatingStockDraft = false
+                scannedBarcodes.clear()
+                products.removeAll {
+                    it.scannedBarcodeNumber > 0
                 }
-            } else {
-
-                val error =
-                    JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error.getString("message"),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-            creatingStockDraft = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = java.util.HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                val barcodeArray = JSONArray()
-                val epcArray = JSONArray()
-
-                uiList.forEach {
-                    repeat(it.scannedEPCNumber) { i ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        productJson.put("epc", it.scannedEPCs[i])
-                        epcArray.put(productJson)
-                    }
-                    repeat(it.scannedBarcodeNumber) { _ ->
-                        val productJson = JSONObject()
-                        productJson.put("BarcodeMain_ID", it.primaryKey)
-                        productJson.put("kbarcode", it.KBarCode)
-                        productJson.put("K_Name", it.kName)
-                        barcodeArray.put(productJson)
-                    }
-                }
-
-                body.put("desc", stockDraftSpec)
-                body.put("createDate", sdf.format(Date()))
-                body.put("fromWarehouseId", sources[source])
-                body.put("toWarehouseId", destinations[destination])
-                body.put("kbarcodes", barcodeArray)
-                body.put("epcs", epcArray)
-
-                return body.toString().toByteArray()
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+                syncScannedItemsToServer()
+                saveToMemory()
+            }, {
+                creatingStockDraft = false
+            })
     }
 
     override fun getBarcode(barcode: String?) {
@@ -821,7 +688,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                         )
                     }
                 } else if (!creatingStockDraft) {
-                    createStockDraft()
+                    createNewStockDraft()
                 }
             }
         }

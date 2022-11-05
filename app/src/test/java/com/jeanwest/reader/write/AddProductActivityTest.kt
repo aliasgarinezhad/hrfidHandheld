@@ -21,7 +21,7 @@ class AddProductActivityTest {
             }
             assert(decodedEPC.serial == i)
         }*/
-        println(epcGenerator(48, 0, 0, 101, 119952347L, 0L))
+        println(epcGenerator(48, 0, 0, 101, 130290L, 0L))
     }
 
     private fun epcGenerator(header: Int, filter: Int, partition: Int, company: Int, item: Long, serial: Long) : String {
