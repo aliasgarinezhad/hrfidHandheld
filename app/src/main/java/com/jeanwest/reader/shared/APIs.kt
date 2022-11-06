@@ -9,6 +9,7 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.jeanwest.reader.MainActivity
+import com.jeanwest.reader.shared.JalaliDate.JalaliDateConverter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -440,6 +441,17 @@ fun getStockDraftDetails(
 
         val draftBarcodes = mutableListOf<String>()
         val draftEpcs = mutableListOf<String>()
+        val source = it.getJSONObject(0).getInt("FromWareHouse_ID")
+        val destination = it.getJSONObject(0).getInt("ToWareHouse_ID")
+        val miladiCreateDate = it.getJSONObject(0).getString("CreateDate").substring(0, 10)
+        val intArrayFormatJalaliCreateDate = JalaliDateConverter.gregorian_to_jalali(
+            miladiCreateDate.substring(0, 4).toInt(),
+            miladiCreateDate.substring(5, 7).toInt(),
+            miladiCreateDate.substring(8, 10).toInt()
+        )
+        val jalaliCreateDate =
+            "${intArrayFormatJalaliCreateDate[0]}/${intArrayFormatJalaliCreateDate[1]}/${intArrayFormatJalaliCreateDate[2]}"
+
 
         var numberOfItems = 0
         for (i in 0 until it.length()) {
@@ -456,6 +468,9 @@ fun getStockDraftDetails(
             numberOfItems = numberOfItems,
             barcodeTable = draftBarcodes,
             epcTable = draftEpcs,
+            date = jalaliCreateDate,
+            source = source,
+            destination = destination,
         )
 
         onSuccess(draftProperties)
@@ -1010,6 +1025,43 @@ fun saveInventoryDataGetId(
         0,
         DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
     )
+
+    queue.add(request)
+}
+
+fun getStockDraftIDs(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    onSuccess: (stockDrafts: MutableList<Long>) -> Unit,
+    onError: () -> Unit
+) {
+
+    val url = "https://rfid-api.avakatan.ir/stock-draft/pending"
+
+    val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+        val stockDraftsIDs = mutableListOf<Long>()
+
+        for (i in 0 until it.length()) {
+
+            stockDraftsIDs.add(
+                it.getJSONObject(i).getString("StockDraft_ID").toLong(),
+            )
+        }
+
+        onSuccess(stockDraftsIDs)
+
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + MainActivity.token
+            return params
+        }
+    }
 
     queue.add(request)
 }

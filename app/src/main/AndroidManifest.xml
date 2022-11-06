@@ -25,16 +25,19 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="application/vnd.ms-excel" />
             </intent-filter>
         </activity>
-
         <activity android:name="com.jeanwest.reader.inventory.InventoryActivity" />
         <activity android:name="com.jeanwest.reader.inventory.SearchSpecialProductActivity" />
         <activity android:name="com.jeanwest.reader.manualRefill.AddProductToRefillListActivity" />
@@ -50,7 +53,8 @@
         <activity android:name="com.jeanwest.reader.logIn.DeviceRegisterActivity" />
         <activity android:name="com.jeanwest.reader.updateActivity.UpdateActivity" />
         <activity android:name="com.jeanwest.reader.write.WriteActivity" />
-        <activity android:name="com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity"/>
+        <activity android:name="com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity" />
+        <activity android:name="com.jeanwest.reader.stockDraftList.StockDraftsList" />
         <activity
             android:name="com.jeanwest.reader.MainActivity"
             android:exported="true"
@@ -60,7 +64,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
 
         <provider

@@ -48,6 +48,7 @@ import com.jeanwest.reader.shared.syncServerToLocalWarehouse
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
 import com.jeanwest.reader.shared.theme.borderColor
+import com.jeanwest.reader.stockDraftList.StockDraftsList
 import com.jeanwest.reader.write.WriteActivity
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.CoroutineScope
@@ -341,7 +342,14 @@ class MainActivity : ComponentActivity() {
                                         Intent(this@MainActivity, CountActivity::class.java)
                                     startActivity(intent)
                                 }
-                                Box(modifier = Modifier.size(buttonSize))
+                                OpenActivityButton(
+                                    stringResource(R.string.stockDraftsList),
+                                    R.drawable.ic_baseline_format_list_bulleted_24
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, StockDraftsList::class.java)
+                                    startActivity(intent)
+                                }
                                 Box(modifier = Modifier.size(buttonSize))
                             }
                         }

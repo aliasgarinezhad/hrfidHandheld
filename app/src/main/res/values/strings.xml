@@ -13,7 +13,10 @@
     <string name="EXARK">EXARKXK650</string>
     <string name="chainway">c72</string>
     <string name="search">کیوسک</string>
+    <string name="stockDraftsList">حواله بین انباری</string>
     <string name="count">شمارش</string>
     <string name="tagProgramming">رایت</string>
+    <string name="title_activity_stock_drafts_list">StockDraftsListActivity</string>
+    <string name="title_activity_main">MainActivity</string>
 
 </resources>

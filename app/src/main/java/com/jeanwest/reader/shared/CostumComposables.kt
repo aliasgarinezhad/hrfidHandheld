@@ -197,13 +197,13 @@ fun Item(
             ) {
 
                 Text(
-                    text = if(text1 == "") uiList[i].KBarCode else text1,
+                    text = if (text1 == "") uiList[i].KBarCode else text1,
                     style = MaterialTheme.typography.body2,
                     textAlign = TextAlign.Right,
                     fontSize = 12.sp
                 )
                 Text(
-                    text = if(text2 == "") uiList[i].name else text2,
+                    text = if (text2 == "") uiList[i].name else text2,
                     style = MaterialTheme.typography.h4,
                     textAlign = TextAlign.Right,
                 )
@@ -240,6 +240,114 @@ fun Item(
                     style = MaterialTheme.typography.h3,
                     textAlign = TextAlign.Right,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun Item2(
+    clickable: Boolean = false,
+    text1: String,
+    text2: String,
+    text3: String,
+    text4: String,
+    text5: String,
+    text6: String,
+    onClick: () -> Unit = {},
+) {
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = 0.dp, top = 12.dp)
+            .shadow(elevation = 3.dp, shape = MaterialTheme.shapes.small)
+            .background(
+                color = MaterialTheme.colors.onPrimary,
+                shape = MaterialTheme.shapes.small
+            )
+            .fillMaxWidth()
+            .height(80.dp)
+            .testTag("items")
+            .combinedClickable(
+                enabled = clickable,
+                onClick = { onClick() })
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxHeight(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1.5F)
+                    .fillMaxHeight()
+                    .padding(top = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                Text(
+                    text = text1,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp),
+                )
+
+                Text(
+                    text = text3,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp),
+                )
+
+                Text(
+                    text = text5,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxHeight()
+                    .padding(top = 8.dp, bottom = 8.dp)
+                    .wrapContentWidth(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                Text(
+                    text = text2,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxWidth(),
+                )
+
+                Text(
+                    text = text4,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .weight(1F),
+                )
+
+                Text(
+                    text = text6,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .weight(1F),
                 )
             }
         }
