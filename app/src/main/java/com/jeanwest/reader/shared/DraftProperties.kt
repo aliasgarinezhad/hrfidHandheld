@@ -8,4 +8,5 @@ data class DraftProperties(
     val destination: Int = 0,
     val barcodeTable: MutableList<String> = mutableListOf(),
     val epcTable: MutableList<String> = mutableListOf(),
+    val specification: String = ""
 )

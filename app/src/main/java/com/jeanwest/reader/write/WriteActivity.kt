@@ -28,10 +28,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
-import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
 import com.jeanwest.reader.shared.test.Barcode2D
@@ -45,9 +43,6 @@ import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
-import com.android.volley.toolbox.JsonObjectRequest as JsonObjectRequest1
 
 class WriteActivity : ComponentActivity(), IBarcodeResult {
 
@@ -65,7 +60,7 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
     private var barcodeIsScanning by mutableStateOf(false)
     private var rfIsScanning by mutableStateOf(false)
     private var resultColor by mutableStateOf(Color.White)
-    private lateinit var product : Product
+    private lateinit var product: Product
     private val tagTypeValues = mutableListOf("تگ کیوآر کد دار", "تگ سفید")
     var tagTypeValue by mutableStateOf("تگ سفید")
     private var state = SnackbarHostState()
@@ -378,34 +373,40 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        getProductsV4(queue, state, mutableListOf(), mutableListOf(barcodeID), { _, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcodeID),
+            { _, barcodes, _, _ ->
 
-            val decodedTagEpc = epcDecoder(epc)
+                val decodedTagEpc = epcDecoder(epc)
 
-            if (barcodes.size == 0) {
-                result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                if (barcodes.size == 0) {
+                    result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                    resultColor = errorColor
+                } else if (decodedTagEpc.header == 48) {
+                    if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodes[0].primaryKey) ||
+                        (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodes[0].rfidKey)
+                    ) {
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                        resultColor = doneColor
+                        result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
+                    } else {
+                        product = barcodes[0]
+                        result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
+                        openRewriteDialog = true
+                    }
+                } else {
+                    write(barcodes[0], false, oldMethodTid)
+                }
+
+            },
+            {
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = errorColor
-            } else if (decodedTagEpc.header == 48) {
-                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodes[0].primaryKey) ||
-                    (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodes[0].rfidKey)
-                ) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    resultColor = doneColor
-                    result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
-                } else {
-                    product = barcodes[0]
-                    result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
-                    openRewriteDialog = true
-                }
-            } else {
-                write(barcodes[0], false, oldMethodTid)
-            }
-
-        }, {
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = errorColor
-        })
+            })
     }
 
     private fun writeTagByQRCode(barcodeID: String) {
@@ -425,34 +426,40 @@ class WriteActivity : ComponentActivity(), IBarcodeResult {
             }
         }
 
-        getProductsV4(queue, state, mutableListOf(), mutableListOf(barcodeID), { _, barcodes, _, _ ->
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcodeID),
+            { _, barcodes, _, _ ->
 
-            val decodedTagEpc = epcDecoder(epc)
+                val decodedTagEpc = epcDecoder(epc)
 
-            if (barcodes.size == 0) {
-                result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                if (barcodes.size == 0) {
+                    result += "بارکد مورد نظر در سیستم تعریف نشده است. لطفا با پشتیبانی تماس بگیرید."
+                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
+                    resultColor = errorColor
+                } else if (decodedTagEpc.header == 48) {
+                    if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodes[0].primaryKey) ||
+                        (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodes[0].rfidKey)
+                    ) {
+                        beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                        resultColor = doneColor
+                        result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
+                    } else {
+                        product = barcodes[0]
+                        result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
+                        openRewriteDialog = true
+                    }
+                } else {
+                    write(barcodes[0], false, "E28$newMethodTid")
+                }
+
+            },
+            {
                 beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
                 resultColor = errorColor
-            } else if (decodedTagEpc.header == 48) {
-                if ((decodedTagEpc.company == 100 && decodedTagEpc.item == barcodes[0].primaryKey) ||
-                    (decodedTagEpc.company == 101 && decodedTagEpc.item == barcodes[0].rfidKey)
-                ) {
-                    beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                    resultColor = doneColor
-                    result += "این تگ قبلا با همین بارکد رایت شده است" + "\n"
-                } else {
-                    product = barcodes[0]
-                    result += "این تگ قبلا با بارکد دیگری رایت شده است" + "\n"
-                    openRewriteDialog = true
-                }
-            } else {
-                write(barcodes[0], false, "E28$newMethodTid")
-            }
-
-        }, {
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
-            resultColor = errorColor
-        })
+            })
     }
 
     private fun epcGenerator(

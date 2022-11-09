@@ -302,6 +302,14 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 OpenActivityButton(
+                                    stringResource(R.string.stockDraftsList),
+                                    R.drawable.ic_baseline_format_list_bulleted_24
+                                ) {
+                                    val intent =
+                                        Intent(this@MainActivity, StockDraftsList::class.java)
+                                    startActivity(intent)
+                                }
+                                OpenActivityButton(
                                     text = stringResource(R.string.inventoryText),
                                     iconId = R.drawable.inventory
                                 ) {
@@ -316,17 +324,6 @@ class MainActivity : ComponentActivity() {
                                     val intent =
                                         Intent(this@MainActivity, WriteActivity::class.java)
                                     startActivity(intent)
-                                }
-                                OpenActivityButton(
-                                    text = stringResource(R.string.centralCheckInCheckInText),
-                                    iconId = R.drawable.inventory
-                                ) {
-                                    Intent(
-                                        this@MainActivity,
-                                        CentralWarehouseCheckInActivity::class.java
-                                    ).apply {
-                                        startActivity(this)
-                                    }
                                 }
                             }
 
@@ -343,12 +340,15 @@ class MainActivity : ComponentActivity() {
                                     startActivity(intent)
                                 }
                                 OpenActivityButton(
-                                    stringResource(R.string.stockDraftsList),
-                                    R.drawable.ic_baseline_format_list_bulleted_24
+                                    text = stringResource(R.string.centralCheckInCheckInText),
+                                    iconId = R.drawable.inventory
                                 ) {
-                                    val intent =
-                                        Intent(this@MainActivity, StockDraftsList::class.java)
-                                    startActivity(intent)
+                                    Intent(
+                                        this@MainActivity,
+                                        CentralWarehouseCheckInActivity::class.java
+                                    ).apply {
+                                        startActivity(this)
+                                    }
                                 }
                                 Box(modifier = Modifier.size(buttonSize))
                             }

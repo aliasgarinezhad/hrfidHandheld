@@ -2,16 +2,13 @@ package com.jeanwest.reader.stockDraftList
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,10 +25,6 @@ import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
 import com.jeanwest.reader.shared.theme.MyApplicationTheme
-import com.jeanwest.reader.shared.theme.borderColor
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class StockDraftsList : ComponentActivity() {
 
@@ -39,11 +32,13 @@ class StockDraftsList : ComponentActivity() {
     private lateinit var queue: RequestQueue
     var loading by mutableStateOf(false)
     private var stockDraftIDs = mutableListOf<Long>()
-    var uiList = mutableStateMapOf<Long, DraftProperties>()
+    var draftsMap = mutableStateMapOf<Long, DraftProperties>()
     var showProductsMode by mutableStateOf(false)
     private var selectedStockDraft = DraftProperties(number = 0L, numberOfItems = 0)
     private var barcodeMapWithProperties = mutableMapOf<String, Product>()
-    private val selectedStockDraftProducts = mutableMapOf<String, Product>()
+    val selectedStockDraftProducts = mutableMapOf<String, Product>()
+    val uiList = mutableListOf<DraftProperties>()
+    private val listState = LazyListState(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,7 +65,7 @@ class StockDraftsList : ComponentActivity() {
         getStockDraftIDs(queue, state, {
             stockDraftIDs.clear()
             stockDraftIDs.addAll(it)
-            uiList.clear()
+            draftsMap.clear()
             getStockDraftsDetails()
         }, {
             loading = false
@@ -84,7 +79,7 @@ class StockDraftsList : ComponentActivity() {
 
         run breakForEach@{
             stockDraftIDs.forEach {
-                if (it !in uiList.keys) {
+                if (it !in draftsMap.keys) {
                     stockDraftID = it
                     return@breakForEach
                 }
@@ -92,13 +87,16 @@ class StockDraftsList : ComponentActivity() {
         }
 
         if (stockDraftID == 0L) {
+            uiList.addAll(draftsMap.values)
+            uiList.sortByDescending {
+                it.date
+            }
             loading = false
-            Log.e("ui map", uiList.toString())
             return
         }
 
         getStockDraftDetails(queue, state, stockDraftID.toString(), {
-            uiList[it.number] = it
+            draftsMap[it.number] = it
             getStockDraftsDetails()
         }, {
             loading = false
@@ -181,7 +179,7 @@ class StockDraftsList : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
+    @OptIn(ExperimentalFoundationApi::class, ExperimentalCoilApi::class)
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
     fun Page() {
@@ -261,21 +259,22 @@ class StockDraftsList : ComponentActivity() {
 
             Column(modifier = Modifier.fillMaxSize()) {
 
-                LazyColumn(modifier = Modifier.padding(top = 4.dp)) {
+                LazyColumn(modifier = Modifier.padding(top = 4.dp), state = listState) {
 
                     items(uiList.size) { i ->
                         Item2(
                             clickable = true,
-                            text1 = "حواله: " + uiList.values.toList()[i].number,
-                            text2 = "تعداد کالاها: " + uiList.values.toList()[i].numberOfItems,
-                            text3 = "تاریخ ثبت: " + uiList.values.toList()[i].date,
-                            text4 = "مبدا: " + uiList.values.toList()[i].source,
-                            text5 = "شرح: " + "",
-                            text6 = "مقصد: " + uiList.values.toList()[i].destination,
+                            enableBottomSpace = i == uiList.size - 1,
+                            text1 = "حواله: " + uiList[i].number,
+                            text2 = "تعداد کالاها: " + uiList[i].numberOfItems,
+                            text3 = "تاریخ ثبت: " + uiList[i].date,
+                            text4 = "مبدا: " + uiList[i].source,
+                            text5 = "شرح: " + uiList[i].specification,
+                            text6 = "مقصد: " + uiList[i].destination,
                         ) {
                             showProductsMode = true
                             selectedStockDraftProducts.clear()
-                            selectedStockDraft = uiList.values.toList()[i]
+                            selectedStockDraft = uiList[i]
                             syncInputItemsToServer()
                         }
                     }

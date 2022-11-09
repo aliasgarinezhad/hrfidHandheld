@@ -6,7 +6,6 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,14 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonArrayRequest
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.search.SearchSubActivity
 import com.jeanwest.reader.shared.*
@@ -46,9 +40,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.*
 
 class RefillActivity2 : ComponentActivity(), IBarcodeResult {
 
@@ -103,72 +94,17 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
     private fun getRefillBarcodes() {
 
         loading = true
-
-        val url = "https://rfid-api.avakatan.ir/refill/"
-
-        val request = object : JsonArrayRequest(Method.GET, url, null, {
-
+        getRefill2(queue, state, {
             inputBarcodes.clear()
-
-            for (i in 0 until it.length()) {
-
-                inputBarcodes.add(it.getJSONObject(i).getString("KBarCode"))
-            }
-
+            inputBarcodes.addAll(it)
             if (inputBarcodes.isEmpty()) {
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "خطی صفر است!",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
                 loading = false
-
             } else {
                 getRefillItems()
             }
         }, {
-            when (it) {
-                is NoConnectionError -> {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                else -> {
-                    val error =
-                        JSONObject(it.networkResponse.data.decodeToString()).getJSONObject("error")
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            error.getString("message"),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     private fun getRefillItems() {
@@ -182,7 +118,6 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
                 it.scannedBarcodeNumber = 0
                 it.scannedBarcode = ""
                 it.scannedEPCs.clear()
-                it.requestedNumber = 2
                 refillProducts.add(it)
             }
             syncScannedItemsToServer()
@@ -550,12 +485,13 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
 
             Item(
                 i, uiList, true,
-                text3 = "اسکن: " + uiList[i].scannedNumber,
+                text2 = "اسکن: " + uiList[i].scannedNumber,
                 text4 = "انبار: " + uiList[i].wareHouseNumber.toString(),
+                text3 = "فروشگاه: " + uiList[i].storeNumber.toString(),
                 colorFull = uiList[i].scannedNumber > 0,
                 enableWarehouseNumberCheck = true,
 
-            ) {
+                ) {
                 openSearchActivity(uiList[i])
             }
 

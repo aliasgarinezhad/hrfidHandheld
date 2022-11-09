@@ -250,6 +250,7 @@ fun Item(
 @Composable
 fun Item2(
     clickable: Boolean = false,
+    enableBottomSpace: Boolean = false,
     text1: String,
     text2: String,
     text3: String,
@@ -259,10 +260,12 @@ fun Item2(
     onClick: () -> Unit = {},
 ) {
 
+    val bottomPadding = if (enableBottomSpace) 128.dp else 0.dp
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
-            .padding(start = 16.dp, end = 16.dp, bottom = 0.dp, top = 12.dp)
+            .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding, top = 12.dp)
             .shadow(elevation = 3.dp, shape = MaterialTheme.shapes.small)
             .background(
                 color = MaterialTheme.colors.onPrimary,
@@ -282,7 +285,7 @@ fun Item2(
         ) {
             Column(
                 modifier = Modifier
-                    .weight(1.5F)
+                    .weight(2F)
                     .fillMaxHeight()
                     .padding(top = 8.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.SpaceEvenly

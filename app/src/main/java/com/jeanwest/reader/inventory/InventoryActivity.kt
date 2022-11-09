@@ -5,7 +5,6 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,7 +37,6 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.TimeoutError
-import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
@@ -54,7 +52,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
@@ -62,8 +59,6 @@ import java.io.FileOutputStream
 @ExperimentalFoundationApi
 class InventoryActivity : ComponentActivity() {
 
-    private var resultsBiggerThan500 = false
-    private var resultIndexForApi2 = 0
     private var saveToServerId = ""
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
@@ -79,6 +74,7 @@ class InventoryActivity : ComponentActivity() {
     private var currentScannedProductProductCodes = mutableListOf<String>()
     private var currentScannedEpcs = mutableListOf<String>()
     private var isInProgress = false
+    private var resultsSentToServer = mutableStateMapOf<String, Product>()
 
     //ui parameters
     private var openFinishDialog by mutableStateOf(false)
@@ -608,225 +604,92 @@ class InventoryActivity : ComponentActivity() {
     private fun saveApi2() {
 
         loading = true
-        Log.e("api 2 started", "")
+        var resultsBiggerThan500 = false
+        val productListForSend = mutableListOf<Product>()
 
-        val url = "https://rfid-api.avakatan.ir/mojodi-review/products"
-        val request = object : StringRequest(Method.POST, url, {
-
-            if (resultsBiggerThan500) {
-                saveApi2()
-            } else {
-                resultIndexForApi2 = 0
-                saveApi3()
-            }
-        }, {
-            if (it is NoConnectionError) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        it.networkResponse.data.decodeToString(),
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            }
-            resultIndexForApi2 = 0
-            loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = mutableMapOf<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] = "Bearer " + MainActivity.token
-                return params
-            }
-
-            override fun getBody(): ByteArray {
-
-                val body = JSONObject()
-                val products = JSONArray()
-
-                resultsBiggerThan500 = false
-
-                for (i in resultIndexForApi2 until inventoryResult.values.toMutableList().size) {
-                    val it = inventoryResult.values.toMutableList()[i]
-                    val productJson = JSONObject()
-
-                    productJson.put("BarcodeMain_ID", it.primaryKey)
-                    productJson.put("kbarcode", it.KBarCode)
-                    productJson.put("K_Name", it.kName)
-                    productJson.put("diffCount", it.inventoryConflictNumber)
-                    products.put(productJson)
-
-                    if (products.length() > 500) {
+        run breakForEach@{
+            inventoryResult.keys.forEach {
+                if (it !in resultsSentToServer.keys) {
+                    if (productListForSend.size < 500) {
+                        productListForSend.add(inventoryResult[it]!!)
+                        resultsSentToServer[it] = inventoryResult[it]!!.copy()
+                    } else {
                         resultsBiggerThan500 = true
-                        resultIndexForApi2 = i
-                        break
+                        return@breakForEach
                     }
                 }
-
-                body.put("products", products)
-
-                return body.toString().toByteArray()
             }
         }
 
-        request.retryPolicy = DefaultRetryPolicy(
-            apiTimeout,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
+        if (productListForSend.isEmpty()) {
+            saveApi3()
+            return
+        }
 
-        queue.add(request)
+        saveInventoryDataSendPackets(queue, state, productListForSend, {
+            if (resultsBiggerThan500) {
+                saveApi2()
+            } else {
+                saveApi3()
+            }
+        }, {
+            loading = false
+        })
     }
 
     private fun saveApi3() {
 
-        Log.e("api 3 started", "")
         loading = true
 
-        val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/submit"
-        val request = object : StringRequest(Method.POST, url, {
-
-            CoroutineScope(Dispatchers.Default).launch {
-                state.showSnackbar(
-                    "اطلاعات انبارگردانی با موفقیت ثبت شدند",
-                    null,
-                    SnackbarDuration.Long
-                )
-            }
+        saveInventoryDataConfirm(queue, state, saveToServerId, {
             inventoryStarted = false
             inputBarcodes.clear()
             inputProducts.clear()
             inputBarcodeMapWithProperties.clear()
             clear()
             loading = false
-
         }, {
-            when (it) {
-                is NoConnectionError -> {
-                    loading = false
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-                is TimeoutError -> {
-                    saveApi4()
-                }
-                else -> {
-                    loading = false
-                    CoroutineScope(Dispatchers.Default).launch {
-                        state.showSnackbar(
-                            it.networkResponse.data.decodeToString(),
-                            null,
-                            SnackbarDuration.Long
-                        )
-                    }
-                }
-            }
-
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = mutableMapOf<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            10000,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
-    }
-
-    private fun saveApi4() {
-
-        loading = true
-        Log.e("api 4 started", "")
-
-        val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/report"
-        val request = object : JsonObjectRequest(Method.GET, url, null, {
-
-            if (it.getBoolean("IsInProgress")) {
-                Log.e("error", "4 waiting")
-                CoroutineScope(IO).launch {
-                    delay(10000)
-                    saveApi4()
-                }
-            } else {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اطلاعات انبارگردانی با موفقیت ثبت شدند",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
+            if (it is TimeoutError) {
                 inventoryStarted = false
                 inputBarcodes.clear()
                 inputProducts.clear()
                 inputBarcodeMapWithProperties.clear()
                 clear()
+            }
+            loading = false
+        })
+    }
+
+    private fun checkServerIsReady() {
+
+        loading = true
+
+        saveInventoryDataCheckSaved(queue, state, saveToServerId, {
+
+            if (it.getBoolean("IsInProgress")) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    state.showSnackbar(
+                        "سرور مشغول ثبت اطلاعات انبارگردانی قبلی است. لطفا بعدا امتحان کنید.",
+                        null,
+                        SnackbarDuration.Long
+                    )
+                }
+                loading = false
+            } else {
+                openStartOrContinueDialog = true
                 loading = false
             }
 
         }, {
-            if (it is NoConnectionError) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-            } else {
-
-                val error = it?.networkResponse?.data?.decodeToString()?.let { it1 ->
-                    JSONObject(it1).getJSONObject("error").getString("message")
-                } ?: "مشکلی در دریافت اطلاعات به وجود آمده است."
-
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        error,
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "سرور مشغول ثبت اطلاعات انبارگردانی قبلی است. لطفا بعدا امتحان کنید.",
+                    null,
+                    SnackbarDuration.Long
+                )
             }
-
-            resultIndexForApi2 = 0
             loading = false
-        }) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val params = mutableMapOf<String, String>()
-                params["Content-Type"] = "application/json;charset=UTF-8"
-                params["Authorization"] =
-                    "Bearer " + MainActivity.token
-                return params
-            }
-        }
-
-        request.retryPolicy = DefaultRetryPolicy(
-            5000,
-            0,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        )
-
-        queue.add(request)
+        })
     }
 
     fun saveToMemory() {
@@ -921,7 +784,6 @@ class InventoryActivity : ComponentActivity() {
         loading = false
         isInProgress = false
         rfidScan = false
-        resultsBiggerThan500 = false
         loading = false
         finish()
     }
@@ -959,7 +821,7 @@ class InventoryActivity : ComponentActivity() {
 
             actions = {
                 IconButton(onClick = {
-                    if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
+                    if (!rfidScan && !loading) {
                         openDialog = true
                     }
                 }) {
@@ -970,7 +832,7 @@ class InventoryActivity : ComponentActivity() {
                 }
                 IconButton(modifier = Modifier.testTag("clear"),
                     onClick = {
-                        if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
+                        if (!rfidScan && !loading) {
                             openClearDialog = true
                         }
                     }) {
@@ -1139,7 +1001,7 @@ class InventoryActivity : ComponentActivity() {
                         .height(48.dp),
                         onClick = {
                             if (!inventoryStarted) {
-                                openStartOrContinueDialog = true
+                                checkServerIsReady()
                             } else {
                                 openFinishDialog = true
                             }
