@@ -108,7 +108,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
             }
         }, {
             loading = false
-        })
+        }, true)
     }
 
     private fun getRefillItems() {
@@ -125,7 +125,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 refillProducts.add(it)
             }
             syncScannedItemsToServer()
-        }, {})
+        }, {}, true)
     }
 
     private fun syncScannedItemsToServer() {
@@ -248,7 +248,7 @@ class RefillActivity : ComponentActivity(), IBarcodeResult {
                 uiList.clear()
                 uiList.addAll(refillProducts)
                 loading = false
-            })
+            }, true)
     }
 
     override fun getBarcode(barcode: String?) {

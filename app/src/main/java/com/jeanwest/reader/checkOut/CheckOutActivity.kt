@@ -207,7 +207,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                     it1.name
                 }
                 loading = false
-            })
+            }, true)
     }
 
     private fun createNewStockDraft() {
@@ -231,7 +231,7 @@ class CheckOutActivity : ComponentActivity(), IBarcodeResult {
                 saveToMemory()
             }, {
                 creatingStockDraft = false
-            })
+            }, true)
     }
 
     override fun getBarcode(barcode: String?) {

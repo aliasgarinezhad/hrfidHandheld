@@ -56,7 +56,6 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
 
     //ui parameters
     var loading by mutableStateOf(false)
-    private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
@@ -170,7 +169,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
             }
             syncScannedItemsToServer()
 
-        }, {})
+        }, {}, true)
     }
 
     private fun syncScannedItemsToServer() {
@@ -290,7 +289,7 @@ class ManualRefillActivity : ComponentActivity(), IBarcodeResult {
                     it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                 }
                 loading = false
-            })
+            }, true)
     }
 
     private fun createStockDraft() {

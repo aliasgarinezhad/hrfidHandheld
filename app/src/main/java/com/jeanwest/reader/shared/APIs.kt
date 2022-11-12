@@ -26,6 +26,7 @@ fun getProductsV4(
     barcodes: MutableList<String> = mutableListOf(),
     onSuccess: (epcs: MutableList<Product>, barcodes: MutableList<Product>, invalidEpcs: JSONArray, invalidBarcodes: JSONArray) -> Unit,
     onError: (it: VolleyError?) -> Unit,
+    local: Boolean = false,
 ) {
 
     val responseEpcs = mutableListOf<Product>()
@@ -35,7 +36,11 @@ fun getProductsV4(
         return
     }
 
-    val url = "https://rfid-api.avakatan.ir/products/v4"
+    var url = "https://rfid-api.avakatan.ir/products/v4"
+
+    if(local) {
+        url += "/localdb"
+    }
 
     val request = object : JsonObjectRequest(Method.POST, url, null, {
 
@@ -330,10 +335,15 @@ fun getRefill(
     queue: RequestQueue,
     state: SnackbarHostState,
     onSuccess: (barcodes: MutableList<String>) -> Unit,
-    onError: () -> Unit
+    onError: () -> Unit,
+    local: Boolean = false,
 ) {
 
-    val url = "https://rfid-api.avakatan.ir/refill"
+    var url = "https://rfid-api.avakatan.ir/refill"
+
+    if(local) {
+        url += "/localdb"
+    }
 
     val request = object : JsonArrayRequest(Method.GET, url, null, {
 
@@ -381,10 +391,14 @@ fun getRefill2(
     queue: RequestQueue,
     state: SnackbarHostState,
     onSuccess: (barcodes: MutableList<String>) -> Unit,
-    onError: () -> Unit
-) {
+    onError: () -> Unit,
+    local: Boolean = false,
+    ) {
 
-    val url = "https://rfid-api.avakatan.ir/refill2/"
+    var url = "https://rfid-api.avakatan.ir/refill2/"
+    if(local) {
+        url += "/localdb"
+    }
 
     val request = object : JsonArrayRequest(Method.GET, url, null, {
 
@@ -599,10 +613,14 @@ fun confirmStockDraft(
     products: MutableList<Product>,
     onSuccess: () -> Unit,
     onError: () -> Unit,
-) {
+    local: Boolean = false,
+    ) {
 
-    val url =
+    var url =
         "https://rfid-api.avakatan.ir/stock-draft/$code/confirm-via-erp"
+    if(local) {
+        url += "/localdb"
+    }
     val request = object : JsonObjectRequest(Method.POST, url, null, {
 
         CoroutineScope(Dispatchers.Default).launch {
@@ -699,9 +717,14 @@ fun createStockDraft(
     destination: Int,
     onSuccess: () -> Unit,
     onError: () -> Unit,
-) {
+    local: Boolean = false,
+    ) {
 
-    val url = "https://rfid-api.avakatan.ir/stock-draft"
+    var url = "https://rfid-api.avakatan.ir/stock-draft"
+    if(local) {
+        url += "/localdb"
+    }
+
     val request = object : JsonObjectRequest(Method.POST, url, null, {
 
         CoroutineScope(Dispatchers.Default).launch {
@@ -1061,7 +1084,6 @@ fun saveInventoryDataGetId(
         override fun getBody(): ByteArray {
 
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-
             val body = JSONObject()
             body.put("desc", "انبارگردانی با RFID")
             body.put("createDate", sdf.format(Date()))
@@ -1181,14 +1203,47 @@ fun saveInventoryDataConfirm(
 
         CoroutineScope(Dispatchers.Default).launch {
             state.showSnackbar(
-                "اطلاعات انبارگردانی با موفقیت ثبت شدند",
+                "اطلاعات انبارگردانی با موفقیت ثبت شدند.",
                 null,
                 SnackbarDuration.Long
             )
         }
         onSuccess()
     }, {
-        apiErrorProcess(state, it)
+
+        if (it is NoConnectionError) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "اینترنت قطع است. شبکه وای فای را بررسی کنید.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        } else if (it is TimeoutError) {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "اطلاعات انبارگردانی با موفقیت ثبت شدند.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        } else {
+            val error = it?.networkResponse?.data?.decodeToString()?.let { it1 ->
+                try {
+                    JSONObject(it1).getJSONObject("error").getString("message")
+                } catch (e: Exception) {
+                    it1
+                }
+            } ?: "مشکلی در ارتباط با سرور به وجود آمده است."
+
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    error,
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        }
         onError(it)
     }) {
         override fun getHeaders(): MutableMap<String, String> {
@@ -1202,38 +1257,6 @@ fun saveInventoryDataConfirm(
 
     request.retryPolicy = DefaultRetryPolicy(
         10000,
-        0,
-        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-    )
-
-    queue.add(request)
-}
-
-fun saveInventoryDataCheckSaved(
-    queue: RequestQueue,
-    state: SnackbarHostState,
-    saveToServerId: String,
-    onSuccess: (it: JSONObject) -> Unit,
-    onError: () -> Unit
-) {
-    val url = "https://rfid-api.avakatan.ir/mojodi-review/$saveToServerId/report"
-    val request = object : JsonObjectRequest(Method.GET, url, null, {
-        onSuccess(it)
-    }, {
-        apiErrorProcess(state, it)
-        onError()
-    }) {
-        override fun getHeaders(): MutableMap<String, String> {
-            val params = mutableMapOf<String, String>()
-            params["Content-Type"] = "application/json;charset=UTF-8"
-            params["Authorization"] =
-                "Bearer " + MainActivity.token
-            return params
-        }
-    }
-
-    request.retryPolicy = DefaultRetryPolicy(
-        5000,
         0,
         DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
     )

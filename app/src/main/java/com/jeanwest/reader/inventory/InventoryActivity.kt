@@ -33,14 +33,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.NoConnectionError
 import com.android.volley.RequestQueue
 import com.android.volley.TimeoutError
-import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
-import com.jeanwest.reader.MainActivity
 import com.jeanwest.reader.R
 import com.jeanwest.reader.shared.*
 import com.jeanwest.reader.shared.test.RFIDWithUHFUART
@@ -75,7 +71,7 @@ class InventoryActivity : ComponentActivity() {
     private var currentScannedEpcs = mutableListOf<String>()
     private var isInProgress = false
     private var resultsSentToServer = mutableStateMapOf<String, Product>()
-
+    private var lastInventoryTime = 0L
     //ui parameters
     private var openFinishDialog by mutableStateOf(false)
     var uiList = mutableStateListOf<Product>()
@@ -98,8 +94,6 @@ class InventoryActivity : ComponentActivity() {
     private lateinit var queue: RequestQueue
     private var signedKBarCode = mutableStateListOf<String>()
     private var scanFilter by mutableStateOf("کسری")
-
-    private val apiTimeout = 60000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
     companion object {
@@ -647,6 +641,8 @@ class InventoryActivity : ComponentActivity() {
             inputProducts.clear()
             inputBarcodeMapWithProperties.clear()
             clear()
+            lastInventoryTime = System.currentTimeMillis()
+            saveToMemory()
             loading = false
         }, {
             if (it is TimeoutError) {
@@ -655,6 +651,8 @@ class InventoryActivity : ComponentActivity() {
                 inputProducts.clear()
                 inputBarcodeMapWithProperties.clear()
                 clear()
+                lastInventoryTime = System.currentTimeMillis()
+                saveToMemory()
             }
             loading = false
         })
@@ -662,25 +660,9 @@ class InventoryActivity : ComponentActivity() {
 
     private fun checkServerIsReady() {
 
-        loading = true
-
-        saveInventoryDataCheckSaved(queue, state, saveToServerId, {
-
-            if (it.getBoolean("IsInProgress")) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    state.showSnackbar(
-                        "سرور مشغول ثبت اطلاعات انبارگردانی قبلی است. لطفا بعدا امتحان کنید.",
-                        null,
-                        SnackbarDuration.Long
-                    )
-                }
-                loading = false
-            } else {
-                openStartOrContinueDialog = true
-                loading = false
-            }
-
-        }, {
+        if(System.currentTimeMillis() > lastInventoryTime + 300000) {
+            openStartOrContinueDialog = true
+        } else {
             CoroutineScope(Dispatchers.Default).launch {
                 state.showSnackbar(
                     "سرور مشغول ثبت اطلاعات انبارگردانی قبلی است. لطفا بعدا امتحان کنید.",
@@ -688,8 +670,7 @@ class InventoryActivity : ComponentActivity() {
                     SnackbarDuration.Long
                 )
             }
-            loading = false
-        })
+        }
     }
 
     fun saveToMemory() {
@@ -701,6 +682,7 @@ class InventoryActivity : ComponentActivity() {
         edit.putString("InventorySignedProductCodes", JSONArray(signedKBarCode).toString())
         edit.putString("warehouseCodeForInventory", warehouseCode)
         edit.putBoolean("inventoryStarted", inventoryStarted)
+        edit.putLong("lastInventoryTime", lastInventoryTime)
         edit.apply()
     }
 
@@ -739,6 +721,7 @@ class InventoryActivity : ComponentActivity() {
             signedKBarCode.javaClass
         ) ?: mutableStateListOf()
 
+        lastInventoryTime = memory.getLong("lastInventoryTime", 0L)
 
         epcTablePreviousSize = scannedEpcs.size
 
@@ -866,14 +849,11 @@ class InventoryActivity : ComponentActivity() {
                 .fillMaxSize()
         ) {
 
-            if (this@InventoryActivity.loading || this@InventoryActivity.loading || rfidScan || loading) {
-                LoadingCircularProgressIndicator(
-                    rfidScan,
-                    this@InventoryActivity.loading || this@InventoryActivity.loading || loading
-                )
+            if (rfidScan || loading) {
+                LoadingCircularProgressIndicator(rfidScan, loading)
             }
 
-            if (!this@InventoryActivity.loading && !this@InventoryActivity.loading && !rfidScan && !loading) {
+            if (!rfidScan && !loading) {
 
 
                 Box(

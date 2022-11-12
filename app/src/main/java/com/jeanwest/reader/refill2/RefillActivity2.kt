@@ -49,7 +49,6 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
     //ui parameters
     private var foundProductsNumber by mutableStateOf(0)
     var uiList = mutableStateListOf<Product>()
-    private val apiTimeout = 30000
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var loading by mutableStateOf(false)
@@ -104,7 +103,7 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
             }
         }, {
             loading = false
-        })
+        }, true)
     }
 
     private fun getRefillItems() {
@@ -121,7 +120,7 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
                 refillProducts.add(it)
             }
             syncScannedItemsToServer()
-        }, {})
+        }, {}, true)
     }
 
     private fun syncScannedItemsToServer() {
@@ -244,7 +243,7 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
                 uiList.clear()
                 uiList.addAll(refillProducts)
                 loading = false
-            })
+            }, true)
     }
 
     override fun getBarcode(barcode: String?) {
@@ -262,11 +261,6 @@ class RefillActivity2 : ComponentActivity(), IBarcodeResult {
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val edit = memory.edit()
-
-        edit.putString(
-            "refillProductsForTest",
-            Gson().toJson(refillProducts).toString()
-        )
 
         edit.putString("RefillBarcodeTable", JSONArray(scannedBarcodes).toString())
         edit.apply()

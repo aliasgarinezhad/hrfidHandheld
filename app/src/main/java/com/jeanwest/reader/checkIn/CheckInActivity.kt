@@ -513,7 +513,7 @@ class CheckInActivity : ComponentActivity(), IBarcodeResult {
             brokenEpcs()
         }, {
             loading = false
-        })
+        }, true)
     }
 
     override fun getBarcode(barcode: String?) {
