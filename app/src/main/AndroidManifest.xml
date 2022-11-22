@@ -18,10 +18,10 @@
         android:theme="@style/Theme.Handheld"
         android:usesCleartextTraffic="true">
 
-        <service android:name="com.jeanwest.reader.iotHub.IotHub" />
+        <service android:name="com.jeanwest.reader.management.IotHub" />
 
         <activity
-            android:name="com.jeanwest.reader.count.CountActivity"
+            android:name="com.jeanwest.reader.activities.Count"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -38,25 +38,28 @@
                 <data android:mimeType="application/vnd.ms-excel" />
             </intent-filter>
         </activity>
-        <activity android:name="com.jeanwest.reader.inventory.InventoryActivity" />
-        <activity android:name="com.jeanwest.reader.inventory.SearchSpecialProductActivity" />
-        <activity android:name="com.jeanwest.reader.manualRefill.AddProductToRefillListActivity" />
-        <activity android:name="com.jeanwest.reader.checkOut.CheckOutActivity" />
-        <activity android:name="com.jeanwest.reader.manualRefill.ManualRefillActivity" />
-        <activity android:name="com.jeanwest.reader.refill.RefillActivity" />
-        <activity android:name="com.jeanwest.reader.refill2.RefillActivity2" />
-        <activity android:name="com.jeanwest.reader.logIn.OperatorLoginActivity" />
-        <activity android:name="com.jeanwest.reader.checkIn.CheckInActivity" />
-        <activity android:name="com.jeanwest.reader.logIn.UserLoginActivity" />
-        <activity android:name="com.jeanwest.reader.search.SearchSubActivity" />
-        <activity android:name="com.jeanwest.reader.search.SearchActivity" />
-        <activity android:name="com.jeanwest.reader.logIn.DeviceRegisterActivity" />
-        <activity android:name="com.jeanwest.reader.updateActivity.UpdateActivity" />
-        <activity android:name="com.jeanwest.reader.write.WriteActivity" />
-        <activity android:name="com.jeanwest.reader.centralWarehouseCheckIn.CentralWarehouseCheckInActivity" />
-        <activity android:name="com.jeanwest.reader.stockDraftList.StockDraftsList" />
+        <activity android:name="com.jeanwest.reader.activities.Inventory" />
+        <activity android:name="com.jeanwest.reader.activities.InventorySearch" />
+        <activity android:name="com.jeanwest.reader.activities.AddToManualRefill" />
+        <activity android:name="com.jeanwest.reader.activities.CreateStockDraft" />
+        <activity android:name="com.jeanwest.reader.activities.ManualRefill" />
+        <activity android:name="com.jeanwest.reader.activities.Refill" />
+        <activity android:name="com.jeanwest.reader.activities.Refill2" />
+        <activity android:name="com.jeanwest.reader.activities.OperatorLogin" />
+        <activity android:name="com.jeanwest.reader.activities.ConfirmStockDraft" />
+        <activity android:name="com.jeanwest.reader.activities.UserLogin" />
+        <activity android:name="com.jeanwest.reader.activities.SearchSpecialProduct" />
+        <activity android:name="com.jeanwest.reader.activities.Kiosk" />
+        <activity android:name="com.jeanwest.reader.activities.DeviceRegister" />
+        <activity android:name="com.jeanwest.reader.activities.Update" />
+        <activity android:name="com.jeanwest.reader.activities.WriteTag" />
+        <activity android:name="com.jeanwest.reader.activities.AttachEPCsToStockDraft" />
+        <activity android:name="com.jeanwest.reader.activities.StockDraftsList" />
+        <activity android:name="com.jeanwest.reader.activities.CreateCarton" />
+        <activity android:name="com.jeanwest.reader.activities.ShowCarton" />
+        <activity android:name="com.jeanwest.reader.activities.CreateStockDraftByCartons"/>
         <activity
-            android:name="com.jeanwest.reader.MainActivity"
+            android:name="com.jeanwest.reader.activities.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Handheld">
             <intent-filter>

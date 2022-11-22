@@ -15,6 +15,9 @@
     <string name="search">کیوسک</string>
     <string name="stockDraftsList">حواله های تایید نشده</string>
     <string name="count">شمارش</string>
+    <string name="createCarton">ایجاد کارتن</string>
+    <string name="showCarton">مشاهده کارتن</string>
+    <string name="createStockDraftByCartons">ارسال حواله با کارتن ها</string>
     <string name="tagProgramming">رایت</string>
     <string name="title_activity_stock_drafts_list">StockDraftsListActivity</string>
     <string name="title_activity_main">MainActivity</string>
