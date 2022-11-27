@@ -1,12 +1,10 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.Inventory
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
@@ -24,6 +22,10 @@ class InventoryTest {
     fun test() {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
 
         if (activity.activity.inventoryStarted) {
 
@@ -68,9 +70,15 @@ class InventoryTest {
     fun test2() {
 
         MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY2OTQ3NzY0NSwiZXhwIjoxNzI3NTM4NDQ1LCJhdWQiOiJlcnAifQ.3f60u0fSQAFsjawukPiwjqWqliyI1BIPG6n9X4gAeYg"
 
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
+
+        Thread.sleep(10000)
         waitForFinishLoading()
+
         clearScannedData()
 
         val products = mutableListOf<Product>()
@@ -100,6 +108,10 @@ class InventoryTest {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
 
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
+
         activity.onNodeWithText("تهران مگامال 2").performClick()
         activity.waitForIdle()
         activity.onNodeWithText("تهران مگامال 2 (دپو)").performClick()
@@ -127,6 +139,10 @@ class InventoryTest {
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
 
         waitForFinishLoading()
         val products = mutableListOf<Product>()

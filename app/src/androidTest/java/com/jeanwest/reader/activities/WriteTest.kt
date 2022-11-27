@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 
 import android.view.KeyEvent
@@ -7,8 +7,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.WriteTag
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo

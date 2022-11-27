@@ -2,6 +2,7 @@ package com.jeanwest.reader.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,8 +26,8 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.management.ErrorSnackBar
-import com.jeanwest.reader.management.getWarehousesLists
-import com.jeanwest.reader.management.registerDevice
+import com.jeanwest.reader.data.getWarehousesLists
+import com.jeanwest.reader.data.registerDevice
 import com.jeanwest.reader.ui.MyApplicationTheme
 
 class DeviceRegister : ComponentActivity() {
@@ -45,14 +46,16 @@ class DeviceRegister : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         setContent { Page() }
+        loadMemory()
         queue = Volley.newRequestQueue(this)
-        advanceSettingToken = intent.getStringExtra("advanceSettingToken") ?: ""
         getLocations()
     }
 
     private fun registerDeviceToIotHub() {
 
         registerDevice(queue, state, advanceSettingToken, deviceSerialNumber, { deviceId, iotToken ->
+            this.deviceId = deviceId
+            this.iotToken = iotToken
             saveToMemory()
             val nextActivityIntent = Intent(this, MainActivity::class.java)
             intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -75,12 +78,20 @@ class DeviceRegister : ComponentActivity() {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
 
+        Log.e("deviceId", deviceId)
+        Log.e("iotToken", iotToken)
+
         memoryEditor.putString("deviceId", deviceId)
         memoryEditor.putInt("deviceLocationCode", deviceLocationCode)
         memoryEditor.putString("deviceLocation", deviceLocation)
         memoryEditor.putString("iotToken", iotToken)
         memoryEditor.putString("deviceSerialNumber", deviceSerialNumber)
         memoryEditor.apply()
+    }
+
+    private fun loadMemory() {
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        advanceSettingToken = memory.getString("advanceSettingToken", "") ?: ""
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

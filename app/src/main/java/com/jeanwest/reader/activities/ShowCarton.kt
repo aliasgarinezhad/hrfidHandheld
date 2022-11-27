@@ -32,6 +32,8 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.DraftProperties
 import com.jeanwest.reader.data.Product
+import com.jeanwest.reader.data.getProductsV4
+import com.jeanwest.reader.data.getStockDraftDetails
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.MyApplicationTheme

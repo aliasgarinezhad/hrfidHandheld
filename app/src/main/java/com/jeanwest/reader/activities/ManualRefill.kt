@@ -35,6 +35,9 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
+import com.jeanwest.reader.data.createLocalStockDraft
+import com.jeanwest.reader.data.getManualRefill
+import com.jeanwest.reader.data.getProductsV4
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.*

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.management
+package com.jeanwest.reader.hardware
 
 import android.content.Context
 import android.os.Build

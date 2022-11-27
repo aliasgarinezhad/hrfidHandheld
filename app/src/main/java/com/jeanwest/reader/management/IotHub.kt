@@ -92,6 +92,7 @@ class IotHub : Service() {
         if(intent == null) {
             return START_STICKY
         }
+
         loadMemory()
         val sendThread = Thread {
             try {

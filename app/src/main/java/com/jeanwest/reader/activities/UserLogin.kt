@@ -20,7 +20,7 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.management.ErrorSnackBar
 import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.management.userLogin
+import com.jeanwest.reader.data.userLogin
 
 class UserLogin : ComponentActivity() {
 
@@ -137,5 +137,4 @@ class UserLogin : ComponentActivity() {
             label = { Text(text = "رمز عبور") }
         )
     }
-
 }

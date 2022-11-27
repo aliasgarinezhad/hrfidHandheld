@@ -1,12 +1,11 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.StockDraftsList
+import coil.annotation.ExperimentalCoilApi
 import org.junit.Rule
 import org.junit.Test
 
@@ -19,7 +18,10 @@ class StockDraftsListTest {
     fun test() {
 
         MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY2OTUzOTgxOCwiZXhwIjoxNzI3NjAwNjE4LCJhdWQiOiJlcnAifQ._UmYJySVtg9GycGkiVLS3NmZlSpyo_0UrkG6s2dKReM"
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
         waitForFinishLoading()
 
         for (i in 0 until 3) {

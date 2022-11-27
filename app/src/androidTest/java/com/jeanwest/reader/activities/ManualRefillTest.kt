@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
@@ -7,18 +7,16 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.CreateStockDraft
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalCoilApi::class)
-class CreateStockDraftTest {
+@ExperimentalCoilApi
+class ManualRefillTest {
 
     @get:Rule
-    val activity = createAndroidComposeRule<CreateStockDraft>()
+    val activity = createAndroidComposeRule<ManualRefill>()
 
     //send all stuffs after test
     @Test
@@ -38,7 +36,7 @@ class CreateStockDraftTest {
 
         assert(products.size > 20)
 
-        activity.onAllNodesWithText("هنوز کالایی برای ثبت حواله اسکن نکرده اید")[0].assertExists()
+        activity.onAllNodesWithText("هنوز کالایی برای ارسال به فروشگاه اسکن نکرده اید")[0].assertExists()
 
         val scannedProducts = mutableListOf<Product>()
         products.forEach {
@@ -51,14 +49,14 @@ class CreateStockDraftTest {
 
         restart()
 
-        activity.onNodeWithText("ثبت حواله").performClick()
+        activity.onNodeWithText("ارسال اسکن شده ها").performClick()
         activity.waitForIdle()
 
-        assert(activity.activity.products.filter {
+        assert(ManualRefill.products.filter {
             it.scannedBarcodeNumber > 0
         }.size == 20)
 
-        activity.activity.products.filter {
+        ManualRefill.products.filter {
             it.scannedBarcodeNumber > 0
         }.toMutableList().forEach {
             if (it.wareHouseNumber > 1) {
@@ -123,7 +121,7 @@ class CreateStockDraftTest {
     private fun clearUserData() {
 
         val products = mutableListOf<Product>()
-        products.addAll(activity.activity.products)
+        products.addAll(ManualRefill.products)
 
         products.forEach {
             if (it.scannedBarcodeNumber > 0) {

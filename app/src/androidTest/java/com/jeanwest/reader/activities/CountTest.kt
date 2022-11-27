@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.util.Log
 import android.view.KeyEvent
@@ -8,8 +8,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.Count
 import com.jeanwest.reader.testData.productsJsonObject
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
@@ -35,6 +33,9 @@ class CountTest {
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
         waitForFinishLoading()
 
         clear()
@@ -127,6 +128,10 @@ class CountTest {
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+
+        activity.runOnUiThread {
+            activity.activity.recreate()
+        }
         waitForFinishLoading()
 
         clear()

@@ -1,12 +1,10 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.ConfirmStockDraft
 import com.jeanwest.reader.testData.stockDraftProducts
-import com.jeanwest.reader.data.DraftProperties
+import com.jeanwest.reader.testData.stockDraftProperties
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.test.RFIDWithUHFUART
@@ -16,21 +14,20 @@ import org.junit.Rule
 import org.junit.Test
 
 
-class ConfirmStockDraftTest {
+class AttachEPCsToStockDraftTest {
 
     @get:Rule
-    val activity = createAndroidComposeRule<ConfirmStockDraft>()
+    val activity = createAndroidComposeRule<AttachEPCsToStockDraft>()
 
     @Test
     fun test() {
 
         MainActivity.token =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDE2IiwibmFtZSI6Itiq2LPYqiBSRklEINiq2LPYqiBSRklEIiwicm9sZXMiOlsidXNlciJdLCJzY29wZXMiOlsiZXJwIl0sImlhdCI6MTY2OTQ3NzY0NSwiZXhwIjoxNzI3NTM4NDQ1LCJhdWQiOiJlcnAifQ.3f60u0fSQAFsjawukPiwjqWqliyI1BIPG6n9X4gAeYg"
         waitForFinishLoading()
 
         val kbarcodes = mutableListOf<String>()
         val productJson = JSONArray(stockDraftProducts)
-
         for (i in 0 until productJson.length()) {
             kbarcodes.add(
                 productJson.getJSONObject(i).getString("kbarcode")
@@ -39,17 +36,24 @@ class ConfirmStockDraftTest {
 
         if (activity.activity.scanningMode) {
 
-            activity.onNodeWithText("تایید نهایی").performClick()
+            activity.onNodeWithText("پایان تروفالس").performClick()
             activity.waitForIdle()
             activity.onNodeWithText("خیر، نتایج پاک شوند").performClick()
             activity.waitForIdle()
             activity.onNodeWithText("کسری").assertDoesNotExist()
         }
 
-        barcodeScan(checkInCode.number.toString())
+        barcodeScan(stockDraftProperties.number.toString())
         waitForFinishLoading()
 
-        activity.onNodeWithText("کسری: ${checkInCode.numberOfItems}").assertExists()
+        activity.onNodeWithTag("scanTypeDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("بارکد").performClick()
+        activity.waitForIdle()
+        barcodeScan("22181508-2525-34-1")
+        waitForFinishLoading()
+
+        activity.onNodeWithText("کسری: ${stockDraftProperties.numberOfItems}").assertExists()
         activity.onNodeWithText("اضافی: 0").assertExists()
         activity.onNodeWithText("اسکن: 0").assertExists()
 
@@ -78,51 +82,75 @@ class ConfirmStockDraftTest {
             }
         }
 
-        epcScan(activity.activity.draftProperties.epcTable)
-        waitForFinishLoading()
+        activity.onNodeWithTag("scanTypeDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("RFID").performClick()
+        activity.waitForIdle()
+
+        epcScan(false, products)
+        restart()
 
         activity.onNodeWithText("کسری: 0").assertExists()
         activity.onNodeWithText("اضافی: 0").assertExists()
-        activity.onNodeWithText("اسکن: ${checkInCode.numberOfItems}").assertExists()
-
-        activity.onNodeWithText("تایید نهایی").performClick()
-        activity.waitForIdle()
-        activity.onNodeWithText("بله").performClick()
-        waitForFinishLoading()
-        barcodeScan(checkInCode.number.toString())
-        waitForFinishLoading()
+        activity.onNodeWithText("اسکن: ${stockDraftProperties.numberOfItems}").assertExists()
 
         clearUserData()
+        epcScan(true, products)
+        checkResults()
+
+        val epcProducts = mutableListOf<Product>()
+        val barcodeProducts = mutableListOf<Product>()
+
+        products.forEach {
+            if ((it.brandName == "JeansWest" || it.brandName == "JootiJeans" || it.brandName == "Baleno")
+                && !it.name.contains("جوراب")
+                && !it.name.contains("عينك")
+                && !it.name.contains("شاپينگ")
+            ) {
+                epcProducts.add(it)
+            } else {
+                barcodeProducts.add(it)
+            }
+        }
+
+        clearUserData()
+        waitForFinishLoading()
+        epcScan(true, epcProducts)
+        epcScan(true, barcodeProducts.subList(20, barcodeProducts.size))
         activity.onNodeWithTag("scanTypeDropDownList").performClick()
         activity.waitForIdle()
         activity.onNodeWithText("بارکد").performClick()
         activity.waitForIdle()
         barcodeScan("123456")
-        barcodeArrayScan(products.subList(0, 20))
-        restart()
-        checkResults(products.subList(0, 20))
+        barcodeArrayScan(barcodeProducts.subList(0, 20))
+        activity.onNodeWithTag("checkInFilterDropDownList").performClick()
+        activity.waitForIdle()
+        activity.onNodeWithText("کسری").performClick()
+        activity.waitForIdle()
+        checkResults()
     }
 
+    private fun checkResults() {
 
-    private fun checkResults(products: MutableList<Product>) {
-
+        var shortagesNumber = 0
         var additionalNumber = 0
         var scannedNumber = 0
 
-        products.forEach {
+        activity.activity.inputProducts.forEach {
 
-            if (it.draftNumber >= 3) {
+            if (it.value.draftNumber >= 3) {
 
                 activity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.KBarCode) {
+                    if (it1.KBarCode == it.value.KBarCode) {
                         assert(it1.conflictNumber == 3 && it1.conflictType == "کسری")
+                        shortagesNumber += 3
                         scannedNumber += it1.scannedNumber
                     }
                 }
-            } else if (it.draftNumber == 2) {
+            } else if (it.value.draftNumber == 2) {
 
                 activity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.KBarCode) {
+                    if (it1.KBarCode == it.value.KBarCode) {
                         assert(it1.conflictNumber == 3 && it1.conflictType == "اضافی")
                         additionalNumber += 3
                         scannedNumber += it1.scannedNumber
@@ -131,7 +159,7 @@ class ConfirmStockDraftTest {
             } else {
 
                 activity.activity.productConflicts.forEach { it1 ->
-                    if (it1.KBarCode == it.KBarCode) {
+                    if (it1.KBarCode == it.value.KBarCode) {
                         assert(it1.conflictNumber == 1 && it1.conflictType == "اضافی")
                         additionalNumber += 1
                         scannedNumber += it1.scannedNumber
@@ -140,7 +168,7 @@ class ConfirmStockDraftTest {
             }
         }
 
-        activity.onAllNodesWithText("کسری: ${checkInCode.numberOfItems - (scannedNumber - additionalNumber)}")[0].assertExists()
+        activity.onAllNodesWithText("کسری: $shortagesNumber")[0].assertExists()
         activity.onNodeWithText("اضافی: $additionalNumber").assertExists()
         activity.onNodeWithText("اسکن: $scannedNumber").assertExists()
 
@@ -202,7 +230,7 @@ class ConfirmStockDraftTest {
         }
     }
 
-    private fun epcScan(products: MutableList<String>) {
+    private fun epcScan(withDifference: Boolean, products: MutableList<Product>) {
 
         RFIDWithUHFUART.uhfTagInfo.clear()
         RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
@@ -213,9 +241,34 @@ class ConfirmStockDraftTest {
         RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo1)
 
         products.forEach {
-            val uhfTagInfo = UHFTAGInfo()
-            uhfTagInfo.epc = it
-            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+
+            if (withDifference) {
+                if (it.draftNumber >= 3) {
+                    for (i in 0 until it.draftNumber - 3) {
+                        val uhfTagInfo = UHFTAGInfo()
+                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
+                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+                    }
+                } else if (it.draftNumber == 2) {
+                    for (i in 0 until it.draftNumber + 3) {
+                        val uhfTagInfo = UHFTAGInfo()
+                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
+                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+                    }
+                } else {
+                    for (i in 0 until it.draftNumber + 1) {
+                        val uhfTagInfo = UHFTAGInfo()
+                        uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
+                        RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+                    }
+                }
+            } else {
+                for (i in 0 until it.draftNumber) {
+                    val uhfTagInfo = UHFTAGInfo()
+                    uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
+                    RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+                }
+            }
         }
 
         activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
@@ -244,13 +297,37 @@ class ConfirmStockDraftTest {
         activity.waitForIdle()
     }
 
-    private val checkInCode = DraftProperties(
-        number = 119945,
-        date = "1401/5/30",
-        numberOfItems = 125,
-        source = 44,
-        destination = 1707
-    )
+    private fun epcGenerator(
+        header: Int,
+        filter: Int,
+        partition: Int,
+        company: Int,
+        item: Long,
+        serial: Long
+    ): String {
+
+        var tempStr = java.lang.Long.toBinaryString(header.toLong())
+        val headerStr = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(filter.toLong())
+        val filterStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(partition.toLong())
+        val positionStr = String.format("%3s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(company.toLong())
+        val companynumberStr = String.format("%12s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(item)
+        val itemNumberStr = String.format("%32s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = java.lang.Long.toBinaryString(serial)
+        val serialNumberStr = String.format("%38s", tempStr).replace(" ".toRegex(), "0")
+        val epcStr =
+            headerStr + positionStr + filterStr + companynumberStr + itemNumberStr + serialNumberStr // binary string of EPC (96 bit)
+
+        tempStr = epcStr.substring(0, 64).toULong(2).toString(16)
+        val epc0To64 = String.format("%16s", tempStr).replace(" ".toRegex(), "0")
+        tempStr = epcStr.substring(64, 96).toULong(2).toString(16)
+        val epc64To96 = String.format("%8s", tempStr).replace(" ".toRegex(), "0")
+
+        return epc0To64 + epc64To96
+    }
 
     private fun barcodeArrayScan(products: MutableList<Product>) {
         products.forEach {

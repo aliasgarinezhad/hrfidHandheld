@@ -35,11 +35,12 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
+import com.jeanwest.reader.data.*
 import com.jeanwest.reader.management.*
-import com.jeanwest.reader.data.DraftProperties
-import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.jeanwest.reader.ui.JeanswestBottomBar
 import com.jeanwest.reader.ui.MyApplicationTheme

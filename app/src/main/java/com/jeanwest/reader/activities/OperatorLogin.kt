@@ -2,6 +2,7 @@ package com.jeanwest.reader.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,11 +17,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.preference.PreferenceManager
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.management.ErrorSnackBar
-import com.jeanwest.reader.management.operatorLogin
+import com.jeanwest.reader.data.operatorLogin
 import com.jeanwest.reader.ui.MyApplicationTheme
 
 class OperatorLogin : ComponentActivity() {
@@ -29,6 +31,7 @@ class OperatorLogin : ComponentActivity() {
     private var username by mutableStateOf("")
     private var state = SnackbarHostState()
     private lateinit var queue : RequestQueue
+    private var advanceSettingToken = ""
 
     override fun onResume() {
         super.onResume()
@@ -38,11 +41,20 @@ class OperatorLogin : ComponentActivity() {
 
     private fun advanceUserAuthenticate() {
         operatorLogin(queue, state, username, password, {
-            Intent(this, DeviceRegister::class.java).also {
-                it.putExtra("advanceSettingToken", it)
-                startActivity(it)
-            }
+            advanceSettingToken = it
+            Log.e("advanceSettingToken", advanceSettingToken)
+            saveToMemory()
+            startActivity(Intent(this, DeviceRegister::class.java))
         }, {})
+    }
+
+    private fun saveToMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val memoryEditor = memory.edit()
+
+        memoryEditor.putString("advanceSettingToken", advanceSettingToken)
+        memoryEditor.apply()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

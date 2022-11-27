@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.*
@@ -7,8 +7,6 @@ import androidx.preference.PreferenceManager
 import coil.annotation.ExperimentalCoilApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.CreateCarton
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import org.junit.Rule

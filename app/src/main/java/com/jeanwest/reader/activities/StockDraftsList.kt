@@ -23,9 +23,8 @@ import coil.annotation.ExperimentalCoilApi
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
+import com.jeanwest.reader.data.*
 import com.jeanwest.reader.management.*
-import com.jeanwest.reader.data.DraftProperties
-import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.ui.MyApplicationTheme
 
 class StockDraftsList : ComponentActivity() {

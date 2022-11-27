@@ -1,11 +1,9 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import coil.annotation.ExperimentalCoilApi
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.SearchSpecialProduct
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.jeanwest.reader.test.RFIDWithUHFUART.uhfTagInfo

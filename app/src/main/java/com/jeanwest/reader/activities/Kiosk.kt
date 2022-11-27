@@ -33,6 +33,7 @@ import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
+import com.jeanwest.reader.data.getProductsSimilar
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.JeanswestBackground

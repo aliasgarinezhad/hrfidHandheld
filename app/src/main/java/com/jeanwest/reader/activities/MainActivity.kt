@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,8 +33,8 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.management.IotHub
 import com.jeanwest.reader.management.ErrorSnackBar
 import com.jeanwest.reader.management.ExceptionHandler
-import com.jeanwest.reader.management.rfInit
-import com.jeanwest.reader.management.syncServerToLocalWarehouse
+import com.jeanwest.reader.hardware.rfInit
+import com.jeanwest.reader.data.syncServerToLocalWarehouse
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.jeanwest.reader.ui.MyApplicationTheme
 import com.jeanwest.reader.ui.borderColor
@@ -63,11 +64,11 @@ class MainActivity : ComponentActivity() {
 
         clearCash()
 
+        memory = PreferenceManager.getDefaultSharedPreferences(this)
+        loadMemory()
         if(deviceId != "") {
             startService(Intent(this, IotHub::class.java))
         }
-
-        memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         try {
             rf = RFIDWithUHFUART.getInstance()
@@ -99,7 +100,6 @@ class MainActivity : ComponentActivity() {
             )
         }
         rfInit(rf, this, state)
-        loadMemory()
 
         Thread.setDefaultUncaughtExceptionHandler(
             ExceptionHandler(

@@ -1,4 +1,4 @@
-package com.jeanwest.reader.management
+package com.jeanwest.reader.data
 
 import android.util.Log
 import androidx.compose.material.SnackbarDuration
@@ -10,8 +10,6 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.jeanwest.reader.activities.MainActivity
 import com.jeanwest.reader.data.JalaliDate.JalaliDateConverter
-import com.jeanwest.reader.data.DraftProperties
-import com.jeanwest.reader.data.Product
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

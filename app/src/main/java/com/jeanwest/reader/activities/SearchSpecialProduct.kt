@@ -28,6 +28,8 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
+import com.jeanwest.reader.hardware.setRFEpcMode
+import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.jeanwest.reader.ui.MyApplicationTheme
 import com.jeanwest.reader.ui.borderColor

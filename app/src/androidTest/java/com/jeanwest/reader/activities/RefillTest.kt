@@ -1,4 +1,4 @@
-package com.jeanwest.reader
+package com.jeanwest.reader.activities
 
 import android.view.KeyEvent
 import androidx.compose.ui.test.assertTextContains
@@ -7,8 +7,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import coil.annotation.ExperimentalCoilApi
-import com.jeanwest.reader.activities.MainActivity
-import com.jeanwest.reader.activities.Refill
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import org.junit.Rule
