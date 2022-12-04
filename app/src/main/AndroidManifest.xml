@@ -45,12 +45,11 @@
         <activity android:name="com.jeanwest.reader.activities.ManualRefill" />
         <activity android:name="com.jeanwest.reader.activities.Refill" />
         <activity android:name="com.jeanwest.reader.activities.Refill2" />
-        <activity android:name="com.jeanwest.reader.activities.OperatorLogin" />
+        <activity android:name="com.jeanwest.reader.activities.DeviceRegister" />
         <activity android:name="com.jeanwest.reader.activities.ConfirmStockDraft" />
         <activity android:name="com.jeanwest.reader.activities.UserLogin" />
         <activity android:name="com.jeanwest.reader.activities.SearchSpecialProduct" />
         <activity android:name="com.jeanwest.reader.activities.Kiosk" />
-        <activity android:name="com.jeanwest.reader.activities.DeviceRegister" />
         <activity android:name="com.jeanwest.reader.activities.Update" />
         <activity android:name="com.jeanwest.reader.activities.WriteTag" />
         <activity android:name="com.jeanwest.reader.activities.AttachEPCsToStockDraft" />

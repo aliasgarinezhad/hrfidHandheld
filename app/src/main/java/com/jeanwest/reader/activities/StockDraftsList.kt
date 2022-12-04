@@ -24,8 +24,7 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
 import com.jeanwest.reader.data.*
-import com.jeanwest.reader.management.*
-import com.jeanwest.reader.ui.MyApplicationTheme
+import com.jeanwest.reader.ui.*
 
 class StockDraftsList : ComponentActivity() {
 
@@ -33,12 +32,12 @@ class StockDraftsList : ComponentActivity() {
     private lateinit var queue: RequestQueue
     var loading by mutableStateOf(false)
     private var stockDraftIDs = mutableListOf<Long>()
-    var draftsMap = mutableStateMapOf<Long, DraftProperties>()
+    var draftsMap = mutableStateMapOf<Long, StockDraft>()
     var showProductsMode by mutableStateOf(false)
-    private var selectedStockDraft = DraftProperties(number = 0L, numberOfItems = 0)
+    private var selectedStockDraft = StockDraft(number = 0L, numberOfItems = 0)
     private var barcodeMapWithProperties = mutableMapOf<String, Product>()
     val selectedStockDraftProducts = mutableMapOf<String, Product>()
-    val uiList = mutableListOf<DraftProperties>()
+    val uiList = mutableListOf<StockDraft>()
     private val listState = LazyListState(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {

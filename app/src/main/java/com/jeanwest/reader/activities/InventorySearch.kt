@@ -28,6 +28,8 @@ import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.test.RFIDWithUHFUART
+import com.jeanwest.reader.ui.ErrorSnackBar
+import com.jeanwest.reader.ui.LoadingCircularProgressIndicator
 import com.jeanwest.reader.ui.MyApplicationTheme
 import com.jeanwest.reader.ui.borderColor
 import com.rscja.deviceapi.entity.UHFTAGInfo

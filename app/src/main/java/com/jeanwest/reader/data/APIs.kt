@@ -38,7 +38,7 @@ fun getProductsV4(
 
     var url = "https://rfid-api.avakatan.ir/products/v4"
 
-    if(local) {
+    if (local) {
         url += "/localdb"
     }
 
@@ -160,6 +160,8 @@ fun getProductsV4(
 
     queue.add(request)
 }
+
+
 
 fun createLocalStockDraft(
     queue: RequestQueue,
@@ -341,7 +343,7 @@ fun getRefill(
 
     var url = "https://rfid-api.avakatan.ir/refill"
 
-    if(local) {
+    if (local) {
         url += "/localdb"
     }
 
@@ -393,10 +395,10 @@ fun getRefill2(
     onSuccess: (barcodes: MutableList<String>) -> Unit,
     onError: () -> Unit,
     local: Boolean = false,
-    ) {
+) {
 
     var url = "https://rfid-api.avakatan.ir/refill2/"
-    if(local) {
+    if (local) {
         url += "/localdb"
     }
 
@@ -496,7 +498,7 @@ fun getStockDraftDetails(
     queue: RequestQueue,
     state: SnackbarHostState,
     code: String,
-    onSuccess: (draftProperties: DraftProperties) -> Unit,
+    onSuccess: (draftProperties: StockDraft) -> Unit,
     onError: () -> Unit,
 ) {
 
@@ -528,7 +530,7 @@ fun getStockDraftDetails(
             draftEpcs.add(it.getJSONObject(i).getString("EPC"))
         }
 
-        val draftProperties = DraftProperties(
+        val draftProperties = StockDraft(
             number = code.toLong(),
             numberOfItems = numberOfItems,
             barcodeTable = draftBarcodes,
@@ -540,6 +542,65 @@ fun getStockDraftDetails(
         )
 
         onSuccess(draftProperties)
+
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + MainActivity.token
+            return params
+        }
+    }
+    queue.add(request)
+}
+
+fun getCartonDetails(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    code: String,
+    onSuccess: (carton: Carton) -> Unit,
+    onError: () -> Unit,
+) {
+
+    val url = "https://rfid-api.avakatan.ir/cartoons/$code"
+    val request = object : JsonObjectRequest(url, fun(it) {
+
+        val cartonBarcodes = mutableListOf<String>()
+        val specification = it.getString("CartoonDesc")
+        val source = it.getInt("WareHouse_ID")
+        val miladiCreateDate = it.getString("CreateDate").substring(0, 10)
+        val intArrayFormatJalaliCreateDate = JalaliDateConverter.gregorian_to_jalali(
+            miladiCreateDate.substring(0, 4).toInt(),
+            miladiCreateDate.substring(5, 7).toInt(),
+            miladiCreateDate.substring(8, 10).toInt()
+        )
+        val jalaliCreateDate =
+            "${intArrayFormatJalaliCreateDate[0]}/${intArrayFormatJalaliCreateDate[1]}/${intArrayFormatJalaliCreateDate[2]}"
+
+
+        val productsJsonArray = it.getJSONArray("cartoonDetails")
+        var numberOfItems = 0
+        for (i in 0 until productsJsonArray.length()) {
+            numberOfItems += productsJsonArray.getJSONObject(i).getInt("Qty")
+
+            repeat(productsJsonArray.getJSONObject(i).getInt("Qty")) { _ ->
+                cartonBarcodes.add(productsJsonArray.getJSONObject(i).getString("ItemBarcode"))
+            }
+        }
+
+        val carton = Carton(
+            number = code,
+            numberOfItems = numberOfItems,
+            barcodeTable = cartonBarcodes,
+            date = jalaliCreateDate,
+            source = source,
+            specification = specification,
+        )
+
+        onSuccess(carton)
 
     }, {
         apiErrorProcess(state, it)
@@ -614,11 +675,11 @@ fun confirmStockDraft(
     onSuccess: () -> Unit,
     onError: () -> Unit,
     local: Boolean = false,
-    ) {
+) {
 
     var url =
         "https://rfid-api.avakatan.ir/stock-draft/$code/confirm-via-erp"
-    if(local) {
+    if (local) {
         url += "/localdb"
     }
     val request = object : JsonObjectRequest(Method.POST, url, null, {
@@ -657,6 +718,52 @@ fun confirmStockDraft(
                 }
             }
             body.put("kbarcodes", productsJsonArray)
+
+            return body.toString().toByteArray()
+        }
+    }
+    queue.add(request)
+}
+
+fun print(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    printer: Int,
+    cartonNumber: String,
+    onSuccess: () -> Unit,
+    onError: () -> Unit,
+) {
+
+    val url =
+        "http://rfid-api.avakatan.ir/cartoon/print"
+
+    val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+        CoroutineScope(Dispatchers.Default).launch {
+            state.showSnackbar(
+                it.getString("MessageText"),
+                null,
+                SnackbarDuration.Long
+            )
+        }
+        onSuccess()
+
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + MainActivity.token
+            return params
+        }
+
+        override fun getBody(): ByteArray {
+            val body = JSONObject()
+
+            body.put("cartoonNumber", cartonNumber)
+            body.put("printerId", printer)
 
             return body.toString().toByteArray()
         }
@@ -708,6 +815,40 @@ fun getWarehousesLists(
     queue.add(request)
 }
 
+fun getPrintersList(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    onSuccess: (printers: MutableMap<String, Int>) -> Unit,
+    onError: () -> Unit,
+    token: String = ""
+) {
+
+    val url = "http://rfid-api.avakatan.ir/printers"
+    val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+        val printers = mutableMapOf<String, Int>()
+
+        for (i in 0 until it.length()) {
+            printers[it.getJSONObject(i).getString("DataModelType")] =
+                it.getJSONObject(i).getInt("PrinterModels_ID")
+        }
+
+        onSuccess(printers)
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + token.ifEmpty { MainActivity.token }
+            return params
+        }
+    }
+
+    queue.add(request)
+}
+
 fun createStockDraft(
     queue: RequestQueue,
     state: SnackbarHostState,
@@ -718,10 +859,10 @@ fun createStockDraft(
     onSuccess: () -> Unit,
     onError: () -> Unit,
     local: Boolean = false,
-    ) {
+) {
 
     var url = "https://rfid-api.avakatan.ir/stock-draft"
-    if(local) {
+    if (local) {
         url += "/localdb"
     }
 
@@ -792,6 +933,137 @@ fun createStockDraft(
 
     queue.add(request)
 }
+
+fun createStockDraftByCarton(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    products: MutableList<Carton> = mutableListOf(),
+    desc: String,
+    source: Int,
+    destination: Int,
+    onSuccess: () -> Unit,
+    onError: () -> Unit,
+) {
+
+    val url = "https://rfid-api.avakatan.ir/cartoons/transfer"
+
+    val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+        CoroutineScope(Dispatchers.Default).launch {
+            state.showSnackbar(
+                "حواله کارتن ها با موفقیت ایجاد شد.",
+                null,
+                SnackbarDuration.Long
+            )
+        }
+        onSuccess()
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] =
+                "Bearer " + MainActivity.token
+            return params
+        }
+
+        override fun getBody(): ByteArray {
+
+            val body = JSONObject()
+            val cartonNumberArray = JSONArray()
+
+            products.forEach {
+                cartonNumberArray.put(it.number)
+            }
+
+            body.put("description", desc)
+            body.put("sourceWareHouseID", source)
+            body.put("destWareHouseID", destination)
+            body.put("cartoonsNum", cartonNumberArray)
+
+            return body.toString().toByteArray()
+        }
+    }
+
+    val apiTimeout = 30000
+    request.retryPolicy = DefaultRetryPolicy(
+        apiTimeout,
+        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+    )
+
+    queue.add(request)
+}
+
+
+fun createCarton(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    products: MutableList<Product> = mutableListOf(),
+    source: Int,
+    onSuccess: (cartonNumber : String) -> Unit,
+    onError: () -> Unit,
+) {
+
+    val url = "https://rfid-api.avakatan.ir/cartoons"
+
+    val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+        CoroutineScope(Dispatchers.Default).launch {
+            state.showSnackbar(
+                "کارتن با موفقیت ایجاد شد.",
+                null,
+                SnackbarDuration.Long
+            )
+        }
+        onSuccess(it.getString("CartoonNum"))
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] =
+                "Bearer " + MainActivity.token
+            return params
+        }
+
+        override fun getBody(): ByteArray {
+
+            val body = JSONObject()
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+            val productsArray = JSONArray()
+
+            products.forEach {
+
+                val productJson = JSONObject()
+                productJson.put("BarcodeMain_ID", it.primaryKey)
+                productJson.put("kbarcode", it.KBarCode)
+                productJson.put("qty", it.scannedNumber)
+                productsArray.put(productJson)
+            }
+
+            body.put("CreateDate", sdf.format(Date()))
+            body.put("WareHouseID", source)
+            body.put("products", productsArray)
+
+            return body.toString().toByteArray()
+        }
+    }
+
+    val apiTimeout = 30000
+    request.retryPolicy = DefaultRetryPolicy(
+        apiTimeout,
+        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+    )
+
+    queue.add(request)
+}
+
 
 fun sendBrokenEpcs(
     queue: RequestQueue,

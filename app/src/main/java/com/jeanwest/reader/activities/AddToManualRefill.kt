@@ -34,8 +34,7 @@ import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.iconColor
+import com.jeanwest.reader.ui.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
@@ -310,7 +309,6 @@ class AddToManualRefill : ComponentActivity(),
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             productCode = barcode
             getSimilarProducts()
         }

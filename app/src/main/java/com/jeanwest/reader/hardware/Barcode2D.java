@@ -50,8 +50,8 @@ public class Barcode2D {
             barcodeUtility.setReleaseScan(context, false);//设置松开扫描按键，不停止扫描
             barcodeUtility.setScanFailureBroadcast(context, true);//扫描失败也发送广播
             barcodeUtility.enableContinuousScan(context, false);//关闭键盘助手连续扫描
-            barcodeUtility.enablePlayFailureSound(context, false);//关闭键盘助手 扫描失败的声音
-            barcodeUtility.enablePlaySuccessSound(context, false);//关闭键盘助手 扫描成功的声音
+            barcodeUtility.enablePlayFailureSound(context, true);//关闭键盘助手 扫描失败的声音
+            barcodeUtility.enablePlaySuccessSound(context, true);//关闭键盘助手 扫描成功的声音
             barcodeUtility.enableEnter(context, false);//关闭回车
             barcodeUtility.setBarcodeEncodingFormat(context, 1);
 

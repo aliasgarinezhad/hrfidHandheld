@@ -1,14 +1,13 @@
 package com.jeanwest.reader.testData
 
-import com.jeanwest.reader.data.DraftProperties
+import com.jeanwest.reader.data.StockDraft
 
-
-val stockDraftProperties = DraftProperties(
-number = 119945,
-date = "1401/5/30",
-numberOfItems = 125,
-source = 44,
-destination = 1707
+val stockDraftProperties = StockDraft(
+    number = 119945,
+    date = "1401/5/30",
+    numberOfItems = 125,
+    source = 44,
+    destination = 1707
 )
 
 var stockDraftProducts = """

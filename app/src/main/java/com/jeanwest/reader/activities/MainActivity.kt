@@ -3,22 +3,20 @@ package com.jeanwest.reader.activities
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -29,32 +27,39 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.IotHub
-import com.jeanwest.reader.management.ErrorSnackBar
-import com.jeanwest.reader.management.ExceptionHandler
-import com.jeanwest.reader.hardware.rfInit
 import com.jeanwest.reader.data.syncServerToLocalWarehouse
+import com.jeanwest.reader.data.userLogin
+import com.jeanwest.reader.hardware.rfInit
+import com.jeanwest.reader.management.ExceptionHandler
+import com.jeanwest.reader.management.IotHub
 import com.jeanwest.reader.test.RFIDWithUHFUART
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.borderColor
+import com.jeanwest.reader.ui.*
 import com.rscja.deviceapi.exception.ConfigurationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
 class MainActivity : ComponentActivity() {
 
+    private var userWarehouses = mutableMapOf<String, String>()
+    private var userWarehouse = 0
     private var openAccountDialog by mutableStateOf(false)
     lateinit var rf: RFIDWithUHFUART
-    private lateinit var memory: SharedPreferences
     private var deviceId = ""
-    private var buttonSize = 100.dp
-    private var iconSize = 48.dp
     private var buttonPadding = 24.dp
     private var userLocationCode = 0
-    private var fullName = ""
+    private var userFullName = ""
     private var state = SnackbarHostState()
     private lateinit var queue: RequestQueue
+    private var loginMode by mutableStateOf(false)
+    private var username by mutableStateOf("")
+    private var password by mutableStateOf("")
+    var loading by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -64,9 +69,10 @@ class MainActivity : ComponentActivity() {
 
         clearCash()
 
-        memory = PreferenceManager.getDefaultSharedPreferences(this)
+        requestPermissions()
+
         loadMemory()
-        if(deviceId != "") {
+        if (deviceId != "") {
             startService(Intent(this, IotHub::class.java))
         }
 
@@ -76,6 +82,38 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
         }
 
+        CoroutineScope(Dispatchers.Default).launch {
+            loading = true
+            delay(1000)
+            rfInit(rf, this@MainActivity, state)
+            loading = false
+        }
+
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(
+                this,
+                Thread.getDefaultUncaughtExceptionHandler()!!
+            )
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setContent {
+            Page()
+        }
+
+        if (deviceId == "") {
+            val intent =
+                Intent(this@MainActivity, DeviceRegister::class.java)
+            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        } else if (token == "") {
+            loginMode = true
+        }
+    }
+
+    private fun requestPermissions() {
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -99,49 +137,63 @@ class MainActivity : ComponentActivity() {
                 1
             )
         }
-        rfInit(rf, this, state)
+    }
 
-        Thread.setDefaultUncaughtExceptionHandler(
-            ExceptionHandler(
-                this,
-                Thread.getDefaultUncaughtExceptionHandler()!!
-            )
-        )
+    private fun login() {
+
+        loading = true
+
+        userLogin(
+            queue,
+            state,
+            username,
+            password,
+            { assignedToken, fullName, assignedLocation, assignedWarehouse, warehouses ->
+
+                userLocationCode = assignedLocation
+                userWarehouse = assignedWarehouse
+                token = assignedToken
+                userFullName = fullName
+                userWarehouses = warehouses
+                saveToMemory()
+                loginMode = false
+                loading = false
+            },
+            {
+                loading = false
+            })
+    }
+
+    private fun saveToMemory() {
+
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val editor = memory.edit()
+
+        editor.putString("accessToken", token)
+        editor.putString("username", username)
+        editor.putString("userFullName", userFullName)
+        editor.putInt("userLocationCode", userLocationCode)
+        editor.putInt("userWarehouseCode", userWarehouse)
+        editor.putString("userWarehouses", Gson().toJson(userWarehouses).toString())
+        editor.apply()
     }
 
     private fun loadMemory() {
 
-        memory = PreferenceManager.getDefaultSharedPreferences(this)
+        val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
         userLocationCode = memory.getInt("userLocationCode", 0)
         username = memory.getString("username", "") ?: ""
         token = memory.getString("accessToken", "") ?: ""
         deviceId = memory.getString("deviceId", "") ?: ""
-        fullName = memory.getString("userFullName", "") ?: ""
-    }
-
-    override fun onResume() {
-        super.onResume()
-        setContent {
-            MainMenu()
-        }
-
-        if (deviceId == "") {
-            val intent =
-                Intent(this@MainActivity, OperatorLogin::class.java)
-            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-        } else if (username == "") {
-            val intent =
-                Intent(this@MainActivity, UserLogin::class.java)
-            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-        }
+        userFullName = memory.getString("userFullName", "") ?: ""
     }
 
     private fun clearCash() {
+        loading = true
         deleteRecursive(cacheDir)
         deleteRecursive(codeCacheDir)
+        loading = false
     }
 
     private fun deleteRecursive(fileOrDirectory: File) {
@@ -164,227 +216,17 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-
-        var username = ""
         var token = ""
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @Composable
-    fun MainMenu() {
-
-
+    fun Page() {
         MyApplicationTheme {
-
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-
                 Scaffold(
-                    topBar = {
-                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                            TopAppBar(
-                                title = {
-                                    Row(
-                                        modifier = Modifier
-                                            .padding(start = 30.dp)
-                                            .height(16.dp)
-                                            .fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_jeanswest_logo),
-                                            contentDescription = "",
-                                        )
-                                    }
-                                },
-                                actions = {
-                                    IconButton(onClick = {
-                                        openAccountDialog = true
-                                    })
-                                    {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_baseline_person_24),
-                                            contentDescription = "",
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    },
-                    content = {
-
-                        LazyColumn(
-                            verticalArrangement = Arrangement.SpaceEvenly,
-                        ) {
-                            item {
-
-                                if (openAccountDialog) {
-                                    AccountAlertDialog()
-                                }
-
-                                Row(
-
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(top = buttonPadding, bottom = buttonPadding)
-                                ) {
-                                    OpenActivityButton(
-                                        stringResource(R.string.manualRefill),
-                                        R.drawable.check_in
-                                    ) {
-                                        val intent =
-                                            Intent(
-                                                this@MainActivity,
-                                                ManualRefill::class.java
-                                            )
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.refill),
-                                        R.drawable.refill
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, Refill::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.refill2),
-                                        R.drawable.refill
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, Refill2::class.java)
-                                        startActivity(intent)
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(bottom = buttonPadding)
-                                ) {
-                                    OpenActivityButton(
-                                        stringResource(R.string.checkInText),
-                                        R.drawable.inventory
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, ConfirmStockDraft::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.checkOut),
-                                        R.drawable.check_in
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, CreateStockDraft::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.search),
-                                        R.drawable.search
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, Kiosk::class.java)
-                                        startActivity(intent)
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(bottom = buttonPadding)
-                                ) {
-                                    OpenActivityButton(
-                                        stringResource(R.string.stockDraftsList),
-                                        R.drawable.ic_baseline_format_list_bulleted_24
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, StockDraftsList::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        text = stringResource(R.string.inventoryText),
-                                        iconId = R.drawable.inventory
-                                    ) {
-                                        Intent(
-                                            this@MainActivity,
-                                            Inventory::class.java
-                                        ).apply {
-                                            startActivity(this)
-                                        }
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.tagProgramming),
-                                        R.drawable.write
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, WriteTag::class.java)
-                                        startActivity(intent)
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(bottom = buttonPadding)
-                                ) {
-                                    OpenActivityButton(
-                                        stringResource(R.string.count),
-                                        R.drawable.counter
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, Count::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        text = stringResource(R.string.centralCheckInCheckInText),
-                                        iconId = R.drawable.inventory
-                                    ) {
-                                        Intent(
-                                            this@MainActivity,
-                                            AttachEPCsToStockDraft::class.java
-                                        ).apply {
-                                            startActivity(this)
-                                        }
-                                    }
-                                    OpenActivityButton(
-                                        text = stringResource(R.string.createCarton),
-                                        iconId = R.drawable.check_in
-                                    ) {
-                                        Intent(
-                                            this@MainActivity,
-                                            CreateCarton::class.java
-                                        ).apply {
-                                            startActivity(this)
-                                        }
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(bottom = buttonPadding)
-                                ) {
-                                    OpenActivityButton(
-                                        stringResource(R.string.showCarton),
-                                        R.drawable.search
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, ShowCarton::class.java)
-                                        startActivity(intent)
-                                    }
-                                    OpenActivityButton(
-                                        stringResource(R.string.createStockDraftByCartons),
-                                        R.drawable.check_in
-                                    ) {
-                                        val intent =
-                                            Intent(this@MainActivity, CreateStockDraftByCartons::class.java)
-                                        startActivity(intent)
-                                    }
-                                    Box(Modifier.size(buttonSize))
-                                }
-                            }
-                        }
-                    },
+                    topBar = { if (loginMode) AppBar2() else AppBar() },
+                    content = { if (loginMode) Content2() else Content() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -392,42 +234,278 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun OpenActivityButton(text: String, iconId: Int, onClick: () -> Unit) {
-
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .size(buttonSize)
-                .shadow(elevation = 5.dp, shape = MaterialTheme.shapes.small)
-                .border(
-                    BorderStroke(1.dp, borderColor),
-                    shape = MaterialTheme.shapes.small
-                )
-                .clickable {
-                    onClick()
+    fun AppBar() {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier
+                            .padding(start = 30.dp)
+                            .height(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_jeanswest_logo),
+                            contentDescription = "",
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        openAccountDialog = true
+                    }, modifier = Modifier.testTag("account"))
+                    {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_baseline_person_24),
+                            contentDescription = "",
+                        )
+                    }
                 }
-                .background(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colors.onPrimary,
-                )
-
-        ) {
-
-            Icon(
-                painter = painterResource(iconId),
-                tint = MaterialTheme.colors.primary,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(iconSize)
-                    .align(Alignment.CenterHorizontally)
-            )
-            Text(
-                text,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.h3
             )
         }
+    }
+
+    @Composable
+    fun Content() {
+
+        Column {
+            if (loading) {
+                LoadingCircularProgressIndicator(isDataLoading = loading)
+            } else {
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    item {
+
+                        if (openAccountDialog) {
+                            AccountAlertDialog()
+                        }
+
+                        Row(
+
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = buttonPadding, bottom = buttonPadding)
+                        ) {
+                            OpenActivityButton(
+                                stringResource(R.string.manualRefill),
+                                R.drawable.check_in
+                            ) {
+                                val intent =
+                                    Intent(
+                                        this@MainActivity,
+                                        ManualRefill::class.java
+                                    )
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.refill),
+                                R.drawable.refill
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, Refill::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.refill2),
+                                R.drawable.refill
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, Refill2::class.java)
+                                startActivity(intent)
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = buttonPadding)
+                        ) {
+                            OpenActivityButton(
+                                stringResource(R.string.checkInText),
+                                R.drawable.inventory
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, ConfirmStockDraft::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.checkOut),
+                                R.drawable.check_in
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, CreateStockDraft::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.search),
+                                R.drawable.search
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, Kiosk::class.java)
+                                startActivity(intent)
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = buttonPadding)
+                        ) {
+                            OpenActivityButton(
+                                stringResource(R.string.stockDraftsList),
+                                R.drawable.ic_baseline_format_list_bulleted_24
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, StockDraftsList::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                text = stringResource(R.string.inventoryText),
+                                iconId = R.drawable.inventory
+                            ) {
+                                Intent(
+                                    this@MainActivity,
+                                    Inventory::class.java
+                                ).apply {
+                                    startActivity(this)
+                                }
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.tagProgramming),
+                                R.drawable.write
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, WriteTag::class.java)
+                                startActivity(intent)
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = buttonPadding)
+                        ) {
+                            OpenActivityButton(
+                                stringResource(R.string.count),
+                                R.drawable.counter
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, Count::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                text = stringResource(R.string.centralCheckInCheckInText),
+                                iconId = R.drawable.inventory
+                            ) {
+                                Intent(
+                                    this@MainActivity,
+                                    AttachEPCsToStockDraft::class.java
+                                ).apply {
+                                    startActivity(this)
+                                }
+                            }
+                            OpenActivityButton(
+                                text = stringResource(R.string.createCarton),
+                                iconId = R.drawable.check_in
+                            ) {
+                                Intent(
+                                    this@MainActivity,
+                                    CreateCarton::class.java
+                                ).apply {
+                                    startActivity(this)
+                                }
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = buttonPadding)
+                        ) {
+                            OpenActivityButton(
+                                stringResource(R.string.showCarton),
+                                R.drawable.search
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, ShowCarton::class.java)
+                                startActivity(intent)
+                            }
+                            OpenActivityButton(
+                                stringResource(R.string.createStockDraftByCartons),
+                                R.drawable.check_in
+                            ) {
+                                val intent =
+                                    Intent(this@MainActivity, CreateStockDraftByCartons::class.java)
+                                startActivity(intent)
+                            }
+                            Box(Modifier.size(100.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun Content2() {
+
+        Column {
+
+            if (loading) {
+                LoadingCircularProgressIndicator(isDataLoading = loading)
+            } else {
+
+                SimpleTextField(
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, top = 16.dp)
+                        .fillMaxWidth(),
+                    hint = "نام کاربری خود را وارد کنید",
+                    onValueChange = { username = it },
+                    value = username,
+                )
+
+                SimpleTextField(
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)
+                        .fillMaxWidth(),
+                    hint = "رمز عبور خود را وارد کنید",
+                    onValueChange = { password = it },
+                    value = password,
+                )
+
+                BigButton(text = "ورود") {
+                    login()
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AppBar2() {
+
+        TopAppBar(
+
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "ورود به حساب کاربری", textAlign = TextAlign.Center,
+                    )
+                }
+            },
+        )
     }
 
     @Composable
@@ -447,7 +525,7 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     Text(
-                        text = fullName,
+                        text = userFullName,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 16.dp),
@@ -464,16 +542,10 @@ class MainActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 openAccountDialog = false
-                                val editor: SharedPreferences.Editor = memory.edit()
-                                editor.putString("accessToken", "")
-                                editor.putString("username", "")
-                                editor.apply()
-                                username = ""
                                 token = ""
-                                val intent =
-                                    Intent(this@MainActivity, UserLogin::class.java)
-                                intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                startActivity(intent)
+                                password = ""
+                                saveToMemory()
+                                loginMode = true
                             }, modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(text = "خروج از حساب")

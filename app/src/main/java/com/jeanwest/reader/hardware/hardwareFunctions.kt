@@ -1,6 +1,8 @@
 package com.jeanwest.reader.hardware
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
@@ -8,8 +10,19 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+
+fun successBeep() {
+    CoroutineScope(Dispatchers.IO).launch {
+        val beep = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        delay(300L)
+        beep.startTone(ToneGenerator.TONE_PROP_ACK, 150)
+        delay(300)
+        beep.release()
+    }
+}
 
 fun setRFEpcMode(rf: RFIDWithUHFUART, state: SnackbarHostState): Boolean {
     for (i in 0..11) {

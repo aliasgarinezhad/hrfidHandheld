@@ -22,11 +22,13 @@ class RefillTest {
     @Test
     fun test1() {
 
+        val numberOfTestItems = 20
+
         start()
         clearUserData()
         restart()
 
-        assert(activity.activity.inputBarcodes.size > 20)
+        assert(activity.activity.inputBarcodes.size > numberOfTestItems)
 
         activity.onNodeWithText("پیدا شده: " + 0)
             .assertExists()
@@ -50,11 +52,11 @@ class RefillTest {
 
         barcodeScan("123456")
 
-        barcodeArrayScan(20, scannedProducts)
+        barcodeArrayScan(numberOfTestItems, scannedProducts)
 
         restart()
 
-        activity.onNodeWithText("پیدا شده: " + 20)
+        activity.onNodeWithText("پیدا شده: " + numberOfTestItems)
             .assertExists()
         activity.onNodeWithText("خطی: " + activity.activity.inputBarcodes.size)
             .assertExists()
@@ -66,7 +68,7 @@ class RefillTest {
 
         assert(activity.activity.refillProducts.filter {
             it.scannedBarcodeNumber > 0
-        }.size == 20)
+        }.size == numberOfTestItems)
 
         activity.activity.refillProducts.filter {
             it.scannedBarcodeNumber > 0

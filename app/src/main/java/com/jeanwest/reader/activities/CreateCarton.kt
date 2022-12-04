@@ -26,22 +26,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
+import com.jeanwest.reader.data.*
 import com.jeanwest.reader.management.*
-import com.jeanwest.reader.data.Product
-import com.jeanwest.reader.data.getProductsV4
-import com.jeanwest.reader.data.getWarehousesLists
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.hardware.successBeep
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.jeanwest.reader.ui.*
 import com.rscja.deviceapi.entity.UHFTAGInfo
+import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
 import org.json.JSONArray
 
@@ -49,6 +50,7 @@ import org.json.JSONArray
 class CreateCarton : ComponentActivity(),
     IBarcodeResult {
 
+    private var cartonNumber = ""
     private val barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
@@ -66,26 +68,31 @@ class CreateCarton : ComponentActivity(),
     private var creatingCarton by mutableStateOf(false)
     var scannedBarcodes = mutableListOf<String>()
     private var source by mutableStateOf("انتخاب انبار جاری")
-    private var destinations = mutableStateMapOf<String, Int>()
     private var sources = mutableStateMapOf<String, Int>()
     var products = mutableListOf<Product>()
-    private var locations = mutableMapOf<String, String>()
+    private var locations = mutableStateMapOf<String, String>()
     var scanTypeValue by mutableStateOf("RFID")
+    private var printers = mutableStateMapOf<String, Int>()
+    private var printer by mutableStateOf("")
+    private var openPrintDialog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         barcodeInit()
+
+        try {
+            rf = RFIDWithUHFUART.getInstance()
+        } catch (e: ConfigurationException) {
+            e.printStackTrace()
+        }
+
         queue = Volley.newRequestQueue(this)
 
         setContent {
             Page()
         }
 
-        getWarehousesLists(queue, state, {
-            destinations.clear()
-            destinations.putAll(it)
-        }, {})
         loadMemory()
 
         Thread.setDefaultUncaughtExceptionHandler(
@@ -94,7 +101,33 @@ class CreateCarton : ComponentActivity(),
                 Thread.getDefaultUncaughtExceptionHandler()!!
             )
         )
-        syncScannedItemsToServer()
+        loadPrintersList()
+    }
+
+    private fun loadPrintersList() {
+        loading = true
+        getPrintersList(queue, state, {
+            printers.clear()
+            printers.putAll(it)
+            printer = printers.keys.toMutableList()[0]
+            syncScannedItemsToServer()
+        }, {
+            loading = false
+        })
+    }
+
+    private fun printCarton() {
+
+        print(queue, state, printers[printer] ?: 0, cartonNumber, {
+            scannedBarcodes.clear()
+            scannedEpcs.clear()
+            products.clear()
+            syncScannedItemsToServer()
+            saveToMemory()
+            creatingCarton = false
+        }, {
+            creatingCarton = false
+        })
     }
 
     private fun stopRFScan() {
@@ -331,23 +364,122 @@ class CreateCarton : ComponentActivity(),
                     it1.name
                 }
                 loading = false
-            }, true
+            }
         )
     }
 
     private fun createNewCarton() {
 
         creatingCarton = true
-        creatingCarton = false
+        createCarton(queue, state, uiList, sources[source]!!, {
+            cartonNumber = it
+            printCarton()
+        }, {
+            creatingCarton = false
+        })
+    }
+
+    private fun syncScannedItemToServer(barcode: String) {
+
+        loading = true
+
+        val alreadySyncedBarcodes = mutableListOf<String>()
+        products.forEach {
+            if (it.scannedBarcodeNumber > 0) {
+                alreadySyncedBarcodes.add(it.scannedBarcode)
+            }
+        }
+
+        if (barcode in alreadySyncedBarcodes) {
+            successBeep()
+            scannedBarcodes.add(barcode)
+            saveToMemory()
+            val productIndex = products.indexOf(products.last { it1 ->
+                it1.scannedBarcode == barcode
+            })
+            products[productIndex].scannedBarcodeNumber =
+                scannedBarcodes.count { it1 ->
+                    it1 == barcode
+                }
+
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            uiList.sortBy { it1 ->
+                it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+            }
+            loading = false
+            return
+        }
+
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcode),
+            { _, barcodes, _, _ ->
+
+                if (barcodes.size == 1) {
+                    successBeep()
+                    scannedBarcodes.add(barcode)
+                    saveToMemory()
+                    var isInRefillProductList = false
+
+                    run forEach1@{
+                        products.forEach { it1 ->
+                            if (it1.KBarCode == barcodes[0].KBarCode) {
+                                it1.scannedBarcode = barcodes[0].scannedBarcode
+                                it1.scannedBarcodeNumber += 1
+                                isInRefillProductList = true
+                                return@forEach1
+                            }
+                        }
+                    }
+                    if (!isInRefillProductList) {
+                        barcodes[0].scannedBarcodeNumber = 1
+                        products.add(barcodes[0])
+                    }
+                }
+
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy {
+                    it.productCode
+                }
+                uiList.sortBy {
+                    it.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
+
+            },
+            {
+
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy { it1 ->
+                    it1.productCode
+                }
+                uiList.sortBy { it1 ->
+                    it1.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
+            })
     }
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
-
-            scannedBarcodes.add(barcode)
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            saveToMemory()
-            syncScannedItemsToServer()
+            syncScannedItemToServer(barcode)
         }
     }
 
@@ -359,6 +491,11 @@ class CreateCarton : ComponentActivity(),
         edit.putString(
             "CreateCartonBarcodeTable",
             JSONArray(scannedBarcodes).toString()
+        )
+
+        edit.putString(
+            "CreateCartonEpcTable",
+            JSONArray(scannedEpcs).toString()
         )
 
         edit.putString(
@@ -380,7 +517,7 @@ class CreateCarton : ComponentActivity(),
         locations = Gson().fromJson(
             memory.getString("userWarehouses", ""),
             locations.javaClass
-        ) ?: mutableMapOf()
+        ) ?: mutableStateMapOf()
 
         locations.forEach {
             sources[it.value] = it.key.toInt()
@@ -390,6 +527,11 @@ class CreateCarton : ComponentActivity(),
         scannedBarcodes = Gson().fromJson(
             memory.getString("CreateCartonBarcodeTable", ""),
             scannedBarcodes.javaClass
+        ) ?: mutableListOf()
+
+        scannedEpcs = Gson().fromJson(
+            memory.getString("CreateCartonEpcTable", ""),
+            scannedEpcs.javaClass
         ) ?: mutableListOf()
 
         products = Gson().fromJson(
@@ -407,6 +549,9 @@ class CreateCarton : ComponentActivity(),
 
                 scannedBarcodes.removeAll { it1 ->
                     it1 == it.scannedBarcode
+                }
+                scannedEpcs.removeAll { it1 ->
+                    it1 in it.scannedEPCs
                 }
                 removedRefillProducts.add(it)
             }
@@ -501,16 +646,20 @@ class CreateCarton : ComponentActivity(),
 
         Column {
 
-            if (loading) {
+            if (loading || scanning) {
                 Column(
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp)
                         .background(JeanswestBackground, Shapes.small)
                         .fillMaxWidth()
                 ) {
-                    LoadingCircularProgressIndicator(false, loading)
+                    LoadingCircularProgressIndicator(scanning, loading)
                 }
             } else {
+
+                if (openPrintDialog) {
+                    PrintAlertDialog()
+                }
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -628,7 +777,7 @@ class CreateCarton : ComponentActivity(),
                         )
                     }
                 } else if (!creatingCarton) {
-                    createNewCarton()
+                    openPrintDialog = true
                 }
             }
         }
@@ -673,5 +822,59 @@ class CreateCarton : ComponentActivity(),
                 )
             }
         }
+    }
+
+    @Composable
+    fun PrintAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openPrintDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                ) {
+
+                    Text("لطفا پرینتر مورد نظر خود را مشخص کنید ",
+                        style = MaterialTheme.typography.body2)
+
+                    Row {
+
+                        FilterDropDownList(
+                            modifier = Modifier
+                                .padding(top = 24.dp, end = 16.dp),
+                            icon = {},
+                            text = {
+                                Text(
+                                    text = printer,
+                                    style = MaterialTheme.typography.body2,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 16.dp)
+                                )
+                            },
+                            onClick = {
+                                printer = it
+                            },
+                            values = printers.keys.toMutableList()
+                        )
+
+                        Button(onClick = {
+                            openPrintDialog = false
+                            createNewCarton()
+
+                        }, modifier = Modifier.padding(top = 24.dp)
+                            .align(Alignment.CenterVertically)) {
+                            Text(text = "پرینت")
+                        }
+                    }
+                }
+            }
+        )
     }
 }

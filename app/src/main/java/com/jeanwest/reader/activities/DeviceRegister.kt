@@ -2,22 +2,18 @@ package com.jeanwest.reader.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -25,52 +21,77 @@ import androidx.preference.PreferenceManager
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.ErrorSnackBar
 import com.jeanwest.reader.data.getWarehousesLists
+import com.jeanwest.reader.data.operatorLogin
 import com.jeanwest.reader.data.registerDevice
-import com.jeanwest.reader.ui.MyApplicationTheme
+import com.jeanwest.reader.ui.*
 
 class DeviceRegister : ComponentActivity() {
 
+    private var password by mutableStateOf("")
+    private var username by mutableStateOf("")
+    private var state = SnackbarHostState()
+    private lateinit var queue: RequestQueue
+    private var advanceSettingToken = ""
+    private var loginMode by mutableStateOf(true)
     private var deviceSerialNumber by mutableStateOf("")
     private var deviceId by mutableStateOf("")
     private var iotToken by mutableStateOf("")
-    private var advanceSettingToken = ""
-    private var deviceLocationCode = 0
-    private var deviceLocation = ""
-    private val locations = mutableMapOf<Int, String>()
-    private var state = SnackbarHostState()
-    private lateinit var queue : RequestQueue
-
+    private var deviceLocation by mutableStateOf("")
+    private val locations = mutableStateMapOf<String, Int>()
+    var loading by mutableStateOf(false)
 
     override fun onResume() {
         super.onResume()
         setContent { Page() }
-        loadMemory()
         queue = Volley.newRequestQueue(this)
-        getLocations()
+    }
+
+    private fun advanceUserAuthenticate() {
+        loading = true
+        operatorLogin(queue, state, username, password, {
+            advanceSettingToken = it
+            loginMode = false
+            getLocations()
+        }, {
+            loading = false
+        })
     }
 
     private fun registerDeviceToIotHub() {
 
-        registerDevice(queue, state, advanceSettingToken, deviceSerialNumber, { deviceId, iotToken ->
-            this.deviceId = deviceId
-            this.iotToken = iotToken
-            saveToMemory()
-            val nextActivityIntent = Intent(this, MainActivity::class.java)
-            intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(nextActivityIntent)
-        }, {})
+        loading = true
+
+        registerDevice(
+            queue,
+            state,
+            advanceSettingToken,
+            deviceSerialNumber,
+            { deviceId, iotToken ->
+                this.deviceId = deviceId
+                this.iotToken = iotToken
+                saveToMemory()
+                loading = false
+                val nextActivityIntent = Intent(this, MainActivity::class.java)
+                intent.flags += Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(nextActivityIntent)
+            },
+            {
+                loading = false
+            })
     }
 
     private fun getLocations() {
 
+        loading = true
         getWarehousesLists(queue, state, {
             locations.clear()
-            it.forEach{ it1 ->
-                locations[it1.value] = it1.key
-            }
-        }, {}, advanceSettingToken)
+            locations.putAll(it)
+            deviceLocation = locations.keys.toList()[0]
+            loading = false
+        }, {
+            loading = false
+        }, advanceSettingToken)
     }
 
     private fun saveToMemory() {
@@ -78,20 +99,12 @@ class DeviceRegister : ComponentActivity() {
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
         val memoryEditor = memory.edit()
 
-        Log.e("deviceId", deviceId)
-        Log.e("iotToken", iotToken)
-
         memoryEditor.putString("deviceId", deviceId)
-        memoryEditor.putInt("deviceLocationCode", deviceLocationCode)
+        memoryEditor.putInt("deviceLocationCode", locations[deviceLocation] ?: 0)
         memoryEditor.putString("deviceLocation", deviceLocation)
         memoryEditor.putString("iotToken", iotToken)
         memoryEditor.putString("deviceSerialNumber", deviceSerialNumber)
         memoryEditor.apply()
-    }
-
-    private fun loadMemory() {
-        val memory = PreferenceManager.getDefaultSharedPreferences(this)
-        advanceSettingToken = memory.getString("advanceSettingToken", "") ?: ""
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -102,8 +115,11 @@ class DeviceRegister : ComponentActivity() {
     }
 
     private fun back() {
-        saveToMemory()
-        finish()
+        if (loginMode) {
+            finish()
+        } else {
+            loginMode = true
+        }
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
@@ -112,8 +128,8 @@ class DeviceRegister : ComponentActivity() {
         MyApplicationTheme {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Scaffold(
-                    topBar = { AppBar() },
-                    content = { Content() },
+                    topBar = { if (loginMode) AppBar() else AppBar2() },
+                    content = { if (loginMode) Content() else Content2() },
                     snackbarHost = { ErrorSnackBar(state) },
                 )
             }
@@ -123,79 +139,102 @@ class DeviceRegister : ComponentActivity() {
     @Composable
     fun Content() {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 10.dp)
-        ) {
+        Column {
+            if (loading) {
+                LoadingCircularProgressIndicator(isDataLoading = loading)
+            } else {
+                SimpleTextField(
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, top = 16.dp)
+                        .fillMaxWidth(),
+                    hint = "نام کاربری خود را وارد کنید",
+                    onValueChange = { username = it },
+                    value = username,
+                )
 
-            ImeiTextField()
-            LocationDropDownList()
+                SimpleTextField(
+                    modifier = Modifier
+                        .padding(
+                            start = 24.dp,
+                            end = 24.dp,
+                            top = 8.dp,
+                            bottom = 24.dp
+                        )
+                        .fillMaxWidth(),
+                    hint = "رمز عبور خود را وارد کنید",
+                    onValueChange = { password = it },
+                    value = password,
+                )
 
-            Button(modifier = Modifier
-                .padding(top = 20.dp)
-                .align(Alignment.CenterHorizontally)
-                .testTag("WriteEnterWriteSettingButton"),
-                onClick = {
-                    registerDeviceToIotHub()
-                }) {
-                Text(text = "ورود")
-            }
-        }
-    }
-
-    @Composable
-    fun LocationDropDownList() {
-
-        var expanded by rememberSaveable {
-            mutableStateOf(false)
-        }
-
-        Box {
-            Row(modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth()
-                .clickable { expanded = true }) {
-                locations[deviceLocationCode]?.let { Text(text = it) }
-                Icon(imageVector = Icons.Filled.ArrowDropDown, "")
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.wrapContentWidth()
-            ) {
-                locations.forEach {
-                    DropdownMenuItem(onClick = {
-                        expanded = false
-                        deviceLocationCode = it.key
-                        deviceLocation = it.value
-                    }) {
-                        Text(text = it.value)
-                    }
+                BigButton(text = "ورود") {
+                    advanceUserAuthenticate()
                 }
             }
         }
     }
 
     @Composable
-    fun ImeiTextField() {
+    fun Content2() {
 
-        OutlinedTextField(
-            value = deviceSerialNumber,
-            onValueChange = {
-                deviceSerialNumber = it
-            },
-            modifier = Modifier
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
-                .fillMaxWidth()
-                .testTag("WriteSettingImeiTextField"),
-            label = { Text(text = "شماره سریال دستگاه") },
-        )
+        Column {
+
+            if (loading) {
+                LoadingCircularProgressIndicator(isDataLoading = loading)
+            } else {
+
+                SimpleTextField(
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)
+                        .fillMaxWidth(),
+                    hint = "شماره سریال دستگاه را وارد کنید",
+                    onValueChange = { deviceSerialNumber = it },
+                    value = deviceSerialNumber,
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                ) {
+
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 24.dp, bottom = 24.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_baseline_location_city_24),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = deviceLocation,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        onClick = {
+                            deviceLocation = it
+                        },
+                        values = locations.keys.toMutableList()
+                    )
+                }
+
+                BigButton(text = "ثبت اطلاعات") {
+                    registerDeviceToIotHub()
+                }
+            }
+        }
     }
 
     @Composable
-    fun AppBar() {
+    fun AppBar2() {
 
         TopAppBar(
 
@@ -208,7 +247,7 @@ class DeviceRegister : ComponentActivity() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "تنظیمات اپراتور", textAlign = TextAlign.Center,
+                        stringResource(id = R.string.deviceRegister), textAlign = TextAlign.Center,
                     )
                 }
             },
@@ -218,7 +257,7 @@ class DeviceRegister : ComponentActivity() {
                 ) {
                     IconButton(
                         onClick = { back() },
-                        modifier = Modifier.testTag("WriteSettingBackButton")
+                        modifier = Modifier.testTag("back")
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_baseline_arrow_back_24),
@@ -227,6 +266,26 @@ class DeviceRegister : ComponentActivity() {
                     }
                 }
             }
+        )
+    }
+
+    @Composable
+    fun AppBar() {
+
+        TopAppBar(
+
+            title = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(id = R.string.deviceRegister), textAlign = TextAlign.Center,
+                    )
+                }
+            },
         )
     }
 }

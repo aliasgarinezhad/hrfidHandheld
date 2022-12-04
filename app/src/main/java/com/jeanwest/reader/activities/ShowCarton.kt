@@ -8,7 +8,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -29,16 +31,15 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.*
-import com.jeanwest.reader.data.DraftProperties
-import com.jeanwest.reader.data.Product
-import com.jeanwest.reader.data.getProductsV4
-import com.jeanwest.reader.data.getStockDraftDetails
+import com.jeanwest.reader.data.*
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.management.ExceptionHandler
 import com.jeanwest.reader.test.Barcode2D
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.borderColor
-import kotlinx.coroutines.*
+import com.jeanwest.reader.ui.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlin.io.print
 
 @OptIn(ExperimentalFoundationApi::class)
 class ShowCarton : ComponentActivity(),
@@ -48,7 +49,7 @@ class ShowCarton : ComponentActivity(),
     val inputProducts = mutableMapOf<String, Product>()
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    var cartonProperties = DraftProperties(number = 0L, numberOfItems = 0)
+    var cartonProperties = Carton(number = "0", numberOfItems = 0)
 
     //ui parameters
     var productConflicts = mutableStateListOf<Product>()
@@ -58,6 +59,9 @@ class ShowCarton : ComponentActivity(),
     private lateinit var queue: RequestQueue
     private var cartonNumber by mutableStateOf("")
     var showDetailMode by mutableStateOf(false)
+    private var openPrintDialog by mutableStateOf(false)
+    private var printers = mutableStateMapOf<String, Int>()
+    private var printer by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,16 +72,37 @@ class ShowCarton : ComponentActivity(),
         setContent {
             Page()
         }
-        if (showDetailMode) {
-            syncInputItemsToServer()
-        }
 
+        loadPrintersList()
         Thread.setDefaultUncaughtExceptionHandler(
             ExceptionHandler(
                 this,
                 Thread.getDefaultUncaughtExceptionHandler()!!
             )
         )
+    }
+
+    private fun loadPrintersList() {
+        loading = true
+        getPrintersList(queue, state, {
+            printers.clear()
+            printers.putAll(it)
+            printer = printers.keys.toMutableList()[0]
+            loading = false
+        }, {
+            loading = false
+        })
+    }
+
+    private fun printCarton() {
+
+        loading = true
+
+        print(queue, state, printers[printer] ?: 0, cartonNumber, {
+            loading = false
+        }, {
+            loading = false
+        })
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -117,7 +142,6 @@ class ShowCarton : ComponentActivity(),
         }
     }
 
-
     private fun syncInputItemsToServer() {
 
         loading = true
@@ -149,7 +173,7 @@ class ShowCarton : ComponentActivity(),
             state,
             mutableListOf(),
             barcodeTableForV4,
-            { _, barcodes, _, _ ->
+            { _, barcodes, _, invalidBarcodes ->
 
                 barcodes.forEach { product ->
                     inputBarcodeMapWithProperties[product.scannedBarcode] = product
@@ -157,6 +181,9 @@ class ShowCarton : ComponentActivity(),
 
                 if (inputProductsBiggerThan1000) {
                     syncInputItemsToServer()
+                } else if (invalidBarcodes.length() != 0) {
+                    loading = false
+                    return@getProductsV4
                 } else {
                     makeInputProductMap()
                     calculateConflicts()
@@ -189,8 +216,7 @@ class ShowCarton : ComponentActivity(),
 
         if (!showDetailMode) {
             if (!barcode.isNullOrBlank()) {
-                getCartonDetails(barcode)
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+                getCartonDetail(barcode)
             }
         }
     }
@@ -242,7 +268,7 @@ class ShowCarton : ComponentActivity(),
         startActivity(intent)
     }
 
-    private fun getCartonDetails(code: String) {
+    private fun getCartonDetail(code: String) {
 
         loading = true
 
@@ -258,17 +284,13 @@ class ShowCarton : ComponentActivity(),
             return
         }
 
-        getStockDraftDetails(queue, state, code, {
+        getCartonDetails(queue, state, code, {
             cartonProperties = it
             showDetailMode = true
             syncInputItemsToServer()
         }, {
             loading = false
         })
-    }
-
-    private fun printLabel() {
-
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
@@ -325,6 +347,10 @@ class ShowCarton : ComponentActivity(),
                 LoadingCircularProgressIndicator(isDataLoading = loading)
             } else {
 
+                if (openPrintDialog) {
+                    PrintAlertDialog()
+                }
+
                 Column(
                     modifier = Modifier
                         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
@@ -359,6 +385,7 @@ class ShowCarton : ComponentActivity(),
                             textAlign = TextAlign.Right,
                             modifier = Modifier
                                 .padding(start = 16.dp)
+                                .align(Alignment.CenterVertically)
                                 .weight(1F),
                         )
                         Text(
@@ -379,7 +406,7 @@ class ShowCarton : ComponentActivity(),
                             uiList,
                             true,
                             text3 = "موجودی: " + uiList[i].draftNumber,
-                            text4 = uiList[i].conflictType + ":" + " " + uiList[i].conflictNumber
+                            text4 = "سایز: " + uiList[i].size,
                         ) {
                             openSearchActivity(uiList[i])
                         }
@@ -388,7 +415,7 @@ class ShowCarton : ComponentActivity(),
             }
         }
         BottomBarButton(text = "پرینت لیبل") {
-            printLabel()
+            openPrintDialog = true
         }
     }
 
@@ -397,30 +424,86 @@ class ShowCarton : ComponentActivity(),
 
         Column(modifier = Modifier.fillMaxSize()) {
 
-            Column(
-                Modifier
-                    .background(color = Color.White)
-                    .border(
-                        BorderStroke(1.dp, borderColor),
-                        shape = RoundedCornerShape(0.dp)
-                    )
-            ) {
-                CustomTextField(
-                    modifier = Modifier
-                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            if (loading) {
+                LoadingCircularProgressIndicator(isDataLoading = loading)
+            } else {
+
+                Column(
+                    Modifier
+                        .background(color = Color.White)
                         .border(
                             BorderStroke(1.dp, borderColor),
-                            shape = MaterialTheme.shapes.small
+                            shape = RoundedCornerShape(0.dp)
                         )
-                        .fillMaxWidth(),
-                    hint = "لطفا شماره کارتن را وارد یا اسکن کنید",
-                    onSearch = { getCartonDetails(cartonNumber) },
-                    onValueChange = { cartonNumber = it },
-                    value = cartonNumber,
-                    isError = (cartonNumber.toLongOrNull() == null && cartonNumber != ""),
-                    keyboardType = KeyboardType.Number
-                )
+                ) {
+                    CustomTextField(
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                            .border(
+                                BorderStroke(1.dp, borderColor),
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .fillMaxWidth(),
+                        hint = "لطفا شماره کارتن را وارد یا اسکن کنید",
+                        onSearch = { getCartonDetail(cartonNumber) },
+                        onValueChange = { cartonNumber = it },
+                        value = cartonNumber,
+                    )
+                }
             }
         }
+    }
+    @Composable
+    fun PrintAlertDialog() {
+
+        AlertDialog(
+            onDismissRequest = {
+                openPrintDialog = false
+            },
+            buttons = {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                ) {
+
+                    Text("لطفا پرینتر مورد نظر خود را مشخص کنید ",
+                        style = MaterialTheme.typography.body2)
+
+                    Row {
+
+                        FilterDropDownList(
+                            modifier = Modifier
+                                .padding(top = 24.dp, end = 16.dp),
+                            icon = {},
+                            text = {
+                                Text(
+                                    text = printer,
+                                    style = MaterialTheme.typography.body2,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)
+                                        .padding(start = 16.dp)
+                                )
+                            },
+                            onClick = {
+                                printer = it
+                            },
+                            values = printers.keys.toMutableList()
+                        )
+
+                        Button(onClick = {
+                            openPrintDialog = false
+                            printCarton()
+
+                        }, modifier = Modifier.padding(top = 24.dp)
+                            .align(Alignment.CenterVertically)) {
+                            Text(text = "پرینت")
+                        }
+                    }
+                }
+            }
+        )
     }
 }

@@ -36,10 +36,7 @@ import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.data.getProductsSimilar
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
-import com.jeanwest.reader.ui.JeanswestBackground
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.Shapes
-import com.jeanwest.reader.ui.Typography
+import com.jeanwest.reader.ui.*
 
 class Kiosk : ComponentActivity(),
     IBarcodeResult {
@@ -93,7 +90,6 @@ class Kiosk : ComponentActivity(),
 
             loading = true
 
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             uiList.clear()
             uiList.clear()
             productCode = ""

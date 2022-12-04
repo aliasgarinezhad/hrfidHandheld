@@ -36,9 +36,6 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
 import com.jeanwest.reader.data.*
-import com.jeanwest.reader.ui.JeanswestBottomBar
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.borderColor
 import com.jeanwest.reader.test.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
@@ -48,6 +45,8 @@ import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.hardware.setRFEpcMode
 import com.jeanwest.reader.hardware.setRFPower
+import com.jeanwest.reader.hardware.successBeep
+import com.jeanwest.reader.ui.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONArray
 
@@ -67,7 +66,7 @@ class AttachEPCsToStockDraft : ComponentActivity(),
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
     private var scannedEpcMapWithProperties = mutableMapOf<String, Product>()
     private var scannedBarcodeMapWithProperties = mutableMapOf<String, Product>()
-    private var draftProperties = DraftProperties(number = 0L, numberOfItems = 0)
+    private var draftProperties = StockDraft(number = 0L, numberOfItems = 0)
 
     //ui parameters
     var productConflicts = mutableStateListOf<Product>()
@@ -538,22 +537,58 @@ class AttachEPCsToStockDraft : ComponentActivity(),
         numberOfScanned = scannedBarcodes.size + scannedEpcs.size
     }
 
+    private fun syncScannedItemToServer(barcode : String) {
+
+        loading = true
+
+        if (barcode in scannedBarcodeMapWithProperties.keys) {
+            successBeep()
+            scannedBarcodes.add(barcode)
+            numberOfScanned = scannedEpcs.size + scannedBarcodes.size
+            saveToMemory()
+            makeScannedProductMap()
+            calculateConflicts()
+            filterResult(productConflicts)
+            loading = false
+            return
+        }
+
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcode),
+            { _, barcodes, _, _ ->
+
+                if (barcodes.size == 1) {
+                    successBeep()
+                    scannedBarcodes.add(barcode)
+                    numberOfScanned = scannedEpcs.size + scannedBarcodes.size
+                    saveToMemory()
+                    scannedBarcodeMapWithProperties[barcodes[0].scannedBarcode] = barcodes[0]
+                    makeScannedProductMap()
+                    calculateConflicts()
+                    filterResult(productConflicts)
+                }
+                loading = false
+            },
+            {
+                calculateConflicts()
+                filterResult(productConflicts)
+                loading = false
+            })
+    }
+
     override fun getBarcode(barcode: String?) {
 
         if (scanningMode) {
 
             if (!barcode.isNullOrEmpty()) {
-
-                scannedBarcodes.add(barcode)
-                numberOfScanned = scannedEpcs.size + scannedBarcodes.size
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-                saveToMemory()
-                syncScannedItemsToServer()
+                syncScannedItemToServer(barcode)
             }
         } else {
             if (!barcode.isNullOrBlank()) {
                 getWarehouseDetails(barcode)
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             }
         }
     }

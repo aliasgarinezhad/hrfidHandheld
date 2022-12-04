@@ -1,7 +1,6 @@
 package com.jeanwest.reader.activities
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
@@ -16,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -33,12 +33,9 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.*
-import com.jeanwest.reader.data.Product
-import com.jeanwest.reader.data.createStockDraft
-import com.jeanwest.reader.data.getProductsV4
-import com.jeanwest.reader.data.getWarehousesLists
+import com.jeanwest.reader.data.*
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.management.*
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.*
 import kotlinx.coroutines.CoroutineScope
@@ -56,7 +53,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
     var loading by mutableStateOf(false)
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
-    var uiList = mutableStateListOf<Product>()
+    var uiList = mutableStateListOf<Carton>()
     private lateinit var queue: RequestQueue
     private var creatingStockDraft by mutableStateOf(false)
     private var scanMode by mutableStateOf(true)
@@ -65,7 +62,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
     private var source by mutableStateOf("انتخاب مبدا")
     private var destinations = mutableStateMapOf<String, Int>()
     private var sources = mutableStateMapOf<String, Int>()
-    var products = mutableListOf<Product>()
+    var cartons = mutableStateMapOf<String, Carton>()
     private var locations = mutableMapOf<String, String>()
     private var stockDraftSpec by mutableStateOf("حواله بین انباری با RFID")
 
@@ -83,6 +80,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
             destinations.clear()
             destinations.putAll(it)
         }, {})
+
         loadMemory()
 
         Thread.setDefaultUncaughtExceptionHandler(
@@ -111,113 +109,46 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
         loading = true
 
-        if (scannedBarcodes.size == 0) {
+        var cartonCode = ""
+        run breakForEach@{
+            scannedBarcodes.forEach {
+                if (it !in cartons.keys) {
+                    cartonCode = it
+                    return@breakForEach
+                }
+            }
+        }
+
+        if (cartonCode == "") {
             uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy {
-                it.productCode
-            }
-            uiList.sortBy {
-                it.name
-            }
+            uiList.addAll(cartons.values)
             loading = false
             return
         }
 
-        val barcodeArray = mutableListOf<String>()
-        val alreadySyncedBarcodes = mutableListOf<String>()
-
-        products.forEach {
-            if (it.scannedBarcodeNumber > 0) {
-                alreadySyncedBarcodes.add(it.scannedBarcode)
-            }
-        }
-
-        scannedBarcodes.forEach {
-            if (it !in alreadySyncedBarcodes) {
-                barcodeArray.add(it)
-            } else {
-                val productIndex = products.indexOf(products.last { it1 ->
-                    it1.scannedBarcode == it
-                })
-                products[productIndex].scannedBarcodeNumber =
-                    scannedBarcodes.count { it1 ->
-                        it1 == it
-                    }
-            }
-        }
-
-        if (barcodeArray.size == 0) {
-            uiList.clear()
-            uiList.addAll(products)
-            uiList.sortBy {
-                it.productCode
-            }
-            uiList.sortBy {
-                it.name
-            }
-            loading = false
-            return
-        }
-
-        getProductsV4(
+        getCartonDetails(
             queue,
             state,
-            mutableListOf(),
-            barcodeArray,
-            { _, barcodes, _, invalidBarcodes ->
+            cartonCode,
+            {
 
-                barcodes.forEach {
-                    var isInRefillProductList = false
-
-                    run forEach1@{
-                        products.forEach { it1 ->
-                            if (it1.KBarCode == it.KBarCode) {
-                                it1.scannedBarcode = it.scannedBarcode
-                                it1.scannedBarcodeNumber += 1
-                                isInRefillProductList = true
-                                return@forEach1
-                            }
-                        }
-                    }
-                    if (!isInRefillProductList) {
-                        it.scannedBarcodeNumber = 1
-                        products.add(it)
-                    }
-                }
-
-                for (i in 0 until invalidBarcodes.length()) {
-                    scannedBarcodes.remove(invalidBarcodes[i])
-                }
-
+                cartons[cartonCode] = it
                 uiList.clear()
-                uiList.addAll(products)
-                uiList.sortBy {
-                    it.productCode
-                }
-                uiList.sortBy {
-                    it.name
-                }
-                loading = false
+                uiList.addAll(cartons.values)
+                syncScannedItemsToServer()
             },
             {
-                uiList.clear()
-                uiList.addAll(products)
-                uiList.sortBy { it1 ->
-                    it1.productCode
-                }
-                uiList.sortBy { it1 ->
-                    it1.name
-                }
+                scannedBarcodes.remove(cartonCode)
+                saveToMemory()
                 loading = false
-            }, true)
+            })
     }
 
     private fun createNewStockDraft() {
 
         creatingStockDraft = true
 
-        createStockDraft(
+        createStockDraftByCarton(
             queue,
             state,
             uiList,
@@ -227,21 +158,21 @@ class CreateStockDraftByCartons : ComponentActivity(),
             {
                 creatingStockDraft = false
                 scannedBarcodes.clear()
-                products.removeAll {
-                    it.scannedBarcodeNumber > 0
-                }
-                syncScannedItemsToServer()
+                cartons.clear()
+                uiList.clear()
+                uiList.addAll(cartons.values)
                 saveToMemory()
             }, {
                 creatingStockDraft = false
-            }, true)
+            }
+        )
     }
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
 
             scannedBarcodes.add(barcode)
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
+            scannedBarcodes = scannedBarcodes.distinct().toMutableList()
             saveToMemory()
             syncScannedItemsToServer()
         }
@@ -259,7 +190,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
         edit.putString(
             "StockDraftByCartonsProducts",
-            Gson().toJson(products).toString()
+            Gson().toJson(cartons).toString()
         )
 
         edit.apply()
@@ -269,7 +200,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        val type = object : TypeToken<List<Product>>() {}.type
+        val type = object : TypeToken<SnapshotStateMap<String, Carton>>() {}.type
 
         val userLocationCode = memory.getInt("userWarehouseCode", 0)
 
@@ -295,36 +226,18 @@ class CreateStockDraftByCartons : ComponentActivity(),
             scannedBarcodes.javaClass
         ) ?: mutableListOf()
 
-        products = Gson().fromJson(
+        cartons = Gson().fromJson(
             memory.getString("StockDraftByCartonsProducts", ""),
             type
-        ) ?: ArrayList()
+        ) ?: SnapshotStateMap()
     }
 
-    fun clear(product: Product) {
+    fun clear(carton: Carton) {
 
-        val removedRefillProducts = mutableListOf<Product>()
-
-        products.forEach {
-            if (it.KBarCode == product.KBarCode) {
-
-                scannedBarcodes.removeAll { it1 ->
-                    it1 == it.scannedBarcode
-                }
-                removedRefillProducts.add(it)
-            }
-        }
-        products.removeAll(removedRefillProducts)
-        removedRefillProducts.clear()
-
+        scannedBarcodes.remove(carton.number)
+        cartons.remove(carton.number)
         uiList.clear()
-        uiList.addAll(products)
-        uiList.sortBy { it1 ->
-            it1.productCode
-        }
-        uiList.sortBy { it1 ->
-            it1.name
-        }
+        uiList.addAll(cartons.values)
         saveToMemory()
     }
 
@@ -353,13 +266,6 @@ class CreateStockDraftByCartons : ComponentActivity(),
             saveToMemory()
             scanMode = true
         }
-    }
-
-    private fun openSearchActivity(product: Product) {
-
-        val intent = Intent(this, SearchSpecialProduct::class.java)
-        intent.putExtra("product", Gson().toJson(product).toString())
-        startActivity(intent)
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
@@ -467,9 +373,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
         BottomBarButton(text = "ثبت حواله") {
 
-            if (products.filter { it1 ->
-                    it1.scannedNumber > 0
-                }.toMutableStateList().isEmpty()) {
+            if (cartons.isEmpty()) {
                 CoroutineScope(Dispatchers.Default).launch {
                     state.showSnackbar(
                         "هنوز کارتنی برای ارسال اسکن نکرده اید",
@@ -490,14 +394,13 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
         Box {
 
-            Item(
-                i, uiList, true,
-                text3 = "اسکن: " + uiList[i].scannedNumber,
-                text4 = "انبار: " + uiList[i].wareHouseNumber,
-                colorFull = uiList[i].scannedNumber >= uiList[i].requestedNumber,
-            ) {
-                openSearchActivity(uiList[i])
-            }
+            Item3(
+                enableBottomSpace = i == uiList.size - 1,
+                text1 = uiList[i].number,
+                text2 = "انبار جاری: " + uiList[i].source,
+                text3 = "تنوع جنس: " + uiList[i].barcodeTable.distinct().size,
+                text4 = "جمع اجناس: " + uiList[i].numberOfItems,
+            )
 
             Box(
                 modifier = Modifier
@@ -617,9 +520,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
                 }
             }
 
-            if (uiList.filter {
-                    it.scannedBarcodeNumber > 0
-                }.toMutableList().isEmpty()) {
+            if (uiList.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .padding(bottom = 56.dp)
@@ -656,29 +557,20 @@ class CreateStockDraftByCartons : ComponentActivity(),
 
                 LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
 
-                    items(uiList.filter {
-                        it.scannedBarcodeNumber > 0
-                    }.size) { i ->
-                        Item(
-                            i,
-                            uiList.filter {
-                                it.scannedBarcodeNumber > 0
-                            }.toMutableList(),
-                            text3 = "اسکن: " + uiList.filter {
-                                it.scannedBarcodeNumber > 0
-                            }.toMutableList()[i].scannedNumber,
-                            text4 = "انبار: " + uiList.filter {
-                                it.scannedBarcodeNumber > 0
-                            }.toMutableList()[i].wareHouseNumber.toString(),
+                    items(uiList.size) { i ->
+                        Item3(
+                            enableBottomSpace = i == uiList.size - 1,
+                            text1 = uiList[i].number,
+                            text2 = "انبار جاری: " + uiList[i].source,
+                            text3 = "تنوع جنس: " + uiList[i].barcodeTable.distinct().size,
+                            text4 = "جمع اجناس: " + uiList[i].numberOfItems,
                         )
                     }
                 }
             }
         }
 
-        if (uiList.filter {
-                it.scannedBarcodeNumber > 0
-            }.toMutableList().isNotEmpty()) {
+        if (uiList.isNotEmpty()) {
             BottomBarButton(text = if (creatingStockDraft) "در حال ثبت ..." else "ثبت نهایی حواله") {
 
                 if (destination == "انتخاب مقصد" || source == "انتخاب مبدا") {

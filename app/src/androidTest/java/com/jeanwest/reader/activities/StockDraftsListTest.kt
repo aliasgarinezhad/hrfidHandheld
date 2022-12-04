@@ -37,7 +37,9 @@ class StockDraftsListTest {
                 waitForFinishLoading()
                 val products = activity.activity.selectedStockDraftProducts.values.toMutableList()
 
-                for (j in 0 until 3) {
+                val numberOfTestItems = if(activity.activity.uiList[i].numberOfItems > 3) 3 else activity.activity.uiList[i].numberOfItems
+
+                for (j in 0 until numberOfTestItems) {
                     activity.onAllNodesWithTag("items")[j].apply {
                         assertTextContains(products[j].KBarCode)
                         assertTextContains(products[j].name)

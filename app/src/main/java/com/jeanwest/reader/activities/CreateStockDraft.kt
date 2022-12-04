@@ -39,6 +39,7 @@ import com.jeanwest.reader.data.createStockDraft
 import com.jeanwest.reader.data.getProductsV4
 import com.jeanwest.reader.data.getWarehousesLists
 import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.successBeep
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.*
 import kotlinx.coroutines.CoroutineScope
@@ -54,7 +55,6 @@ class CreateStockDraft : ComponentActivity(),
 
     //ui parameters
     var loading by mutableStateOf(false)
-    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var uiList = mutableStateListOf<Product>()
     private lateinit var queue: RequestQueue
@@ -239,13 +239,107 @@ class CreateStockDraft : ComponentActivity(),
             }, true)
     }
 
+    private fun syncScannedItemToServer(barcode: String) {
+
+        loading = true
+
+        val alreadySyncedBarcodes = mutableListOf<String>()
+        products.forEach {
+            if (it.scannedBarcodeNumber > 0) {
+                alreadySyncedBarcodes.add(it.scannedBarcode)
+            }
+        }
+
+        if (barcode in alreadySyncedBarcodes) {
+            successBeep()
+            scannedBarcodes.add(barcode)
+            saveToMemory()
+            val productIndex = products.indexOf(products.last { it1 ->
+                it1.scannedBarcode == barcode
+            })
+            products[productIndex].scannedBarcodeNumber =
+                scannedBarcodes.count { it1 ->
+                    it1 == barcode
+                }
+
+            uiList.clear()
+            uiList.addAll(products)
+            uiList.sortBy {
+                it.productCode
+            }
+            uiList.sortBy {
+                it.name
+            }
+            uiList.sortBy { it1 ->
+                it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+            }
+            loading = false
+            return
+        }
+
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcode),
+            { _, barcodes, _, _ ->
+
+                if (barcodes.size == 1) {
+                    successBeep()
+                    scannedBarcodes.add(barcode)
+                    saveToMemory()
+                    var isInRefillProductList = false
+
+                    run forEach1@{
+                        products.forEach { it1 ->
+                            if (it1.KBarCode == barcodes[0].KBarCode) {
+                                it1.scannedBarcode = barcodes[0].scannedBarcode
+                                it1.scannedBarcodeNumber += 1
+                                isInRefillProductList = true
+                                return@forEach1
+                            }
+                        }
+                    }
+                    if (!isInRefillProductList) {
+                        barcodes[0].scannedBarcodeNumber = 1
+                        products.add(barcodes[0])
+                    }
+                }
+
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy {
+                    it.productCode
+                }
+                uiList.sortBy {
+                    it.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
+
+            },
+            {
+
+                uiList.clear()
+                uiList.addAll(products)
+                uiList.sortBy { it1 ->
+                    it1.productCode
+                }
+                uiList.sortBy { it1 ->
+                    it1.name
+                }
+                uiList.sortBy { it1 ->
+                    it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                loading = false
+            }, true)
+    }
+
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
-
-            scannedBarcodes.add(barcode)
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            saveToMemory()
-            syncScannedItemsToServer()
+            syncScannedItemToServer(barcode)
         }
     }
 
@@ -348,7 +442,6 @@ class CreateStockDraft : ComponentActivity(),
         if (scanMode) {
             saveToMemory()
             stopBarcodeScan()
-            beep.release()
             queue.stop()
             finish()
         } else {
@@ -421,6 +514,20 @@ class CreateStockDraft : ComponentActivity(),
                     LoadingCircularProgressIndicator(false, loading)
                 }
             } else {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 0.dp, top = 16.dp, start = 16.dp)
+                ) {
+                    Text(
+                        text = "مجموع: " + (scannedBarcodes.size).toString(),
+                        style = MaterialTheme.typography.body1,
+                        modifier = Modifier
+                            .weight(1F)
+                            .align(Alignment.CenterVertically)
+                    )
+                }
 
                 if (uiList.isEmpty()) {
                     Box(

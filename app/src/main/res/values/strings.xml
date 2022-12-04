@@ -6,6 +6,7 @@
     <string name="checkInText">دریافت حواله</string>
     <string name="centralCheckInCheckInText">ارسال حواله انبار مرکزی</string>
     <string name="inventoryText">انبارگردانی</string>
+    <string name="deviceRegister">رجیستر دستگاه</string>
     <string name="refill">خطی</string>
     <string name="refill2">خطی 2</string>
     <string name="xlsx">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>

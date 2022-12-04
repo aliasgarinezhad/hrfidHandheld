@@ -4,7 +4,7 @@ import android.view.KeyEvent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.jeanwest.reader.testData.stockDraftProducts
-import com.jeanwest.reader.data.DraftProperties
+import com.jeanwest.reader.data.StockDraft
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.test.RFIDWithUHFUART
@@ -24,6 +24,9 @@ class ConfirmStockDraftTest {
 
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
+        }
         waitForFinishLoading()
 
         val kbarcodes = mutableListOf<String>()
@@ -242,7 +245,7 @@ class ConfirmStockDraftTest {
         activity.waitForIdle()
     }
 
-    private val checkInCode = DraftProperties(
+    private val checkInCode = StockDraft(
         number = 119945,
         date = "1401/5/30",
         numberOfItems = 125,

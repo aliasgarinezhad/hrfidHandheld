@@ -56,9 +56,9 @@ class WriteTest {
 
             writeTag.waitForIdle()
             writeTag.waitForIdle()
-            Thread.sleep(1000)
+            Thread.sleep(2000)
             writeTag.waitForIdle()
-            Thread.sleep(1000)
+            Thread.sleep(2000)
 
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
             assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).serial == i)
@@ -116,9 +116,9 @@ class WriteTest {
         writeTag.waitForIdle()
 
         writeTag.waitForIdle()
-        Thread.sleep(1000)
+        Thread.sleep(2000)
         writeTag.waitForIdle()
-        Thread.sleep(1000)
+        Thread.sleep(2000)
 
         assert(RFIDWithUHFUART.writtenUhfTagInfo.tid == "E28011702000015F195D0A17")
     }
@@ -150,7 +150,7 @@ class WriteTest {
         writeTag.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
         writeTag.waitForIdle()
-        Thread.sleep(1000)
+        Thread.sleep(3000)
         writeTag.waitForIdle()
 
         writeTag.onNodeWithText("بله").performClick()
@@ -222,9 +222,9 @@ class WriteTest {
         writeTag.activity.onKeyDown(280, KeyEvent(ACTION_DOWN, 280))
 
         writeTag.waitForIdle()
-        Thread.sleep(1000)
+        Thread.sleep(2000)
         writeTag.waitForIdle()
-        Thread.sleep(1000)
+        Thread.sleep(2000)
 
         assert(epcDecoder(RFIDWithUHFUART.writtenUhfTagInfo.epc).item == 130290L)
     }

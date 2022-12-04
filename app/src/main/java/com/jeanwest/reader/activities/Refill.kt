@@ -3,8 +3,6 @@ package com.jeanwest.reader.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.media.AudioManager
-import android.media.ToneGenerator
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -32,13 +30,14 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.data.createLocalStockDraft
 import com.jeanwest.reader.data.getProductsV4
 import com.jeanwest.reader.data.getRefill
-import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
+import com.jeanwest.reader.hardware.IBarcodeResult
+import com.jeanwest.reader.hardware.successBeep
+import com.jeanwest.reader.management.ExceptionHandler
 import com.jeanwest.reader.ui.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +53,6 @@ class Refill : ComponentActivity(),
     //ui parameters
     private var foundProductsNumber by mutableStateOf(0)
     var uiList = mutableStateListOf<Product>()
-    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var state = SnackbarHostState()
     var loading by mutableStateOf(false)
     private lateinit var queue: RequestQueue
@@ -248,16 +246,109 @@ class Refill : ComponentActivity(),
                 uiList.clear()
                 uiList.addAll(refillProducts)
                 loading = false
-            }, true)
+            }, true
+        )
+    }
+
+    private fun syncScannedItemToServer(barcode: String) {
+
+        loading = true
+
+        val alreadySyncedBarcodes = mutableListOf<String>()
+        refillProducts.forEach {
+            if (it.scannedBarcodeNumber > 0) {
+                alreadySyncedBarcodes.add(it.scannedBarcode)
+            }
+        }
+
+        if (barcode in alreadySyncedBarcodes) {
+
+            successBeep()
+            scannedBarcodes.add(barcode)
+            saveToMemory()
+
+            val productIndex = refillProducts.indexOf(refillProducts.last { refillProduct ->
+                refillProduct.scannedBarcode == barcode
+            })
+            refillProducts[productIndex].scannedBarcodeNumber =
+                scannedBarcodes.count { it1 ->
+                    it1 == barcode
+                }
+            refillProducts.sortBy {
+                it.productCode
+            }
+            refillProducts.sortBy {
+                it.name
+            }
+            refillProducts.sortBy { refillProduct ->
+                refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
+            }
+            uiList.clear()
+            uiList.addAll(refillProducts)
+            loading = false
+            return
+        }
+
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcode),
+            { _, barcodes, _, _ ->
+
+                if (barcodes.size == 1) {
+
+                    val isInRefillList = refillProducts.any { refillProduct ->
+                        refillProduct.primaryKey == barcodes[0].primaryKey
+                    }
+
+                    if (isInRefillList) {
+                        successBeep()
+                        scannedBarcodes.add(barcode)
+                        saveToMemory()
+
+                        val productIndex =
+                            refillProducts.indexOf(refillProducts.last { refillProduct ->
+                                refillProduct.primaryKey == barcodes[0].primaryKey
+                            })
+
+                        refillProducts[productIndex].scannedBarcodeNumber =
+                            scannedBarcodes.count { it1 ->
+                                it1 == barcodes[0].scannedBarcode
+                            }
+
+                        refillProducts[productIndex].scannedBarcode = barcodes[0].scannedBarcode
+                    }
+                }
+
+                refillProducts.sortBy {
+                    it.productCode
+                }
+                refillProducts.sortBy {
+                    it.name
+                }
+                refillProducts.sortBy { refillProduct ->
+                    refillProduct.scannedBarcodeNumber + refillProduct.scannedEPCNumber > 0
+                }
+                uiList.clear()
+                uiList.addAll(refillProducts)
+                foundProductsNumber = uiList.filter { refillProduct ->
+                    refillProduct.scannedBarcodeNumber > 0
+                }.size
+                loading = false
+
+            },
+            {
+                uiList.clear()
+                uiList.addAll(refillProducts)
+                loading = false
+            }, true
+        )
     }
 
     override fun getBarcode(barcode: String?) {
         if (!barcode.isNullOrEmpty()) {
-
-            scannedBarcodes.add(barcode)
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
-            saveToMemory()
-            syncScannedItemsToServer()
+            syncScannedItemToServer(barcode)
         }
     }
 
@@ -340,7 +431,6 @@ class Refill : ComponentActivity(),
             saveToMemory()
             stopBarcodeScan()
             queue.stop()
-            beep.release()
             finish()
         } else {
             saveToMemory()

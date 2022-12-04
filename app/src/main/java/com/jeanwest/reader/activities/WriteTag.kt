@@ -40,10 +40,7 @@ import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
 import com.jeanwest.reader.hardware.setRFPower
 import com.jeanwest.reader.test.RFIDWithUHFUART
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.borderColor
-import com.jeanwest.reader.ui.doneColor
-import com.jeanwest.reader.ui.errorColor
+import com.jeanwest.reader.ui.*
 import com.rscja.deviceapi.exception.ConfigurationException
 import com.rscja.deviceapi.interfaces.IUHF
 import kotlinx.coroutines.CoroutineScope
@@ -175,7 +172,6 @@ class WriteTag : ComponentActivity(),
                 barcodeID = barcode
                 result = "$barcodeID\n"
                 resultColor = doneColor
-                beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
                 write = true
             } else if (tagTypeValue == "تگ کیوآر کد دار" && write) {
                 barcodeIsScanning = false
@@ -187,7 +183,6 @@ class WriteTag : ComponentActivity(),
             barcodeIsScanning = false
             result = "بارکدی پیدا نشد. لطفا لیزر اسکنر را روبروی بارکد قرار دهید."
             resultColor = errorColor
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 500)
         }
     }
 

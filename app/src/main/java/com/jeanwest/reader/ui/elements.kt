@@ -1,4 +1,4 @@
-package com.jeanwest.reader.management
+package com.jeanwest.reader.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
 import com.jeanwest.reader.R
 import com.jeanwest.reader.data.Product
-import com.jeanwest.reader.ui.*
 
 @Composable
 fun ErrorSnackBar(state: SnackbarHostState) {
@@ -62,6 +61,71 @@ fun ErrorSnackBar(state: SnackbarHostState) {
                 )
             }
         })
+    }
+}
+
+@Composable
+fun OpenActivityButton(text: String, iconId: Int, onClick: () -> Unit) {
+
+    val buttonSize = 100.dp
+    val iconSize = 48.dp
+
+    Column(
+        verticalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .size(buttonSize)
+            .shadow(elevation = 5.dp, shape = MaterialTheme.shapes.small)
+            .border(
+                BorderStroke(1.dp, borderColor),
+                shape = MaterialTheme.shapes.small
+            )
+            .clickable {
+                onClick()
+            }
+            .background(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colors.onPrimary,
+            )
+
+    ) {
+
+        Icon(
+            painter = painterResource(iconId),
+            tint = MaterialTheme.colors.primary,
+            contentDescription = "",
+            modifier = Modifier
+                .size(iconSize)
+                .align(Alignment.CenterHorizontally)
+        )
+        Text(
+            text,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.h3
+        )
+    }
+}
+
+@Composable
+fun BigButton(
+    text: String, enable: Boolean = true, onClick: () -> Unit
+) {
+    Button(
+        modifier = Modifier
+            .padding(start = 24.dp, end = 24.dp)
+            .fillMaxWidth()
+            .height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Jeanswest,
+            disabledBackgroundColor = DisableButtonColor,
+            disabledContentColor = Color.White
+        ),
+        onClick = onClick
+    ) {
+        Text(
+            text = text,
+            style = Typography.h2
+        )
     }
 }
 
@@ -105,7 +169,7 @@ fun BottomBarButton(text: String, enable: Boolean = true, onClick: () -> Unit) {
 @Composable
 fun Item(
     i: Int,
-    uiList: MutableList<Product>,
+    uiList: MutableList<Product> = mutableListOf(),
     clickable: Boolean = false,
     text3: String,
     text4: String,
@@ -358,6 +422,98 @@ fun Item2(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun Item3(
+    clickable: Boolean = false,
+    enableBottomSpace: Boolean = false,
+    text1: String,
+    text2: String,
+    text3: String,
+    text4: String,
+    onClick: () -> Unit = {},
+) {
+
+    val bottomPadding = if (enableBottomSpace) 128.dp else 0.dp
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding, top = 12.dp)
+            .shadow(elevation = 3.dp, shape = MaterialTheme.shapes.small)
+            .background(
+                color = MaterialTheme.colors.onPrimary,
+                shape = MaterialTheme.shapes.small
+            )
+            .fillMaxWidth()
+            .height(80.dp)
+            .testTag("items")
+            .combinedClickable(
+                enabled = clickable,
+                onClick = { onClick() })
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxHeight(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1.5F)
+                    .fillMaxHeight()
+                    .padding(top = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                Text(
+                    text = text1,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp),
+                )
+
+                Text(
+                    text = text2,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxHeight()
+                    .padding(top = 8.dp, bottom = 8.dp)
+                    .wrapContentWidth(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                Text(
+                    text = text3,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxWidth(),
+                )
+
+                Text(
+                    text = text4,
+                    style = MaterialTheme.typography.body1,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier
+                        .weight(1F),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun FilterDropDownList(
     modifier: Modifier = Modifier,
@@ -471,6 +627,41 @@ fun CustomTextField(
             unfocusedBorderColor = MaterialTheme.colors.secondary
         ),
         placeholder = { Text(text = hint) },
+        isError = isError,
+        singleLine = true,
+
+        )
+}
+
+@Composable
+fun SimpleTextField(
+    modifier: Modifier,
+    hint: String,
+    onValueChange: (it: String) -> Unit,
+    value: String,
+    isError: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+
+    val focusManager = LocalFocusManager.current
+
+    OutlinedTextField(
+        textStyle = MaterialTheme.typography.body2,
+        value = value,
+        onValueChange = {
+            onValueChange(it)
+        },
+        modifier = modifier
+            .testTag("TextField")
+            .fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Done,
+            keyboardType = keyboardType
+        ),
+        keyboardActions = KeyboardActions(onDone = {
+            focusManager.clearFocus()
+        }),
+        label = { Text(text = hint) },
         isError = isError,
         singleLine = true,
 

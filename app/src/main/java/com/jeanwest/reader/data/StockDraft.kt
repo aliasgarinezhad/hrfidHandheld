@@ -1,6 +1,6 @@
 package com.jeanwest.reader.data
 
-data class DraftProperties(
+data class StockDraft(
     val number: Long,
     val date: String = "",
     val numberOfItems: Int,

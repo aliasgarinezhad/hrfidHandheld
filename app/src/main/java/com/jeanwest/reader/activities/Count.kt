@@ -34,18 +34,12 @@ import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.jeanwest.reader.R
-import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.data.getProductsV4
+import com.jeanwest.reader.hardware.*
 import com.jeanwest.reader.test.Barcode2D
-import com.jeanwest.reader.hardware.IBarcodeResult
-import com.jeanwest.reader.hardware.setRFEpcMode
-import com.jeanwest.reader.hardware.setRFPower
-import com.jeanwest.reader.hardware.rfInit
 import com.jeanwest.reader.test.RFIDWithUHFUART
-import com.jeanwest.reader.ui.JeanswestBottomBar
-import com.jeanwest.reader.ui.MyApplicationTheme
-import com.jeanwest.reader.ui.borderColor
+import com.jeanwest.reader.ui.*
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.exception.ConfigurationException
 import kotlinx.coroutines.*
@@ -98,7 +92,6 @@ class Count : ComponentActivity(),
     private var scanTypeValue by mutableStateOf("RFID")
     private var state = SnackbarHostState()
 
-    private val apiTimeout = 30000
     private lateinit var queue: RequestQueue
     private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
 
@@ -194,9 +187,7 @@ class Count : ComponentActivity(),
 
         val memory = PreferenceManager.getDefaultSharedPreferences(this)
 
-        return if (memory.getString("username", "") != "") {
-
-            MainActivity.username = memory.getString("username", "")!!
+        return if (memory.getString("accessToken", "") != "") {
             MainActivity.token = memory.getString("accessToken", "")!!
             true
         } else {
@@ -787,14 +778,48 @@ class Count : ComponentActivity(),
         }
     }
 
-    override fun getBarcode(barcode: String?) {
-        if (!barcode.isNullOrEmpty()) {
+    private fun syncScannedItemToServer(barcode : String) {
 
+        loading = true
+
+        if (barcode in scannedBarcodeMapWithProperties.keys) {
+            successBeep()
             scannedBarcodes.add(barcode)
             scannedNumber = scannedEpcs.size + scannedBarcodes.size
-            beep.startTone(ToneGenerator.TONE_CDMA_PIP, 150)
             saveToMemory()
-            syncScannedItemsToServer()
+            makeScannedProductMap()
+            calculateConflicts()
+            loading = false
+            return
+        }
+
+        getProductsV4(
+            queue,
+            state,
+            mutableListOf(),
+            mutableListOf(barcode),
+            { _, barcodes, _, _ ->
+
+                if (barcodes.size == 1) {
+                    successBeep()
+                    scannedBarcodes.add(barcode)
+                    scannedNumber = scannedEpcs.size + scannedBarcodes.size
+                    saveToMemory()
+                    scannedBarcodeMapWithProperties[barcodes[0].scannedBarcode] = barcodes[0]
+                    makeScannedProductMap()
+                    calculateConflicts()
+                }
+                loading = false
+            },
+            {
+                calculateConflicts()
+                loading = false
+            })
+    }
+
+    override fun getBarcode(barcode: String?) {
+        if (!barcode.isNullOrEmpty()) {
+            syncScannedItemToServer(barcode)
         }
     }
 

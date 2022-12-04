@@ -115,6 +115,9 @@ class CreateStockDraftTest {
     private fun start() {
         MainActivity.token =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQwMTYsIm5hbWUiOiI0MDE2IiwiaWF0IjoxNjM5NTU3NDA0LCJleHAiOjE2OTc2MTgyMDR9.5baJVQbpJwTEJCm3nW4tE8hW8AWseN0qauIuBPFK5pQ"
+        activity.activity.runOnUiThread {
+            activity.activity.recreate()
+        }
         waitForFinishLoading()
     }
 
