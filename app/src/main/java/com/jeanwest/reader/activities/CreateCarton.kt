@@ -26,7 +26,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
@@ -75,6 +74,7 @@ class CreateCarton : ComponentActivity(),
     private var printers = mutableStateMapOf<String, Int>()
     private var printer by mutableStateOf("")
     private var openPrintDialog by mutableStateOf(false)
+    private var popupState = NotificationPopupHost()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,6 +124,7 @@ class CreateCarton : ComponentActivity(),
             products.clear()
             syncScannedItemsToServer()
             saveToMemory()
+            popupState.showPopup("کارتن با شماره $cartonNumber ایجاد و دستور پرینت لیبل آن ارسال شد.")
             creatingCarton = false
         }, {
             creatingCarton = false
@@ -292,7 +293,7 @@ class CreateCarton : ComponentActivity(),
             return
         }
 
-        getProductsV4(
+        getProductsDetails(
             queue,
             state,
             epcArray,
@@ -417,7 +418,7 @@ class CreateCarton : ComponentActivity(),
             return
         }
 
-        getProductsV4(
+        getProductsDetails(
             queue,
             state,
             mutableListOf(),
@@ -661,6 +662,8 @@ class CreateCarton : ComponentActivity(),
                     PrintAlertDialog()
                 }
 
+                NotificationPopUp(popupState)
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -793,7 +796,7 @@ class CreateCarton : ComponentActivity(),
             Item(
                 i, uiList, true,
                 text3 = "اسکن: " + uiList[i].scannedNumber,
-                text4 = "انبار: " + uiList[i].wareHouseNumber,
+                text4 = "سایز: " + uiList[i].size,
             ) {
                 openSearchActivity(uiList[i])
             }
@@ -868,7 +871,8 @@ class CreateCarton : ComponentActivity(),
                             openPrintDialog = false
                             createNewCarton()
 
-                        }, modifier = Modifier.padding(top = 24.dp)
+                        }, modifier = Modifier
+                            .padding(top = 24.dp)
                             .align(Alignment.CenterVertically)) {
                             Text(text = "پرینت")
                         }

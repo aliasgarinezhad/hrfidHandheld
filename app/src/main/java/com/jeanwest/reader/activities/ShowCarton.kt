@@ -47,7 +47,6 @@ class ShowCarton : ComponentActivity(),
 
     private val barcode2D = Barcode2D(this)
     val inputProducts = mutableMapOf<String, Product>()
-    private val beep: ToneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
     private var inputBarcodeMapWithProperties = mutableMapOf<String, Product>()
     var cartonProperties = Carton(number = "0", numberOfItems = 0)
 
@@ -168,7 +167,7 @@ class ShowCarton : ComponentActivity(),
             return
         }
 
-        getProductsV4(
+        getProductsDetails(
             queue,
             state,
             mutableListOf(),
@@ -183,7 +182,7 @@ class ShowCarton : ComponentActivity(),
                     syncInputItemsToServer()
                 } else if (invalidBarcodes.length() != 0) {
                     loading = false
-                    return@getProductsV4
+                    return@getProductsDetails
                 } else {
                     makeInputProductMap()
                     calculateConflicts()
@@ -237,11 +236,16 @@ class ShowCarton : ComponentActivity(),
     private fun back() {
 
         if (showDetailMode) {
+            inputBarcodeMapWithProperties.clear()
+            inputProducts.clear()
+            productConflicts.clear()
+            cartonProperties = Carton(number = "0", numberOfItems = 0)
+            uiList.clear()
+            cartonNumber = ""
             showDetailMode = false
         } else {
             stopBarcodeScan()
             queue.stop()
-            beep.release()
             finish()
         }
     }

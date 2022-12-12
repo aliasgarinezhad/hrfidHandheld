@@ -61,23 +61,13 @@ class CreateCartonTest {
             it.scannedBarcodeNumber > 0
         }.size == 20)
 
-        activity.activity.products.filter {
-            it.scannedBarcodeNumber > 0
-        }.toMutableList().forEach {
-            if (it.wareHouseNumber > 1) {
-                assert(it.scannedBarcodeNumber == 2)
-            } else {
-                assert(it.scannedBarcodeNumber == 1)
-            }
-        }
-
         for (i in 0 until 3) {
 
             activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(activity.activity.uiList[i].KBarCode)
                 assertTextContains(activity.activity.uiList[i].name)
-                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (activity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
+                assertTextContains("سایز: " + activity.activity.uiList[i].size)
+                assertTextContains("اسکن: " + "2")
             }
         }
 
@@ -88,23 +78,13 @@ class CreateCartonTest {
         restart()
         epcScan(scannedProducts)
 
-        activity.activity.products.filter {
-            it.scannedNumber > 0
-        }.toMutableList().forEach {
-            if (it.wareHouseNumber > 1) {
-                assert(it.scannedNumber == 2)
-            } else {
-                assert(it.scannedNumber == 1)
-            }
-        }
-
         for (i in 0 until 3) {
 
             activity.onAllNodesWithTag("items")[i].apply {
                 assertTextContains(activity.activity.uiList[i].KBarCode)
                 assertTextContains(activity.activity.uiList[i].name)
-                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
-                assertTextContains("اسکن: " + if (activity.activity.uiList[i].wareHouseNumber > 1) 2 else 1)
+                assertTextContains("سایز: " + activity.activity.uiList[i].size)
+                assertTextContains("اسکن: " + "2")
             }
         }
     }
@@ -128,19 +108,10 @@ class CreateCartonTest {
 
         products.forEach {
 
-            if (it.wareHouseNumber > 1) {
-
-                for (i in 0 until 2) {
-                    val uhfTagInfo = UHFTAGInfo()
-                    uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
-                    RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-                }
-            } else {
-                for (i in 0 until 1) {
-                    val uhfTagInfo = UHFTAGInfo()
-                    uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
-                    RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
-                }
+            for (i in 0 until 2) {
+                val uhfTagInfo = UHFTAGInfo()
+                uhfTagInfo.epc = epcGenerator(48, 0, 0, 101, it.rfidKey, i.toLong())
+                RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
             }
         }
 
@@ -190,13 +161,8 @@ class CreateCartonTest {
     private fun barcodeArrayScan(number: Int, scannedProducts: MutableList<Product>) {
 
         for (i in 0 until number) {
-
-            if (scannedProducts[i].wareHouseNumber > 1) {
-                barcodeScan(scannedProducts[i].KBarCode)
-                barcodeScan(scannedProducts[i].KBarCode)
-            } else {
-                barcodeScan(scannedProducts[i].KBarCode)
-            }
+            barcodeScan(scannedProducts[i].KBarCode)
+            barcodeScan(scannedProducts[i].KBarCode)
         }
     }
 

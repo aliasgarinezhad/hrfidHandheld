@@ -161,7 +161,125 @@ fun getProductsV4(
     queue.add(request)
 }
 
+fun getProductsDetails(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    epcs: MutableList<String> = mutableListOf(),
+    barcodes: MutableList<String> = mutableListOf(),
+    onSuccess: (epcs: MutableList<Product>, barcodes: MutableList<Product>, invalidEpcs: JSONArray, invalidBarcodes: JSONArray) -> Unit,
+    onError: (it: VolleyError?) -> Unit,
+) {
 
+    val responseEpcs = mutableListOf<Product>()
+    val responseBarcodes = mutableListOf<Product>()
+
+    if ((epcs.size + barcodes.size) == 0) {
+        return
+    }
+
+    val url = "https://rfid-api.avakatan.ir/products/details"
+
+    val request = object : JsonObjectRequest(Method.POST, url, null, {
+
+        val epcsJsonArray = it.getJSONArray("epcs")
+        val barcodesJsonArray = it.getJSONArray("KBarCodes")
+        val invalidBarcodesJsonArray = it.getJSONArray("invalidBarCodes")
+        val invalidEpcsJsonArray = it.getJSONArray("invalidEpcs")
+
+        if (invalidEpcsJsonArray.length() > 0) {
+            CoroutineScope(Dispatchers.Main).launch {
+                state.showSnackbar(
+                    "مشخصات برخی ای پی سی ها یافت نشد",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        }
+        if (invalidBarcodesJsonArray.length() > 0) {
+            CoroutineScope(Dispatchers.Main).launch {
+                state.showSnackbar(
+                    "مشخصات بارکد " + invalidBarcodesJsonArray[0] + " یافت نشد.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        }
+
+        for (i in 0 until epcsJsonArray.length()) {
+            val product = Product(
+                name = epcsJsonArray.getJSONObject(i).getString("productName"),
+                KBarCode = epcsJsonArray.getJSONObject(i).getString("KBarCode"),
+                imageUrl = epcsJsonArray.getJSONObject(i).getString("ImgUrl"),
+                primaryKey = epcsJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
+                productCode = epcsJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                size = epcsJsonArray.getJSONObject(i).getString("Size"),
+                color = epcsJsonArray.getJSONObject(i).getString("Color"),
+                rfidKey = epcsJsonArray.getJSONObject(i).getLong("RFID"),
+                scannedEPCs = mutableListOf(epcsJsonArray.getJSONObject(i).getString("epc")),
+                kName = epcsJsonArray.getJSONObject(i).getString("K_Name"),
+            )
+            responseEpcs.add(product)
+        }
+
+        for (i in 0 until barcodesJsonArray.length()) {
+            val product = Product(
+                name = barcodesJsonArray.getJSONObject(i).getString("productName"),
+                KBarCode = barcodesJsonArray.getJSONObject(i).getString("KBarCode"),
+                imageUrl = barcodesJsonArray.getJSONObject(i).getString("ImgUrl"),
+                primaryKey = barcodesJsonArray.getJSONObject(i).getLong("BarcodeMain_ID"),
+                productCode = barcodesJsonArray.getJSONObject(i).getString("K_Bar_Code"),
+                size = barcodesJsonArray.getJSONObject(i).getString("Size"),
+                color = barcodesJsonArray.getJSONObject(i).getString("Color"),
+                rfidKey = barcodesJsonArray.getJSONObject(i).getLong("RFID"),
+                scannedBarcode = barcodesJsonArray.getJSONObject(i).getString("kbarcode"),
+                kName = barcodesJsonArray.getJSONObject(i).getString("K_Name"),
+            )
+            responseBarcodes.add(product)
+        }
+        onSuccess(responseEpcs, responseBarcodes, invalidEpcsJsonArray, invalidBarcodesJsonArray)
+
+    }, {
+        apiErrorProcess(state, it)
+        onError(it)
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + MainActivity.token
+            return params
+        }
+
+        override fun getBody(): ByteArray {
+            val json = JSONObject()
+            val epcArray = JSONArray()
+
+            epcs.forEach {
+                epcArray.put(it)
+            }
+
+            json.put("epcs", epcArray)
+
+            val barcodeArray = JSONArray()
+
+            barcodes.forEach {
+                barcodeArray.put(it)
+            }
+
+            json.put("KBarCodes", barcodeArray)
+
+            return json.toString().toByteArray()
+        }
+    }
+
+    val apiTimeout = 30000
+    request.retryPolicy = DefaultRetryPolicy(
+        apiTimeout,
+        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+    )
+
+    queue.add(request)
+}
 
 fun createLocalStockDraft(
     queue: RequestQueue,
@@ -722,6 +840,14 @@ fun confirmStockDraft(
             return body.toString().toByteArray()
         }
     }
+
+    val apiTimeout = 30000
+    request.retryPolicy = DefaultRetryPolicy(
+        apiTimeout,
+        0,
+        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+    )
+
     queue.add(request)
 }
 
@@ -1003,7 +1129,7 @@ fun createCarton(
     state: SnackbarHostState,
     products: MutableList<Product> = mutableListOf(),
     source: Int,
-    onSuccess: (cartonNumber : String) -> Unit,
+    onSuccess: (cartonNumber: String) -> Unit,
     onError: () -> Unit,
 ) {
 
@@ -1023,6 +1149,8 @@ fun createCarton(
         apiErrorProcess(state, it)
         onError()
     }) {
+
+
         override fun getHeaders(): MutableMap<String, String> {
             val params = mutableMapOf<String, String>()
             params["Content-Type"] = "application/json;charset=UTF-8"
@@ -1039,11 +1167,21 @@ fun createCarton(
 
             products.forEach {
 
-                val productJson = JSONObject()
-                productJson.put("BarcodeMain_ID", it.primaryKey)
-                productJson.put("kbarcode", it.KBarCode)
-                productJson.put("qty", it.scannedNumber)
-                productsArray.put(productJson)
+                it.scannedEPCs.forEach { epc ->
+                    val productJson = JSONObject()
+                    productJson.put("BarcodeMain_ID", it.primaryKey)
+                    productJson.put("kbarcode", it.KBarCode)
+                    productJson.put("epc", epc)
+                    productJson.put("qty", 1)
+                    productsArray.put(productJson)
+                }
+                if(it.scannedBarcodeNumber != 0) {
+                    val productJson = JSONObject()
+                    productJson.put("BarcodeMain_ID", it.primaryKey)
+                    productJson.put("kbarcode", it.KBarCode)
+                    productJson.put("qty", it.scannedBarcodeNumber)
+                    productsArray.put(productJson)
+                }
             }
 
             body.put("CreateDate", sdf.format(Date()))
