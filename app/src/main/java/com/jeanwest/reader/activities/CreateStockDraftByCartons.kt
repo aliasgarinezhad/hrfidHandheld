@@ -61,6 +61,8 @@ class CreateStockDraftByCartons : ComponentActivity(),
     private var destination by mutableStateOf("انتخاب مقصد")
     private var source by mutableStateOf("انتخاب مبدا")
     private var destinations = mutableStateMapOf<String, Int>()
+    private var drivers = mutableStateMapOf<String, Int>()
+    private var driver by mutableStateOf("انتخاب راننده")
     private var sources = mutableStateMapOf<String, Int>()
     var cartons = mutableStateMapOf<String, Carton>()
     private var locations = mutableMapOf<String, String>()
@@ -79,6 +81,11 @@ class CreateStockDraftByCartons : ComponentActivity(),
         getWarehousesLists(queue, state, {
             destinations.clear()
             destinations.putAll(it)
+        }, {})
+
+        getDriversLists(queue, state, {
+            drivers.clear()
+            drivers.putAll(it)
         }, {})
 
         loadMemory()
@@ -155,6 +162,7 @@ class CreateStockDraftByCartons : ComponentActivity(),
             stockDraftSpec,
             sources[source]!!,
             destinations[destination]!!,
+            drivers[driver]!!,
             {
                 creatingStockDraft = false
                 scannedBarcodes.clear()
@@ -518,6 +526,41 @@ class CreateStockDraftByCartons : ComponentActivity(),
                         values = destinations.keys.toMutableList()
                     )
                 }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                ) {
+                    FilterDropDownList(
+                        modifier = Modifier
+                            .padding(start = 16.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_baseline_drive_eta_24),
+                                contentDescription = "",
+                                tint = iconColor,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = driver,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = 6.dp)
+                            )
+                        },
+                        onClick = {
+                            driver = it
+                        },
+                        values = drivers.keys.toMutableList()
+                    )
+                }
             }
 
             if (uiList.isEmpty()) {
@@ -573,11 +616,11 @@ class CreateStockDraftByCartons : ComponentActivity(),
         if (uiList.isNotEmpty()) {
             BottomBarButton(text = if (creatingStockDraft) "در حال ثبت ..." else "ثبت نهایی حواله") {
 
-                if (destination == "انتخاب مقصد" || source == "انتخاب مبدا") {
+                if (destination == "انتخاب مقصد" || source == "انتخاب مبدا" || driver == "انتخاب راننده") {
 
                     CoroutineScope(Dispatchers.Default).launch {
                         state.showSnackbar(
-                            "لطفا مبدا و مقصد را انتخاب کنید",
+                            "لطفا مبدا، مقصد و راننده را انتخاب کنید",
                             null,
                             SnackbarDuration.Long
                         )

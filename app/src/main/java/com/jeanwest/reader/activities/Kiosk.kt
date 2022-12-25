@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -46,6 +47,7 @@ class Kiosk : ComponentActivity(),
     private var storeCode = 0
     private var state = SnackbarHostState()
     var loading by mutableStateOf(false)
+    private var showDetailsMode by mutableStateOf(false)
 
     private var barcode2D =
         Barcode2D(this)
@@ -97,6 +99,7 @@ class Kiosk : ComponentActivity(),
             getProductsSimilar(queue, state, storeCode, barcode, {
                 uiList.addAll(it)
                 productCode = uiList[0].productCode
+                showDetailsMode = true
                 loading = false
             }, {
                 loading = false
@@ -135,10 +138,14 @@ class Kiosk : ComponentActivity(),
     }
 
     private fun back() {
-        stopBarcodeScan()
-        queue.stop()
-        beep.release()
-        finish()
+        if (showDetailsMode) {
+            showDetailsMode = false
+        } else {
+            stopBarcodeScan()
+            queue.stop()
+            beep.release()
+            finish()
+        }
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
@@ -186,6 +193,10 @@ class Kiosk : ComponentActivity(),
     @Composable
     fun Content() {
 
+        var barcode by rememberSaveable {
+            mutableStateOf("")
+        }
+
         if (loading) {
             Column(
                 modifier = Modifier
@@ -195,7 +206,7 @@ class Kiosk : ComponentActivity(),
             ) {
                 LoadingCircularProgressIndicator(false, loading)
             }
-        } else if (uiList.isNotEmpty()) {
+        } else if (showDetailsMode) {
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
@@ -269,38 +280,62 @@ class Kiosk : ComponentActivity(),
             }
 
         } else {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .width(256.dp)
-                ) {
-                    Box(
 
+            Column {
+
+                CustomTextField(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    hint = "بارکد کالا را وارد یا اسکن کنید",
+                    onValueChange = {
+                        barcode = it
+                    },
+                    value = barcode,
+                    onSearch = {
+                        loading = true
+                        getProductsSimilar(queue, state, storeCode, barcode, {
+                            uiList.addAll(it)
+                            productCode = uiList[0].productCode
+                            showDetailsMode = true
+                            loading = false
+                        }, {
+                            loading = false
+                        })
+                    }
+                )
+
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(
                         modifier = Modifier
-                            .background(color = Color.White, shape = Shapes.medium)
-                            .size(256.dp)
+                            .align(Alignment.Center)
+                            .width(256.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_big_barcode_scan),
-                            contentDescription = "",
-                            tint = Color.Unspecified,
+                        Box(
+
                             modifier = Modifier
-                                .align(Alignment.Center)
-                                .clickable {
-                                    startBarcodeScan()
-                                }
+                                .background(color = Color.White, shape = Shapes.medium)
+                                .size(256.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_big_barcode_scan),
+                                contentDescription = "",
+                                tint = Color.Unspecified,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .clickable {
+                                        startBarcodeScan()
+                                    }
+                            )
+                        }
+
+                        Text(
+                            "برای دیدن مشخصات کالا، ابتدا بارکد آن را اسکن کنید",
+                            style = Typography.h1,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
                         )
                     }
-
-                    Text(
-                        "برای دیدن مشخصات کالا، ابتدا بارکد آن را اسکن کنید",
-                        style = Typography.h1,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp),
-                    )
                 }
             }
         }

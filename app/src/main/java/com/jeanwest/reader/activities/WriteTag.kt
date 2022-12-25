@@ -34,7 +34,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.EPC
 import com.jeanwest.reader.data.Product
-import com.jeanwest.reader.data.getProductsV4
+import com.jeanwest.reader.data.getProductsDetails
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.hardware.setRFEpcAndTidMode
@@ -375,7 +375,7 @@ class WriteTag : ComponentActivity(),
             }
         }
 
-        getProductsV4(
+        getProductsDetails(
             queue,
             state,
             mutableListOf(),
@@ -428,7 +428,7 @@ class WriteTag : ComponentActivity(),
             }
         }
 
-        getProductsV4(
+        getProductsDetails(
             queue,
             state,
             mutableListOf(),

@@ -941,6 +941,42 @@ fun getWarehousesLists(
     queue.add(request)
 }
 
+fun getDriversLists(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    onSuccess: (drivers: MutableMap<String, Int>) -> Unit,
+    onError: () -> Unit,
+    token: String = ""
+) {
+
+    val url = "https://rfid-api.avakatan.ir/drivers"
+    val request = object : JsonArrayRequest(Method.GET, url, null, {
+
+        val drivers = mutableMapOf<String, Int>()
+
+        for (i in 0 until it.length()) {
+
+            drivers[it.getJSONObject(i).getString("FullName")] =
+                it.getJSONObject(i).getInt("PersonInfo_ID")
+        }
+
+        onSuccess(drivers)
+
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    }) {
+        override fun getHeaders(): MutableMap<String, String> {
+            val params = mutableMapOf<String, String>()
+            params["Content-Type"] = "application/json;charset=UTF-8"
+            params["Authorization"] = "Bearer " + token.ifEmpty { MainActivity.token }
+            return params
+        }
+    }
+
+    queue.add(request)
+}
+
 fun getPrintersList(
     queue: RequestQueue,
     state: SnackbarHostState,
@@ -1067,6 +1103,7 @@ fun createStockDraftByCarton(
     desc: String,
     source: Int,
     destination: Int,
+    driver: Int,
     onSuccess: () -> Unit,
     onError: () -> Unit,
 ) {
@@ -1107,6 +1144,7 @@ fun createStockDraftByCarton(
             body.put("description", desc)
             body.put("sourceWareHouseID", source)
             body.put("destWareHouseID", destination)
+            body.put("driverID", driver)
             body.put("cartoonsNum", cartonNumberArray)
 
             return body.toString().toByteArray()

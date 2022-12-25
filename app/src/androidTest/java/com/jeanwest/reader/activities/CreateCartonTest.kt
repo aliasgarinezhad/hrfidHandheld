@@ -10,6 +10,7 @@ import com.google.gson.reflect.TypeToken
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.test.RFIDWithUHFUART
+import com.jeanwest.reader.testData.jeanswestEPCs
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import org.junit.Rule
 import org.junit.Test
@@ -89,10 +90,56 @@ class CreateCartonTest {
         }
     }
 
+    @Test
+    fun test2() {
+
+        start()
+        waitForFinishLoading()
+        clearUserData()
+        restart()
+
+        activity.onAllNodesWithText("هنوز کالایی برای ایجاد کارتن اسکن نکرده اید")[0].assertExists()
+
+        epcScanJeanswest()
+
+        for (i in 0 until 3) {
+
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains(activity.activity.uiList[i].KBarCode)
+                assertTextContains(activity.activity.uiList[i].name)
+                assertTextContains("سایز: " + activity.activity.uiList[i].size)
+                assertTextContains("اسکن: " + "1")
+            }
+        }
+    }
+
     private fun restart() {
         activity.activity.runOnUiThread {
             activity.activity.recreate()
         }
+        waitForFinishLoading()
+    }
+
+    private fun epcScanJeanswest() {
+
+        RFIDWithUHFUART.uhfTagInfo.clear()
+        RFIDWithUHFUART.writtenUhfTagInfo.tid = ""
+        RFIDWithUHFUART.writtenUhfTagInfo.epc = ""
+
+        jeanswestEPCs.forEach {
+            val uhfTagInfo = UHFTAGInfo()
+            uhfTagInfo.epc = it
+            RFIDWithUHFUART.uhfTagInfo.add(uhfTagInfo)
+        }
+
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
+
+        Thread.sleep(1000)
+        activity.waitForIdle()
+
+        activity.activity.onKeyDown(280, KeyEvent(KeyEvent.ACTION_DOWN, 280))
+        activity.waitForIdle()
         waitForFinishLoading()
     }
 

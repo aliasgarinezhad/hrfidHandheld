@@ -53,7 +53,7 @@ class CreateCarton : ComponentActivity(),
     private val barcode2D = Barcode2D(this)
     private lateinit var rf: RFIDWithUHFUART
     private var rfPower = 30
-    private var scannedEpcs = mutableListOf<String>()
+    private var scannedEpcs = mutableStateListOf<String>()
     private var scanningJob: Job? = null
 
     //ui parameters
@@ -65,7 +65,7 @@ class CreateCarton : ComponentActivity(),
     var uiList = mutableStateListOf<Product>()
     private lateinit var queue: RequestQueue
     private var creatingCarton by mutableStateOf(false)
-    var scannedBarcodes = mutableListOf<String>()
+    var scannedBarcodes = mutableStateListOf<String>()
     private var source by mutableStateOf("انتخاب انبار جاری")
     private var sources = mutableStateMapOf<String, Int>()
     var products = mutableListOf<Product>()
@@ -75,6 +75,7 @@ class CreateCarton : ComponentActivity(),
     private var printer by mutableStateOf("")
     private var openPrintDialog by mutableStateOf(false)
     private var popupState = NotificationPopupHost()
+    private var scannedNumber by mutableStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,6 +148,7 @@ class CreateCarton : ComponentActivity(),
         rfidScan = true
         if (!setRFPower(state, rf, rfPower)) {
             rfidScan = false
+            scanning = false
             return
         }
 
@@ -160,7 +162,7 @@ class CreateCarton : ComponentActivity(),
             while (true) {
                 uhfTagInfo = rf.readTagFromBuffer()
                 if (uhfTagInfo != null) {
-                    if (uhfTagInfo.epc.startsWith("30")) {
+                    if (uhfTagInfo.epc.startsWith("30") || uhfTagInfo.epc.startsWith("1")) {
                         scannedEpcs.add(uhfTagInfo.epc)
                     }
                 } else {
@@ -168,7 +170,7 @@ class CreateCarton : ComponentActivity(),
                 }
             }
 
-            scannedEpcs = scannedEpcs.distinct().toMutableList()
+            scannedEpcs = scannedEpcs.distinct().toMutableStateList()
 
             val speed = scannedEpcs.size - epcTablePreviousSize
             when {
@@ -206,7 +208,7 @@ class CreateCarton : ComponentActivity(),
                     stopRFScan()
                     startBarcodeScan()
                 } else {
-                    if (!rfidScan) {
+                    if (!scanning && !loading) {
 
                         scanningJob = CoroutineScope(Dispatchers.IO).launch {
                             startRFScan()
@@ -214,7 +216,7 @@ class CreateCarton : ComponentActivity(),
                     } else {
 
                         stopRFScan()
-                        if (scannedEpcs.size + scannedBarcodes.size != 0) {
+                        if ((scannedEpcs.size + scannedBarcodes.size != 0) && !loading) {
                             syncScannedItemsToServer()
                         }
                     }
@@ -242,6 +244,10 @@ class CreateCarton : ComponentActivity(),
             uiList.sortBy {
                 it.name
             }
+            scannedNumber = 0
+            uiList.forEach {
+                scannedNumber += it.scannedNumber
+            }
             loading = false
             return
         }
@@ -256,7 +262,7 @@ class CreateCarton : ComponentActivity(),
                 alreadySyncedBarcodes.add(it.scannedBarcode)
             }
             if (it.scannedEPCNumber > 0) {
-                alreadySyncedEpcs.addAll(scannedEpcs)
+                alreadySyncedEpcs.addAll(it.scannedEPCs)
             }
         }
 
@@ -288,6 +294,10 @@ class CreateCarton : ComponentActivity(),
             }
             uiList.sortBy {
                 it.name
+            }
+            scannedNumber = 0
+            uiList.forEach {
+                scannedNumber += it.scannedNumber
             }
             loading = false
             return
@@ -351,8 +361,11 @@ class CreateCarton : ComponentActivity(),
                 uiList.sortBy {
                     it.name
                 }
+                scannedNumber = 0
+                uiList.forEach {
+                    scannedNumber += it.scannedNumber
+                }
                 loading = false
-
             },
             {
 
@@ -363,6 +376,10 @@ class CreateCarton : ComponentActivity(),
                 }
                 uiList.sortBy { it1 ->
                     it1.name
+                }
+                scannedNumber = 0
+                uiList.forEach {
+                    scannedNumber += it.scannedNumber
                 }
                 loading = false
             }
@@ -414,6 +431,10 @@ class CreateCarton : ComponentActivity(),
             uiList.sortBy { it1 ->
                 it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
             }
+            scannedNumber = 0
+            uiList.forEach {
+                scannedNumber += it.scannedNumber
+            }
             loading = false
             return
         }
@@ -458,6 +479,10 @@ class CreateCarton : ComponentActivity(),
                 uiList.sortBy { it1 ->
                     it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
                 }
+                scannedNumber = 0
+                uiList.forEach {
+                    scannedNumber += it.scannedNumber
+                }
                 loading = false
 
             },
@@ -473,6 +498,10 @@ class CreateCarton : ComponentActivity(),
                 }
                 uiList.sortBy { it1 ->
                     it1.scannedEPCNumber + it1.scannedBarcodeNumber > 0
+                }
+                scannedNumber = 0
+                uiList.forEach {
+                    scannedNumber += it.scannedNumber
                 }
                 loading = false
             })
@@ -528,12 +557,12 @@ class CreateCarton : ComponentActivity(),
         scannedBarcodes = Gson().fromJson(
             memory.getString("CreateCartonBarcodeTable", ""),
             scannedBarcodes.javaClass
-        ) ?: mutableListOf()
+        ) ?: mutableStateListOf()
 
         scannedEpcs = Gson().fromJson(
             memory.getString("CreateCartonEpcTable", ""),
             scannedEpcs.javaClass
-        ) ?: mutableListOf()
+        ) ?: mutableStateListOf()
 
         products = Gson().fromJson(
             memory.getString("CreateCartonProducts", ""),
@@ -567,6 +596,10 @@ class CreateCarton : ComponentActivity(),
         }
         uiList.sortBy { it1 ->
             it1.name
+        }
+        scannedNumber = 0
+        uiList.forEach {
+            scannedNumber += it.scannedNumber
         }
         saveToMemory()
     }
@@ -715,7 +748,7 @@ class CreateCarton : ComponentActivity(),
                         }
 
                         Text(
-                            text = "مجموع: " + (scannedEpcs.size + scannedBarcodes.size).toString(),
+                            text = "مجموع: $scannedNumber",
                             style = MaterialTheme.typography.body1,
                             modifier = Modifier
                                 .weight(1F)

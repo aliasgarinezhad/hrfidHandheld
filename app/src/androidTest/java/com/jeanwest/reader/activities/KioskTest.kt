@@ -40,6 +40,27 @@ class KioskTest {
                 assertTextContains("فروشگاه: " + activity.activity.uiList[i].storeNumber)
             }
         }
+        activity.activity.onKeyDown(4, KeyEvent(KeyEvent.ACTION_DOWN, 4))
+        activity.waitForIdle()
+        activity.onNodeWithTag("CustomTextField").performTextClearance()
+        activity.onNodeWithTag("CustomTextField").performTextInput("11531052J-2010-L")
+        activity.onNodeWithTag("CustomTextField").performImeAction()
+        waitForFinishLoading()
+        activity.onNodeWithText(activity.activity.uiList[0].name).assertExists()
+        activity.onNodeWithText("کد فرعی: " + activity.activity.uiList[0].productCode).assertExists()
+        activity.onNodeWithText("قیمت: " + activity.activity.uiList[0].originalPrice).assertExists()
+        activity.onNodeWithText("قیمت فروش: " + activity.activity.uiList[0].salePrice).assertExists()
+
+        for (i in 0 until maxItems) {
+
+            activity.onAllNodesWithTag("items")[i].apply {
+                assertTextContains("رنگ: " + activity.activity.uiList[i].color)
+                assertTextContains("سایز: " + activity.activity.uiList[i].size)
+                assertTextContains("انبار: " + activity.activity.uiList[i].wareHouseNumber)
+                assertTextContains("فروشگاه: " + activity.activity.uiList[i].storeNumber)
+            }
+        }
+
     }
 
     private fun barcodeScan(barcode: String) {
