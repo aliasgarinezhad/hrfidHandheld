@@ -35,6 +35,7 @@ import com.jeanwest.reader.R
 import com.jeanwest.reader.management.*
 import com.jeanwest.reader.data.Product
 import com.jeanwest.reader.data.getProductsSimilar
+import com.jeanwest.reader.data.getProductsSimilarProductCode
 import com.jeanwest.reader.hardware.IBarcodeResult
 import com.jeanwest.reader.test.Barcode2D
 import com.jeanwest.reader.ui.*
@@ -292,7 +293,7 @@ class Kiosk : ComponentActivity(),
                     value = barcode,
                     onSearch = {
                         loading = true
-                        getProductsSimilar(queue, state, storeCode, barcode, {
+                        getProductsSimilarProductCode(queue, state, storeCode, barcode, {
                             uiList.addAll(it)
                             productCode = uiList[0].productCode
                             showDetailsMode = true

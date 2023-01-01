@@ -38,6 +38,8 @@ class CreateStockDraftByCartonsTest {
             waitForFinishLoading()
         }
 
+        activity.onNodeWithText("مجموع: " + cartons.size).assertExists()
+
         for (i in 0 until 3) {
 
             activity.onAllNodesWithTag("items")[i].apply {

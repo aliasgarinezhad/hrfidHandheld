@@ -334,6 +334,20 @@ class CreateStockDraftByCartons : ComponentActivity(),
                 }
             } else {
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 0.dp, top = 16.dp, start = 16.dp)
+                ) {
+                    Text(
+                        text = "مجموع: " + (uiList.size).toString(),
+                        style = MaterialTheme.typography.body1,
+                        modifier = Modifier
+                            .weight(1F)
+                            .align(Alignment.CenterVertically)
+                    )
+                }
+
                 if (uiList.isEmpty()) {
                     Box(
                         modifier = Modifier

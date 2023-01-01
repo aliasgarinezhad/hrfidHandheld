@@ -43,7 +43,7 @@ class KioskTest {
         activity.activity.onKeyDown(4, KeyEvent(KeyEvent.ACTION_DOWN, 4))
         activity.waitForIdle()
         activity.onNodeWithTag("CustomTextField").performTextClearance()
-        activity.onNodeWithTag("CustomTextField").performTextInput("11531052J-2010-L")
+        activity.onNodeWithTag("CustomTextField").performTextInput("11531052")
         activity.onNodeWithTag("CustomTextField").performImeAction()
         waitForFinishLoading()
         activity.onNodeWithText(activity.activity.uiList[0].name).assertExists()

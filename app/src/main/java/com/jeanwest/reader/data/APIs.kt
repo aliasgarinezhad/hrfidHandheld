@@ -451,6 +451,62 @@ fun getProductsSimilar(
     queue.add(request)
 }
 
+fun getProductsSimilarProductCode(
+    queue: RequestQueue,
+    state: SnackbarHostState,
+    storeCode: Int,
+    barcode: String,
+    onSuccess: (products: MutableList<Product>) -> Unit,
+    onError: () -> Unit
+) {
+    val url =
+        "https://rfid-api.avakatan.ir/products/similars?DepartmentInfo_ID=$storeCode&K_Bar_Code=$barcode"
+
+    val request = JsonObjectRequest(url, {
+
+        val products = mutableListOf<Product>()
+        val productsJsonArray = it.getJSONArray("products")
+        if (productsJsonArray.length() > 0) {
+
+            for (i in 0 until productsJsonArray.length()) {
+
+                val json = productsJsonArray.getJSONObject(i)
+
+                products.add(
+                    Product(
+                        name = json.getString("productName"),
+                        KBarCode = json.getString("KBarCode"),
+                        imageUrl = json.getString("ImgUrl"),
+                        storeNumber = json.getInt("dbCountStore"),
+                        wareHouseNumber = json.getInt("dbCountDepo"),
+                        productCode = json.getString("K_Bar_Code"),
+                        size = json.getString("Size"),
+                        color = json.getString("Color"),
+                        originalPrice = json.getString("OrigPrice"),
+                        salePrice = json.getString("SalePrice"),
+                        primaryKey = json.getLong("BarcodeMain_ID"),
+                        rfidKey = json.getLong("RFID"),
+                        kName = json.getString("K_Name"),
+                    )
+                )
+            }
+            onSuccess(products)
+        } else {
+            CoroutineScope(Dispatchers.Default).launch {
+                state.showSnackbar(
+                    "این کد فرعی هیچ موجودی در فروشگاه شما ندارد.",
+                    null,
+                    SnackbarDuration.Long
+                )
+            }
+        }
+    }, {
+        apiErrorProcess(state, it)
+        onError()
+    })
+    queue.add(request)
+}
+
 fun getRefill(
     queue: RequestQueue,
     state: SnackbarHostState,
